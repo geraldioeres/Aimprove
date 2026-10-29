@@ -14,7 +14,19 @@ import { calculateNextWaniKaniStage, WANIKANI_STAGES, WaniKaniStage } from '../l
 import { evaluateQuranPageSession, QuranPageProgress } from '../lib/srs-fsrs';
 import { configureRuntimeSupabase, getSupabaseClient } from '../lib/supabase';
 
-const STORAGE_KEY = 'aimprove.learning.state.v1';
+const STORAGE_KEY = 'aimprove.learning.state.v2';
+
+// Pre-computed O(1) lookup indices for all 8,855 WaniKani Level 1-60 subjects
+export const JP_SUBJECT_BY_ID: Record<string, JPSubject> = {};
+export const JP_SUBJECTS_BY_LEVEL: Record<number, JPSubject[]> = {};
+
+for (const subj of INITIAL_JP_SUBJECTS) {
+  JP_SUBJECT_BY_ID[subj.id] = subj;
+  if (!JP_SUBJECTS_BY_LEVEL[subj.level]) {
+    JP_SUBJECTS_BY_LEVEL[subj.level] = [];
+  }
+  JP_SUBJECTS_BY_LEVEL[subj.level].push(subj);
+}
 
 export interface ReviewLogEntry {
   id: string;
@@ -66,15 +78,24 @@ interface LearningState {
     newlyUnlockedIds: string[];
     leveledUpTo: number | null;
   }>;
-  mineSentenceCard: (card: Omit<UserJPMinedCard, 'id' | 'srsStage' | 'nextReviewAt' | 'createdAt'>) => Promise<void>;
+  mineSentenceCard: (
+    card: Omit<UserJPMinedCard, 'id' | 'srsStage' | 'nextReviewAt' | 'createdAt'>
+  ) => Promise<void>;
   startQuranSabaqPage: (pageNumber: number) => Promise<void>;
   submitQuranPageRecitation: (
     pageNumber: number,
     mistakes: number,
     flaggedAyahKeys: string[]
   ) => Promise<QuranPageProgress>;
-  connectSupabaseRuntime: (url: string, anonKey: string) => Promise<{ ok: boolean; message: string }>;
-  signInWithSupabase: (email: string, password: string, isSignUp: boolean) => Promise<{ ok: boolean; message: string }>;
+  connectSupabaseRuntime: (
+    url: string,
+    anonKey: string
+  ) => Promise<{ ok: boolean; message: string }>;
+  signInWithSupabase: (
+    email: string,
+    password: string,
+    isSignUp: boolean
+  ) => Promise<{ ok: boolean; message: string }>;
   signOutSupabase: () => Promise<void>;
   resetDemoProgress: () => Promise<void>;
 }
@@ -117,7 +138,6 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         set({ isHydrated: true });
       }
 
-      // Check active Supabase session if configured
       const sb = getSupabaseClient();
       if (sb) {
         const { data } = await sb.auth.getSession();
@@ -159,7 +179,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         correctStreak: 1,
         incorrectCount: 0,
       };
-      const subj = get().jpSubjects.find((s) => s.id === id);
+      const subj = JP_SUBJECT_BY_ID[id];
       logs.unshift({
         id: `${Date.now()}-${id}`,
         domain: 'japanese',
@@ -174,7 +194,10 @@ export const useLearningStore = create<LearningState>((set, get) => ({
 
     set({ jpAssignments: assignments, reviewLogs: logs.slice(0, 100) });
     await persistState(get());
-    await syncAssignmentBatchToSupabase(subjectIds.map((id) => assignments[id]), get().userId);
+    await syncAssignmentBatchToSupabase(
+      subjectIds.map((id) => assignments[id]),
+      get().userId
+    );
     return subjectIds;
   },
 
@@ -197,7 +220,12 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         };
       }
       const card = cards[idx];
-      const outcome = calculateNextWaniKaniStage(card.srsStage, incorrectCount, card.srsStage >= 5, now);
+      const outcome = calculateNextWaniKaniStage(
+        card.srsStage,
+        incorrectCount,
+        card.srsStage >= 5,
+        now
+      );
       cards[idx] = {
         ...card,
         srsStage: outcome.newStage,
@@ -245,15 +273,16 @@ export const useLearningStore = create<LearningState>((set, get) => ({
 
     assignments[subjectId] = updatedAssignment;
 
-    // Check WaniKani Dependency Unlocking!
-    // When a Radical or Kanji reaches Guru I (stage >= 5), check all subjects that list it in componentIds
+    // Fast O(1) WaniKani Dependency Unlocking via amalgamationIds!
     const newlyUnlockedIds: string[] = [];
-    const allSubjects = get().jpSubjects;
+    const reviewedSubject = JP_SUBJECT_BY_ID[subjectId];
+    let currentLevel = get().currentJPLevel;
 
-    if (updatedAssignment.passedGuru) {
-      for (const candidate of allSubjects) {
-        if (assignments[candidate.id]) continue; // Already unlocked
-        if (candidate.componentIds.length === 0) continue;
+    if (updatedAssignment.passedGuru && reviewedSubject) {
+      for (const depId of reviewedSubject.amalgamationIds) {
+        if (assignments[depId]) continue;
+        const candidate = JP_SUBJECT_BY_ID[depId];
+        if (!candidate || candidate.level > currentLevel) continue;
 
         const allComponentsPassedGuru = candidate.componentIds.every(
           (compId) => assignments[compId]?.passedGuru
@@ -277,16 +306,18 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     }
 
     // Check Level-Up condition: 90% of current level's Kanji at Guru I or higher
-    let currentLevel = get().currentJPLevel;
     let leveledUpTo: number | null = null;
-    const levelKanji = allSubjects.filter((s) => s.level === currentLevel && s.kind === 'kanji');
+    const levelSubjects = JP_SUBJECTS_BY_LEVEL[currentLevel] || [];
+    const levelKanji = levelSubjects.filter((s) => s.kind === 'kanji');
     if (levelKanji.length > 0) {
-      const guruKanjiCount = levelKanji.filter((k) => assignments[k.id]?.passedGuru).length;
+      const guruKanjiCount = levelKanji.filter(
+        (k) => assignments[k.id]?.passedGuru
+      ).length;
       if (guruKanjiCount / levelKanji.length >= 0.9 && currentLevel < 60) {
         currentLevel += 1;
         leveledUpTo = currentLevel;
-        // Unlock next level's Radicals and standalone Grammar into Lesson Queue
-        for (const nextSubj of allSubjects.filter((s) => s.level === currentLevel)) {
+        const nextLevelSubjects = JP_SUBJECTS_BY_LEVEL[currentLevel] || [];
+        for (const nextSubj of nextLevelSubjects) {
           if (!assignments[nextSubj.id] && nextSubj.componentIds.length === 0) {
             assignments[nextSubj.id] = {
               subjectId: nextSubj.id,
@@ -305,13 +336,14 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       }
     }
 
-    const subj = allSubjects.find((s) => s.id === subjectId);
     const logs = [
       {
         id: `${Date.now()}-${subjectId}`,
         domain: 'japanese' as const,
         itemId: subjectId,
-        title: subj ? `${subj.characters} (${subj.meanings[0]})` : subjectId,
+        title: reviewedSubject
+          ? `${reviewedSubject.characters} (${reviewedSubject.meanings[0]})`
+          : subjectId,
         previousStage: WANIKANI_STAGES[outcome.previousStage].name,
         newStage: WANIKANI_STAGES[outcome.newStage].name,
         mistakes: incorrectCount,
@@ -439,7 +471,8 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     await persistState(get(), url, anonKey);
     return {
       ok: true,
-      message: 'Supabase cloud client configured. You can now sign in to sync your progress.',
+      message:
+        'Supabase cloud client configured. You can now sign in to sync your progress.',
     };
   },
 
@@ -583,21 +616,30 @@ async function syncQuranPageToSupabase(
 }
 
 /**
- * Selector helpers for Unified Home Queue & 24-Hour Review Forecast
+ * O(1) indexed selector helpers for Unified Home Queue & 24-Hour Review Forecast
  */
-export function selectDueJapaneseReviews(state: LearningState, now: Date = new Date()): {
+export function selectDueJapaneseReviews(
+  state: LearningState,
+  now: Date = new Date()
+): {
   subjects: JPSubject[];
   minedCards: UserJPMinedCard[];
   totalCount: number;
 } {
   const nowMs = now.getTime();
-  const subjects = state.jpSubjects.filter((subj) => {
-    const assign = state.jpAssignments[subj.id];
-    if (!assign || assign.srsStage < 1 || assign.srsStage >= 9 || !assign.nextReviewAt) {
-      return false;
+  const subjects: JPSubject[] = [];
+
+  for (const assign of Object.values(state.jpAssignments)) {
+    if (
+      assign.srsStage >= 1 &&
+      assign.srsStage < 9 &&
+      assign.nextReviewAt &&
+      new Date(assign.nextReviewAt).getTime() <= nowMs
+    ) {
+      const subj = JP_SUBJECT_BY_ID[assign.subjectId];
+      if (subj) subjects.push(subj);
     }
-    return new Date(assign.nextReviewAt).getTime() <= nowMs;
-  });
+  }
 
   const minedCards = state.jpMinedCards.filter((card) => {
     if (card.srsStage < 1 || card.srsStage >= 9 || !card.nextReviewAt) return false;
@@ -612,13 +654,20 @@ export function selectDueJapaneseReviews(state: LearningState, now: Date = new D
 }
 
 export function selectAvailableJapaneseLessons(state: LearningState): JPSubject[] {
-  return state.jpSubjects.filter((subj) => {
-    const assign = state.jpAssignments[subj.id];
-    return assign && assign.srsStage === 0;
-  });
+  const lessons: JPSubject[] = [];
+  for (const assign of Object.values(state.jpAssignments)) {
+    if (assign.srsStage === 0) {
+      const subj = JP_SUBJECT_BY_ID[assign.subjectId];
+      if (subj) lessons.push(subj);
+    }
+  }
+  return lessons;
 }
 
-export function selectDueQuranPages(state: LearningState, now: Date = new Date()): {
+export function selectDueQuranPages(
+  state: LearningState,
+  now: Date = new Date()
+): {
   sabaqPages: QuranPageProgress[];
   sabqiPages: QuranPageProgress[];
   manzilPages: QuranPageProgress[];
@@ -648,14 +697,11 @@ export function build24HourForecast(
   now: Date = new Date()
 ): ForecastHourBucket[] {
   const buckets: ForecastHourBucket[] = [];
-  const startOfCurrentHour = new Date(now);
-  startOfCurrentHour.setMinutes(0, 0, 0);
 
   const dueNowJP = selectDueJapaneseReviews(state, now).totalCount;
   const dueNowQuran = selectDueQuranPages(state, now).totalDue;
   let runningTotal = dueNowJP + dueNowQuran;
 
-  // Group into 6 four-hour windows across the next 24 hours for clean mobile readability
   const hourSteps = [2, 4, 8, 12, 18, 24];
   let prevOffset = 0;
 
@@ -702,4 +748,3 @@ export function build24HourForecast(
 
   return buckets;
 }
-

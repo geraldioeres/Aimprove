@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import {
+  JP_SUBJECTS_BY_LEVEL,
   selectAvailableJapaneseLessons,
   selectDueJapaneseReviews,
   useLearningStore,
@@ -18,11 +19,23 @@ import {
 import { JPSubject, JPSubjectKind } from '../../src/data/jp-seed';
 import { WANIKANI_STAGES } from '../../src/lib/srs-wanikani';
 
+const WANIKANI_TIERS = [
+  { name: 'Pleasant', range: '1-10', start: 1, end: 10 },
+  { name: 'Painful', range: '11-20', start: 11, end: 20 },
+  { name: 'Death', range: '21-30', start: 21, end: 30 },
+  { name: 'Hell', range: '31-40', start: 31, end: 40 },
+  { name: 'Paradise', range: '41-50', start: 41, end: 50 },
+  { name: 'Reality', range: '51-60', start: 51, end: 60 },
+] as const;
+
 export default function JapaneseHubScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const state = useLearningStore();
 
+  const [selectedTierIndex, setSelectedTierIndex] = useState<number>(
+    Math.floor((state.currentJPLevel - 1) / 10)
+  );
   const [selectedLevel, setSelectedLevel] = useState<number>(state.currentJPLevel);
   const [filterKind, setFilterKind] = useState<JPSubjectKind | 'all' | 'mined'>('all');
   const [inspectedSubject, setInspectedSubject] = useState<JPSubject | null>(null);
@@ -48,22 +61,32 @@ export default function JapaneseHubScreen() {
     assignmentsList.filter((a) => a.srsStage === 9).length +
     state.jpMinedCards.filter((m) => m.srsStage === 9).length;
 
+  const rawLevelSubjects = JP_SUBJECTS_BY_LEVEL[selectedLevel] || [];
+
   // Level Kanji Guru Progression (90% Kanji at Guru I unlocks next level)
-  const currentLevelKanji = state.jpSubjects.filter(
-    (s) => s.level === selectedLevel && s.kind === 'kanji'
-  );
+  const currentLevelKanji = rawLevelSubjects.filter((s) => s.kind === 'kanji');
   const guruKanjiInLevel = currentLevelKanji.filter(
     (k) => state.jpAssignments[k.id]?.passedGuru
   ).length;
   const requiredForLevelUp = Math.max(1, Math.ceil(currentLevelKanji.length * 0.9));
 
-  const levelSubjects = state.jpSubjects.filter((s) => {
-    if (s.level !== selectedLevel) return false;
+  const levelSubjects = rawLevelSubjects.filter((s) => {
     if (filterKind !== 'all' && filterKind !== 'mined' && s.kind !== filterKind) {
       return false;
     }
     return true;
   });
+
+  const levelRadicalsCount = rawLevelSubjects.filter((s) => s.kind === 'radical').length;
+  const levelKanjiCount = currentLevelKanji.length;
+  const levelVocabCount = rawLevelSubjects.filter((s) => s.kind === 'vocab').length;
+  const levelGrammarCount = rawLevelSubjects.filter((s) => s.kind === 'grammar').length;
+
+  const activeTier = WANIKANI_TIERS[selectedTierIndex] || WANIKANI_TIERS[0];
+  const tierLevels = Array.from(
+    { length: 10 },
+    (_, idx) => activeTier.start + idx
+  );
 
   const getKindColors = (kind: JPSubjectKind) => {
     switch (kind) {
@@ -187,7 +210,7 @@ export default function JapaneseHubScreen() {
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          SRS Stage Distribution
+          SRS Stage Distribution ({state.jpSubjects.length.toLocaleString()} Total Curriculum Items)
         </Text>
         <View style={styles.srsGrid}>
           {[
@@ -218,7 +241,7 @@ export default function JapaneseHubScreen() {
         </View>
       </View>
 
-      {/* Level Progression & Unlock Gate */}
+      {/* Full WaniKani Level 1-60 Navigator */}
       <View
         style={[
           styles.sectionCard,
@@ -228,18 +251,62 @@ export default function JapaneseHubScreen() {
         <View style={styles.levelHeaderRow}>
           <View>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              Progressive Curriculum (Levels 1-60)
+              WaniKani Progressive Levels (1 to 60)
             </Text>
             <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-              Pass 90% of a level's Kanji to Guru I to unlock the next level
+              478 Radicals • 2,026 Kanji • 6,345 Vocabulary • JLPT Cloze Grammar
             </Text>
           </View>
         </View>
 
-        {/* Level Selector Pills */}
+        {/* 6 WaniKani 10-Level Tier Tabs */}
+        <View style={styles.tierRow}>
+          {WANIKANI_TIERS.map((tier, idx) => {
+            const active = selectedTierIndex === idx;
+            return (
+              <Pressable
+                key={tier.name}
+                onPress={() => {
+                  setSelectedTierIndex(idx);
+                  setSelectedLevel(tier.start);
+                }}
+                accessibilityRole="button"
+                style={[
+                  styles.tierBtn,
+                  {
+                    backgroundColor: active ? colors.textPrimary : colors.bgMuted,
+                    borderColor: active ? colors.textPrimary : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tierBtnName,
+                    { color: active ? colors.bgPrimary : colors.textPrimary },
+                  ]}
+                >
+                  {tier.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.tierBtnRange,
+                    {
+                      color: active ? colors.bgPrimary : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  Lv {tier.range}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* 10 Levels inside Selected Tier */}
         <View style={styles.levelSelectorRow}>
-          {[1, 2].map((lvl) => {
+          {tierLevels.map((lvl) => {
             const isSelected = selectedLevel === lvl;
+            const isCurrent = lvl === state.currentJPLevel;
             return (
               <Pressable
                 key={lvl}
@@ -249,9 +316,13 @@ export default function JapaneseHubScreen() {
                   styles.levelPill,
                   {
                     backgroundColor: isSelected
-                      ? colors.textPrimary
+                      ? colors.jpVocab
                       : colors.bgMuted,
-                    borderColor: isSelected ? colors.textPrimary : colors.border,
+                    borderColor: isSelected
+                      ? colors.jpVocab
+                      : isCurrent
+                      ? colors.jpKanji
+                      : colors.border,
                   },
                 ]}
               >
@@ -259,25 +330,15 @@ export default function JapaneseHubScreen() {
                   style={[
                     styles.levelPillText,
                     {
-                      color: isSelected ? colors.bgPrimary : colors.textPrimary,
+                      color: isSelected ? '#FFFFFF' : colors.textPrimary,
                     },
                   ]}
                 >
-                  Level {lvl} {lvl === state.currentJPLevel ? '(Current)' : ''}
+                  Lv {lvl}
                 </Text>
               </Pressable>
             );
           })}
-          <View
-            style={[
-              styles.levelPillLocked,
-              { backgroundColor: colors.bgMuted, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.levelPillLockedText, { color: colors.textMuted }]}>
-              Levels 3-60 Unlock at Guru I
-            </Text>
-          </View>
         </View>
 
         {/* Kanji Guru Unlock Progress Bar */}
@@ -289,10 +350,10 @@ export default function JapaneseHubScreen() {
         >
           <View style={styles.unlockProgressTextRow}>
             <Text style={[styles.unlockProgressLabel, { color: colors.textPrimary }]}>
-              Level {selectedLevel} Kanji at Guru I or higher
+              Level {selectedLevel} Kanji at Guru I ({levelRadicalsCount} Radicals • {levelKanjiCount} Kanji • {levelVocabCount} Vocab)
             </Text>
             <Text style={[styles.unlockProgressValue, { color: colors.jpKanji }]}>
-              {guruKanjiInLevel} / {requiredForLevelUp} required
+              {guruKanjiInLevel} / {requiredForLevelUp} for Lv {Math.min(60, selectedLevel + 1)}
             </Text>
           </View>
           <View
@@ -320,11 +381,11 @@ export default function JapaneseHubScreen() {
         <View style={styles.filterTabsRow}>
           {(
             [
-              { key: 'all', label: 'All Items' },
-              { key: 'radical', label: 'Radicals' },
-              { key: 'kanji', label: 'Kanji' },
-              { key: 'vocab', label: 'Vocab' },
-              { key: 'grammar', label: 'Grammar' },
+              { key: 'all', label: `All (${rawLevelSubjects.length})` },
+              { key: 'radical', label: `Radicals (${levelRadicalsCount})` },
+              { key: 'kanji', label: `Kanji (${levelKanjiCount})` },
+              { key: 'vocab', label: `Vocab (${levelVocabCount})` },
+              { key: 'grammar', label: `Grammar (${levelGrammarCount})` },
               { key: 'mined', label: `Mined (${state.jpMinedCards.length})` },
             ] as const
           ).map((tab) => {
@@ -440,7 +501,7 @@ export default function JapaneseHubScreen() {
                         ? colors.bgMuted
                         : kindStyle.bg,
                       borderColor: isLocked ? colors.border : kindStyle.fg,
-                      opacity: pressed ? 0.8 : isLocked ? 0.65 : 1,
+                      opacity: pressed ? 0.8 : isLocked ? 0.72 : 1,
                     },
                   ]}
                 >
@@ -560,13 +621,18 @@ export default function JapaneseHubScreen() {
                   ]}
                 >
                   <Text style={[styles.mnemonicTitle, { color: colors.textPrimary }]}>
-                    Mnemonic & Explanation
+                    Mnemonic & Breakdown
                   </Text>
                   <Text style={[styles.mnemonicBody, { color: colors.textSecondary }]}>
                     {inspectedSubject.mnemonic}
                   </Text>
                   {inspectedSubject.readingMnemonic ? (
-                    <Text style={[styles.mnemonicBody, { color: colors.textSecondary, marginTop: 6 }]}>
+                    <Text
+                      style={[
+                        styles.mnemonicBody,
+                        { color: colors.textSecondary, marginTop: 6 },
+                      ]}
+                    >
                       Reading Hint: {inspectedSubject.readingMnemonic}
                     </Text>
                   ) : null}
@@ -673,32 +739,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  tierRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tierBtn: {
+    flex: 1,
+    minWidth: 95,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: RADII.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  tierBtnName: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  tierBtnRange: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   levelSelectorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   levelPill: {
-    paddingHorizontal: 14,
-    minHeight: 40,
+    minWidth: 54,
+    paddingHorizontal: 10,
+    minHeight: 38,
     borderRadius: RADII.sm,
     borderWidth: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   levelPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  levelPillLocked: {
-    paddingHorizontal: 12,
-    minHeight: 40,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    justifyContent: 'center',
-  },
-  levelPillLockedText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   unlockProgressBox: {
     padding: 12,
@@ -710,13 +790,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   unlockProgressLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   unlockProgressValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
@@ -938,4 +1020,3 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
-
