@@ -1,5 +1,6 @@
 -- ============================================================================
--- Aimprove Cloud Database Schema (Supabase PostgreSQL + RLS)
+-- Aimprove Cloud Database Schema (Supabase PostgreSQL + RLS — Idempotent)
+-- Safe to run multiple times in the Supabase SQL Editor.
 -- ============================================================================
 
 create extension if not exists "uuid-ossp";
@@ -10,18 +11,18 @@ create table if not exists public.jp_subjects (
   level integer not null check (level between 1 and 60),
   kind text not null check (kind in ('radical', 'kanji', 'vocab', 'grammar')),
   characters text not null,
-  meanings jsonb not null default '[]'::jsonb,        -- string[]
-  readings jsonb not null default '[]'::jsonb,        -- string[] (hiragana)
-  reading_type text,                                  -- 'onyomi' | 'kunyomi' | 'vocab' | 'cloze'
-  component_ids jsonb not null default '[]'::jsonb,   -- prerequisite radical/kanji IDs
-  amalgamation_ids jsonb not null default '[]'::jsonb,-- unlocked kanji/vocab IDs
+  meanings jsonb not null default '[]'::jsonb,
+  readings jsonb not null default '[]'::jsonb,
+  reading_type text,
+  component_ids jsonb not null default '[]'::jsonb,
+  amalgamation_ids jsonb not null default '[]'::jsonb,
   mnemonic text not null,
   reading_mnemonic text,
   pitch_accent text,
   jlpt_level text,
   grammar_structure text,
-  context_sentences jsonb not null default '[]'::jsonb, -- [{ ja, furigana, en }]
-  cloze_prompt jsonb,                                   -- { sentenceBefore, blankTarget, sentenceAfter, hint, fullTranslation }
+  context_sentences jsonb not null default '[]'::jsonb,
+  cloze_prompt jsonb,
   created_at timestamptz not null default now()
 );
 
@@ -32,14 +33,14 @@ create table if not exists public.jp_reading_passages (
   jlpt_level text not null,
   title_ja text not null,
   title_en text not null,
-  paragraphs jsonb not null default '[]'::jsonb,      -- tokenized segments with furigana & dictionary lookup
+  paragraphs jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 
 -- 3. Per-User Japanese SRS Assignments (WaniKani 9-Stage Progress)
 create table if not exists public.user_jp_assignments (
   user_id uuid not null references auth.users(id) on delete cascade,
-  subject_id text not null references public.jp_subjects(id) on delete cascade,
+  subject_id text not null,
   srs_stage smallint not null default 0 check (srs_stage between 0 and 9),
   unlocked_at timestamptz not null default now(),
   started_at timestamptz,
@@ -52,11 +53,15 @@ create table if not exists public.user_jp_assignments (
   primary key (user_id, subject_id)
 );
 
+-- Ensure any older FK constraint is dropped so all 8,855 Level 1-60 IDs sync cleanly
+alter table public.user_jp_assignments
+  drop constraint if exists user_jp_assignments_subject_id_fkey;
+
 -- 4. Per-User Mined Sentence/Vocab Cards from Reading Passages
 create table if not exists public.user_jp_mined_cards (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  source_passage_id text references public.jp_reading_passages(id) on delete set null,
+  source_passage_id text,
   characters text not null,
   reading text not null,
   meaning text not null,
@@ -72,9 +77,9 @@ create table if not exists public.quran_pages (
   page_number smallint primary key check (page_number between 1 and 604),
   juz smallint not null check (juz between 1 and 30),
   hizb smallint not null check (hizb between 1 and 60),
-  surah_Summary text not null,
+  surah_summary text not null,
   ayah_count smallint not null default 0,
-  lines jsonb not null default '[]'::jsonb            -- 15-line Madani Mushaf word/ayah structure
+  lines jsonb not null default '[]'::jsonb
 );
 
 -- 6. Per-User Quran Mushaf Page Progress (Sabaq -> Sabqi -> Manzil FSRS)
@@ -109,7 +114,7 @@ create table if not exists public.user_review_logs (
 );
 
 -- ============================================================================
--- Row Level Security (RLS) Policies
+-- Row Level Security (RLS) Policies (Idempotent: Drop-if-exists before Create)
 -- ============================================================================
 
 alter table public.jp_subjects enable row level security;
@@ -120,21 +125,37 @@ alter table public.quran_pages enable row level security;
 alter table public.user_quran_page_progress enable row level security;
 alter table public.user_review_logs enable row level security;
 
--- Shared Curriculum: Readable by all authenticated and anon users
+-- Shared Curriculum Policies
+drop policy if exists "Public read jp_subjects" on public.jp_subjects;
 create policy "Public read jp_subjects" on public.jp_subjects for select using (true);
+
+drop policy if exists "Allow curriculum seed upsert jp_subjects" on public.jp_subjects;
+create policy "Allow curriculum seed upsert jp_subjects" on public.jp_subjects
+  for all using (true) with check (true);
+
+drop policy if exists "Public read jp_reading_passages" on public.jp_reading_passages;
 create policy "Public read jp_reading_passages" on public.jp_reading_passages for select using (true);
+
+drop policy if exists "Public read quran_pages" on public.quran_pages;
 create policy "Public read quran_pages" on public.quran_pages for select using (true);
 
+drop policy if exists "Allow curriculum seed upsert quran_pages" on public.quran_pages;
+create policy "Allow curriculum seed upsert quran_pages" on public.quran_pages
+  for all using (true) with check (true);
+
 -- Per-User Tables: Strictly isolated to auth.uid()
+drop policy if exists "Users manage own jp_assignments" on public.user_jp_assignments;
 create policy "Users manage own jp_assignments" on public.user_jp_assignments
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Users manage own jp_mined_cards" on public.user_jp_mined_cards;
 create policy "Users manage own jp_mined_cards" on public.user_jp_mined_cards
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Users manage own quran_page_progress" on public.user_quran_page_progress;
 create policy "Users manage own quran_page_progress" on public.user_quran_page_progress
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Users manage own review_logs" on public.user_review_logs;
 create policy "Users manage own review_logs" on public.user_review_logs
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
