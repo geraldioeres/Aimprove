@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useLearningStore } from '../src/store/useLearningStore';
 
@@ -59,9 +60,10 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <RootNavigator />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <RootNavigator />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
-

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeContext';
 import {
   selectDueJapaneseReviews,
@@ -11,10 +12,15 @@ import {
 
 export default function TabsLayout() {
   const { colors, mode, toggleTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const state = useLearningStore();
   const dueJP = selectDueJapaneseReviews(state).totalCount;
   const dueQuran = selectDueQuranPages(state).totalDue;
   const totalDue = dueJP + dueQuran;
+
+  // Respect Android 3-button / gesture navigation bar, iOS Home Indicator, and mobile web safe area
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'web' ? 14 : 12);
+  const tabBarHeight = 56 + bottomInset;
 
   return (
     <Tabs
@@ -31,8 +37,8 @@ export default function TabsLayout() {
           backgroundColor: colors.bgSurface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 62,
-          paddingBottom: 8,
+          height: tabBarHeight,
+          paddingBottom: bottomInset,
           paddingTop: 6,
         },
         tabBarActiveTintColor: colors.textPrimary,
@@ -40,13 +46,16 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+          marginBottom: 2,
         },
         headerRight: () => (
           <Pressable
             onPress={toggleTheme}
             accessibilityRole="button"
             accessibilityLabel={
-              mode === 'light' ? 'Switch to Deep Ink Dark mode' : 'Switch to Warm Paper Light mode'
+              mode === 'light'
+                ? 'Switch to Deep Ink Dark mode'
+                : 'Switch to Warm Paper Light mode'
             }
             style={({ pressed }) => [
               styles.themeToggleBtn,
@@ -146,4 +155,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
