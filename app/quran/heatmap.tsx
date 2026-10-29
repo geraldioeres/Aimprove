@@ -247,9 +247,9 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   headerCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: SPACING.lg,
     gap: SPACING.sm,
   },
   title: {
@@ -274,42 +274,42 @@ const styles = StyleSheet.create({
   legendSwatch: {
     width: 14,
     height: 14,
-    borderRadius: 4,
+    borderRadius: 999,
   },
   legendLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   filterCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: SPACING.lg,
     gap: SPACING.sm,
   },
   filterHeading: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   juzScroll: {
     gap: 8,
     paddingVertical: 2,
   },
   juzPill: {
-    paddingHorizontal: 14,
-    minHeight: 40,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   juzPillText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   gridCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: SPACING.lg,
     gap: SPACING.md,
   },
   heatmapGrid: {
@@ -318,10 +318,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pageCell: {
-    width: 58,
-    minHeight: 52,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    width: 60,
+    minHeight: 56,
+    borderRadius: 16,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 4,
@@ -333,6 +333,6 @@ const styles = StyleSheet.create({
   },
   pageCellSub: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

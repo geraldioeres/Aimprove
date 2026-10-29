@@ -319,12 +319,27 @@ export default function JapaneseTypedReviewScreen() {
     >
       {/* Top Progress Bar */}
       <View style={styles.progressHeader}>
-        <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
-          Completed {completedCount} of {totalInitialCount} Prompts
-        </Text>
-        <Text style={[styles.remainingLabel, { color: colors.textPrimary }]}>
-          {queue.length} Remaining
-        </Text>
+        <View style={styles.progressTextRow}>
+          <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
+            Completed {completedCount} of {totalInitialCount} Prompts
+          </Text>
+          <View style={[styles.remainingBadge, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <Text style={[styles.remainingLabel, { color: colors.textPrimary }]}>
+              {queue.length} left
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.progressTrack, { backgroundColor: colors.bgMuted }]}>
+          <View
+            style={[
+              styles.progressFill,
+              {
+                backgroundColor: colors.jpVocab,
+                width: `${totalInitialCount > 0 ? Math.min(100, Math.round((completedCount / totalInitialCount) * 100)) : 0}%`,
+              },
+            ]}
+          />
+        </View>
       </View>
 
       {/* Main Prompt Stage Banner */}
@@ -334,10 +349,12 @@ export default function JapaneseTypedReviewScreen() {
           { backgroundColor: getBannerColor() },
         ]}
       >
-        <Text style={styles.kindTag}>
-          {currentTask.kind.toUpperCase()}
-          {currentTask.isMined ? ' • MINED CARD' : ''}
-        </Text>
+        <View style={styles.kindTagWrap}>
+          <Text style={styles.kindTag}>
+            {currentTask.kind.toUpperCase()}
+            {currentTask.isMined ? ' • MINED CARD' : ''}
+          </Text>
+        </View>
 
         {currentTask.promptType === 'cloze' && currentTask.clozePrompt ? (
           <View style={styles.clozePromptWrap}>
@@ -635,38 +652,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   progressHeader: {
+    gap: 6,
+    marginBottom: 4,
+  },
+  progressTextRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   progressLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
+  remainingBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   remainingLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
+  progressTrack: {
+    height: 10,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
   promptBanner: {
-    minHeight: 170,
-    borderRadius: RADII.lg,
+    minHeight: 180,
+    borderRadius: 28,
     padding: SPACING.lg,
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  kindTagWrap: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   kindTag: {
-    color: 'rgba(255,255,255,0.88)',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   mainCharacters: {
     color: '#FFFFFF',
-    fontSize: 56,
-    fontWeight: '800',
+    fontSize: 62,
+    fontWeight: '900',
     textAlign: 'center',
   },
   clozePromptWrap: {
@@ -694,12 +741,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   questionTypeBar: {
-    minHeight: 40,
-    borderRadius: RADII.sm,
+    minHeight: 42,
+    borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   questionTypeText: {
     fontSize: 12,
@@ -712,17 +759,17 @@ const styles = StyleSheet.create({
   },
   answerInput: {
     flex: 1,
-    minHeight: 52,
-    borderRadius: RADII.md,
+    minHeight: 54,
+    borderRadius: 999,
     borderWidth: 2,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     fontSize: 18,
     fontWeight: '700',
   },
   submitBtn: {
-    paddingHorizontal: 20,
-    minHeight: 52,
-    borderRadius: RADII.md,
+    paddingHorizontal: 24,
+    minHeight: 54,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -731,9 +778,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   feedbackBox: {
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    padding: SPACING.md + 2,
     gap: SPACING.sm,
   },
   feedbackTopRow: {
@@ -755,8 +802,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   unlockedAlertBox: {
-    padding: 12,
-    borderRadius: RADII.sm,
+    padding: 14,
+    borderRadius: 20,
     borderWidth: 1,
     gap: 4,
   },
@@ -776,21 +823,21 @@ const styles = StyleSheet.create({
   },
   toggleInfoBtn: {
     flex: 1,
-    minHeight: 44,
-    borderRadius: RADII.sm,
+    minHeight: 46,
+    borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
   toggleInfoBtnText: {
     fontSize: 13,
     fontWeight: '700',
   },
   nextPromptBtn: {
-    minHeight: 44,
-    paddingHorizontal: 18,
-    borderRadius: RADII.sm,
+    minHeight: 46,
+    paddingHorizontal: 22,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -799,9 +846,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   infoDrawer: {
-    borderRadius: RADII.lg,
+    borderRadius: 26,
     borderWidth: 1,
-    padding: SPACING.md,
+    padding: SPACING.lg,
     gap: 8,
   },
   infoHeading: {
@@ -821,8 +868,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   contextBox: {
-    padding: 12,
-    borderRadius: RADII.sm,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
     gap: 4,
     marginTop: 4,

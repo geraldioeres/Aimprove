@@ -436,13 +436,13 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: RADII.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     padding: SPACING.md,
     gap: SPACING.sm,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
   },
   sectionSub: {
     fontSize: 13,
@@ -456,14 +456,14 @@ const styles = StyleSheet.create({
   themeOptionBtn: {
     flex: 1,
     minHeight: 46,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   themeOptionText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   windowPillRow: {
     flexDirection: 'row',
@@ -472,16 +472,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   windowPill: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     minHeight: 42,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   windowPillText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   statusHeaderRow: {
     flexDirection: 'row',
@@ -491,63 +491,63 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: RADII.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: RADII.pill,
   },
   statusPillText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   input: {
-    minHeight: 46,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    minHeight: 48,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
+    paddingHorizontal: 18,
     fontSize: 14,
   },
   primaryBtn: {
-    minHeight: 46,
-    paddingHorizontal: 16,
-    borderRadius: RADII.sm,
+    minHeight: 48,
+    paddingHorizontal: 20,
+    borderRadius: RADII.pill,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   secondaryBtn: {
-    minHeight: 46,
-    paddingHorizontal: 16,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    minHeight: 48,
+    paddingHorizontal: 18,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   feedbackNote: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   divider: {
-    height: 1,
+    height: 1.5,
     marginVertical: 8,
   },
   subHeading: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
   },
   signedInBox: {
     gap: 8,
   },
   signedInText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   authForm: {
     gap: 8,
@@ -557,16 +557,16 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   resetBtn: {
-    paddingHorizontal: 12,
-    minHeight: 38,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    minHeight: 36,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   resetBtnText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   emptyLogsText: {
     fontSize: 13,
@@ -579,9 +579,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    padding: 12,
+    borderRadius: RADII.md,
+    borderWidth: 1.5,
     gap: 8,
   },
   logLeft: {
@@ -590,14 +590,14 @@ const styles = StyleSheet.create({
   },
   logTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   logMeta: {
     fontSize: 12,
   },
   logDomainTag: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 });
 

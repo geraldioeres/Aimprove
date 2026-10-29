@@ -39,6 +39,21 @@ export default function JapaneseLessonsScreen() {
   const [quizInput, setQuizInput] = useState('');
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
 
+  const getKindColor = (kind: string) => {
+    switch (kind) {
+      case 'radical':
+        return colors.jpRadical;
+      case 'kanji':
+        return colors.jpKanji;
+      case 'vocab':
+        return colors.jpVocab;
+      case 'grammar':
+        return colors.jpGrammar;
+      default:
+        return colors.jpVocab;
+    }
+  };
+
   if (batch.length === 0) {
     return (
       <View style={[styles.centerWrap, { backgroundColor: colors.bgPrimary }]}>
@@ -140,12 +155,14 @@ export default function JapaneseLessonsScreen() {
         <View
           style={[
             styles.lessonBanner,
-            { backgroundColor: colors.jpVocab },
+            { backgroundColor: getKindColor(currentQuizSubject.kind) },
           ]}
         >
-          <Text style={styles.bannerKind}>
-            {currentQuizSubject.kind.toUpperCase()} QUIZ
-          </Text>
+          <View style={styles.bannerTagWrap}>
+            <Text style={styles.bannerKind}>
+              {currentQuizSubject.kind.toUpperCase()} QUIZ
+            </Text>
+          </View>
           <Text style={styles.bannerChars}>{currentQuizSubject.characters}</Text>
           <Text style={styles.bannerMeanings}>
             {askReading
@@ -258,12 +275,14 @@ export default function JapaneseLessonsScreen() {
       <View
         style={[
           styles.lessonBanner,
-          { backgroundColor: colors.jpKanji },
+          { backgroundColor: getKindColor(currentSubject.kind) },
         ]}
       >
-        <Text style={styles.bannerKind}>
-          LEVEL {currentSubject.level} • {currentSubject.kind.toUpperCase()}
-        </Text>
+        <View style={styles.bannerTagWrap}>
+          <Text style={styles.bannerKind}>
+            LEVEL {currentSubject.level} • {currentSubject.kind.toUpperCase()}
+          </Text>
+        </View>
         <Text style={styles.bannerChars}>{currentSubject.characters}</Text>
         <Text style={styles.bannerMeanings}>
           {currentSubject.meanings.join(', ')}
@@ -391,25 +410,31 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   card: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.lg,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    padding: SPACING.xl,
     gap: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   headline: {
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: '800',
   },
   body: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   topRow: {
-    gap: 8,
+    gap: 10,
   },
   stepMeta: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   miniPillRow: {
     flexDirection: 'row',
@@ -417,45 +442,56 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   miniPill: {
-    paddingHorizontal: 12,
-    minHeight: 38,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   miniPillText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
   lessonBanner: {
-    minHeight: 160,
-    borderRadius: RADII.lg,
+    minHeight: 180,
+    borderRadius: 28,
     padding: SPACING.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  bannerTagWrap: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   bannerKind: {
-    color: 'rgba(255,255,255,0.85)',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   bannerChars: {
     color: '#FFFFFF',
-    fontSize: 52,
-    fontWeight: '800',
+    fontSize: 58,
+    fontWeight: '900',
   },
   bannerMeanings: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
   },
   detailCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: SPACING.lg,
     gap: SPACING.md,
   },
   detailBlock: {
@@ -476,10 +512,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   exampleBox: {
-    padding: 12,
-    borderRadius: RADII.sm,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 2,
+    gap: 4,
     marginTop: 4,
   },
   exampleJa: {
@@ -497,30 +533,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
+    gap: SPACING.sm,
   },
   primaryBtn: {
-    paddingHorizontal: 18,
-    minHeight: 46,
-    borderRadius: RADII.sm,
+    paddingHorizontal: 22,
+    minHeight: 50,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   secondaryBtn: {
-    paddingHorizontal: 16,
-    minHeight: 46,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    paddingHorizontal: 20,
+    minHeight: 50,
+    borderRadius: 999,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   quizPromptLabel: {
     fontSize: 14,
@@ -532,24 +569,24 @@ const styles = StyleSheet.create({
   },
   quizInput: {
     flex: 1,
-    minHeight: 50,
-    borderRadius: RADII.md,
+    minHeight: 54,
+    borderRadius: 999,
     borderWidth: 2,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     fontSize: 18,
     fontWeight: '700',
   },
   quizSubmitBtn: {
-    paddingHorizontal: 20,
-    minHeight: 50,
-    borderRadius: RADII.md,
+    paddingHorizontal: 24,
+    minHeight: 54,
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quizAlert: {
-    padding: 12,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
   },
   quizAlertText: {
     fontSize: 14,

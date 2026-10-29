@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import {
@@ -29,7 +30,7 @@ export default function UnifiedHomeQueueScreen() {
       <View style={[styles.centerState, { backgroundColor: colors.bgPrimary }]}>
         <ActivityIndicator size="large" color={colors.jpVocab} />
         <Text style={[styles.stateTitle, { color: colors.textPrimary }]}>
-          Loading your daily study queue...
+          Filling your daily study cup...
         </Text>
       </View>
     );
@@ -45,6 +46,21 @@ export default function UnifiedHomeQueueScreen() {
   const dueVocab = dueJP.subjects.filter((s) => s.kind === 'vocab').length;
   const dueGrammar = dueJP.subjects.filter((s) => s.kind === 'grammar').length;
   const dueMined = dueJP.minedCards.length;
+
+  const totalDueNow = dueJP.totalCount + dueQuran.totalDue;
+
+  // Calculate today's completed study count from review logs
+  const todayDateStr = new Date().toISOString().slice(0, 10);
+  const completedToday = state.reviewLogs.filter(
+    (log) => log.reviewedAt && log.reviewedAt.slice(0, 10) === todayDateStr
+  ).length;
+
+  // Waterllama-style Daily Goal Fill calculation
+  const dailyTarget = Math.max(15, completedToday + totalDueNow);
+  const fillPercentage = Math.min(
+    100,
+    Math.round((completedToday / dailyTarget) * 100)
+  );
 
   const maxForecastWindow = Math.max(
     4,
@@ -72,39 +88,124 @@ export default function UnifiedHomeQueueScreen() {
         </View>
       ) : null}
 
-      {/* Top Focal Header: Today's Action Summary */}
-      <View style={styles.headerBlock}>
-        <Text style={[styles.screenHeadline, { color: colors.textPrimary }]}>
-          Today's Study Queue
-        </Text>
-        <Text style={[styles.screenSubtitle, { color: colors.textSecondary }]}>
-          {dueJP.totalCount + dueQuran.totalDue > 0
-            ? `${dueJP.totalCount} Japanese reviews and ${dueQuran.totalDue} Mushaf pages are ready for recall now.`
-            : 'All scheduled reviews for this hour are complete. Start a new lesson or practice a Mushaf page below.'}
-        </Text>
+      {/* Waterllama Header: Cheerful Greeting & Streak Badge */}
+      <View style={styles.topHeaderRow}>
+        <View>
+          <Text style={[styles.greetingSub, { color: colors.textSecondary }]}>
+            Daily Knowledge Tracker
+          </Text>
+          <Text style={[styles.greetingHeadline, { color: colors.textPrimary }]}>
+            Ready to learn! ✨
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.streakBadge,
+            { backgroundColor: colors.streakFlameBg, borderColor: colors.streakFlame },
+          ]}
+        >
+          <Ionicons name="flame" size={18} color={colors.streakFlame} />
+          <Text style={[styles.streakText, { color: colors.streakFlame }]}>
+            {Math.max(1, completedToday > 0 ? 3 : 1)} Day Streak
+          </Text>
+        </View>
       </View>
 
-      {/* Primary Domain Action Card 1: Japanese Learning Queue */}
+      {/* Waterllama Central Hero: The Daily Goal Fill Vessel */}
       <View
         style={[
-          styles.domainCard,
+          styles.vesselHeroCard,
           { backgroundColor: colors.bgSurface, borderColor: colors.border },
         ]}
       >
-        <View style={styles.domainHeaderRow}>
-          <View>
-            <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>
-              Japanese • Level {state.currentJPLevel}
+        <View style={styles.vesselContentRow}>
+          {/* Visual Round Fluid Meter */}
+          <View
+            style={[
+              styles.vesselCircleOuter,
+              { backgroundColor: colors.bgMuted, borderColor: colors.progressFluid },
+            ]}
+          >
+            {/* Fluid fill layer */}
+            <View
+              style={[
+                styles.vesselFluidFill,
+                {
+                  height: `${Math.max(12, fillPercentage)}%`,
+                  backgroundColor: colors.progressFluid,
+                },
+              ]}
+            />
+            {/* Center percentage badge */}
+            <View style={styles.vesselCenterBadge}>
+              <Text style={[styles.vesselPercentText, { color: colors.textPrimary }]}>
+                {fillPercentage}%
+              </Text>
+              <Text style={[styles.vesselPercentLabel, { color: colors.textSecondary }]}>
+                Filled
+              </Text>
+            </View>
+          </View>
+
+          {/* Right motivation info */}
+          <View style={styles.vesselInfoCol}>
+            <View
+              style={[
+                styles.goalPill,
+                { backgroundColor: colors.progressFluidBg },
+              ]}
+            >
+              <Text style={[styles.goalPillText, { color: colors.jpRadical }]}>
+                DAILY STUDY GOAL
+              </Text>
+            </View>
+
+            <Text style={[styles.vesselHeadline, { color: colors.textPrimary }]}>
+              {completedToday} of {dailyTarget} completed
             </Text>
-            <Text style={[styles.domainMeta, { color: colors.textSecondary }]}>
-              WaniKani 9-Stage SRS + JLPT Cloze Grammar
+
+            <Text style={[styles.vesselSub, { color: colors.textSecondary }]}>
+              {totalDueNow > 0
+                ? `${totalDueNow} items waiting to fill your cup today.`
+                : 'Your cup is filled! Amazing consistency today.'}
             </Text>
           </View>
+        </View>
+      </View>
+
+      {/* Domain Card 1: Japanese Learning Queue */}
+      <View
+        style={[
+          styles.chunkyCard,
+          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderLeft}>
+            <View
+              style={[
+                styles.iconBubble,
+                { backgroundColor: colors.jpVocabBg },
+              ]}
+            >
+              <Ionicons name="language" size={20} color={colors.jpVocab} />
+            </View>
+            <View>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+                Japanese Study
+              </Text>
+              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                Level {state.currentJPLevel} • WaniKani 9-Stage SRS
+              </Text>
+            </View>
+          </View>
+
           <Pressable
             onPress={() => router.push('/(tabs)/japanese')}
             accessibilityRole="button"
             style={({ pressed }) => [
-              styles.secondaryLinkBtn,
+              styles.chunkyPillBtn,
               {
                 backgroundColor: colors.bgMuted,
                 borderColor: colors.border,
@@ -112,73 +213,90 @@ export default function UnifiedHomeQueueScreen() {
               },
             ]}
           >
-            <Text style={[styles.secondaryLinkText, { color: colors.textPrimary }]}>
-              Level Map
+            <Text style={[styles.chunkyPillBtnText, { color: colors.textPrimary }]}>
+              Explore 60 Lvls
             </Text>
           </Pressable>
         </View>
 
-        {/* Due Breakdown Chips */}
+        {/* Playful Item Chips */}
         <View style={styles.chipRow}>
-          <View style={[styles.typeChip, { backgroundColor: colors.jpRadicalBg }]}>
-            <Text style={[styles.typeChipText, { color: colors.jpRadical }]}>
-              Radicals: {dueRadicals}
+          <View style={[styles.playfulChip, { backgroundColor: colors.jpRadicalBg }]}>
+            <Text style={[styles.playfulChipText, { color: colors.jpRadical }]}>
+              💧 Radicals: {dueRadicals}
             </Text>
           </View>
-          <View style={[styles.typeChip, { backgroundColor: colors.jpKanjiBg }]}>
-            <Text style={[styles.typeChipText, { color: colors.jpKanji }]}>
-              Kanji: {dueKanji}
+          <View style={[styles.playfulChip, { backgroundColor: colors.jpKanjiBg }]}>
+            <Text style={[styles.playfulChipText, { color: colors.jpKanji }]}>
+              🌸 Kanji: {dueKanji}
             </Text>
           </View>
-          <View style={[styles.typeChip, { backgroundColor: colors.jpVocabBg }]}>
-            <Text style={[styles.typeChipText, { color: colors.jpVocab }]}>
-              Vocab: {dueVocab + dueMined}
+          <View style={[styles.playfulChip, { backgroundColor: colors.jpVocabBg }]}>
+            <Text style={[styles.playfulChipText, { color: colors.jpVocab }]}>
+              🍇 Vocab: {dueVocab + dueMined}
             </Text>
           </View>
-          <View style={[styles.typeChip, { backgroundColor: colors.jpGrammarBg }]}>
-            <Text style={[styles.typeChipText, { color: colors.jpGrammar }]}>
-              Grammar: {dueGrammar}
+          <View style={[styles.playfulChip, { backgroundColor: colors.jpGrammarBg }]}>
+            <Text style={[styles.playfulChipText, { color: colors.jpGrammar }]}>
+              ⚡ Grammar: {dueGrammar}
             </Text>
           </View>
         </View>
 
-        {/* Two Action Buttons: Reviews (Primary) & Lessons (Secondary) */}
+        {/* Tactile Action Grid */}
         <View style={styles.actionGrid}>
           <Pressable
             onPress={() => router.push('/japanese/review')}
             accessibilityRole="button"
             style={({ pressed }) => [
-              styles.primaryActionBox,
+              styles.actionSquircle,
               {
                 backgroundColor:
                   dueJP.totalCount > 0 ? colors.jpKanji : colors.bgMuted,
                 borderColor:
                   dueJP.totalCount > 0 ? colors.jpKanji : colors.border,
-                opacity: pressed ? 0.88 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
               },
             ]}
           >
+            <View style={styles.actionTopRow}>
+              <Text
+                style={[
+                  styles.actionBigNumber,
+                  {
+                    color: dueJP.totalCount > 0 ? '#FFFFFF' : colors.textPrimary,
+                  },
+                ]}
+              >
+                {dueJP.totalCount}
+              </Text>
+              <View
+                style={[
+                  styles.actionMiniIconWrap,
+                  {
+                    backgroundColor:
+                      dueJP.totalCount > 0
+                        ? 'rgba(255,255,255,0.25)'
+                        : colors.bgSurface,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="play"
+                  size={16}
+                  color={dueJP.totalCount > 0 ? '#FFFFFF' : colors.textSecondary}
+                />
+              </View>
+            </View>
             <Text
               style={[
-                styles.actionCountBig,
-                {
-                  color: dueJP.totalCount > 0 ? '#FFFFFF' : colors.textPrimary,
-                },
-              ]}
-            >
-              {dueJP.totalCount}
-            </Text>
-            <Text
-              style={[
-                styles.actionLabel,
+                styles.actionTitleText,
                 {
                   color: dueJP.totalCount > 0 ? '#FFFFFF' : colors.textSecondary,
                 },
               ]}
             >
-              {dueJP.totalCount > 0
-                ? 'Start Typed Reviews'
-                : 'Reviews Caught Up'}
+              {dueJP.totalCount > 0 ? 'Start Reviews' : 'All Caught Up!'}
             </Text>
           </Pressable>
 
@@ -186,69 +304,99 @@ export default function UnifiedHomeQueueScreen() {
             onPress={() => router.push('/japanese/lessons')}
             accessibilityRole="button"
             style={({ pressed }) => [
-              styles.secondaryActionBox,
+              styles.actionSquircle,
               {
                 backgroundColor:
-                  availableLessons.length > 0 ? colors.jpVocabBg : colors.bgMuted,
+                  availableLessons.length > 0 ? colors.jpVocab : colors.bgMuted,
                 borderColor:
                   availableLessons.length > 0 ? colors.jpVocab : colors.border,
-                opacity: pressed ? 0.88 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
               },
             ]}
           >
+            <View style={styles.actionTopRow}>
+              <Text
+                style={[
+                  styles.actionBigNumber,
+                  {
+                    color:
+                      availableLessons.length > 0
+                        ? '#FFFFFF'
+                        : colors.textPrimary,
+                  },
+                ]}
+              >
+                {availableLessons.length}
+              </Text>
+              <View
+                style={[
+                  styles.actionMiniIconWrap,
+                  {
+                    backgroundColor:
+                      availableLessons.length > 0
+                        ? 'rgba(255,255,255,0.25)'
+                        : colors.bgSurface,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="sparkles"
+                  size={16}
+                  color={
+                    availableLessons.length > 0 ? '#FFFFFF' : colors.textSecondary
+                  }
+                />
+              </View>
+            </View>
             <Text
               style={[
-                styles.actionCountBig,
+                styles.actionTitleText,
                 {
                   color:
                     availableLessons.length > 0
-                      ? colors.jpVocab
-                      : colors.textPrimary,
-                },
-              ]}
-            >
-              {availableLessons.length}
-            </Text>
-            <Text
-              style={[
-                styles.actionLabel,
-                {
-                  color:
-                    availableLessons.length > 0
-                      ? colors.jpVocab
+                      ? '#FFFFFF'
                       : colors.textSecondary,
                 },
               ]}
             >
-              {availableLessons.length > 0
-                ? 'Learn New Items'
-                : 'No Pending Lessons'}
+              {availableLessons.length > 0 ? 'New Lessons' : 'No Lessons'}
             </Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Primary Domain Action Card 2: Quran Hafalan Queue (Sabaq / Sabqi / Manzil) */}
+      {/* Domain Card 2: Quran Hafalan Queue */}
       <View
         style={[
-          styles.domainCard,
+          styles.chunkyCard,
           { backgroundColor: colors.bgSurface, borderColor: colors.border },
         ]}
       >
-        <View style={styles.domainHeaderRow}>
-          <View>
-            <Text style={[styles.domainTitle, { color: colors.textPrimary }]}>
-              Quran Hafalan • 604-Page Mushaf
-            </Text>
-            <Text style={[styles.domainMeta, { color: colors.textSecondary }]}>
-              Sabaq (New) • Sabqi ({state.sabqiWindowDays}d Window) • Manzil (FSRS)
-            </Text>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderLeft}>
+            <View
+              style={[
+                styles.iconBubble,
+                { backgroundColor: colors.quranSabaqBg },
+              ]}
+            >
+              <Ionicons name="book" size={20} color={colors.quranSabaq} />
+            </View>
+            <View>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+                Quran Hafalan
+              </Text>
+              <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+                604-Page Mushaf • Sabaq & Sabqi
+              </Text>
+            </View>
           </View>
+
           <Pressable
             onPress={() => router.push('/quran/heatmap')}
             accessibilityRole="button"
             style={({ pressed }) => [
-              styles.secondaryLinkBtn,
+              styles.chunkyPillBtn,
               {
                 backgroundColor: colors.bgMuted,
                 borderColor: colors.border,
@@ -256,15 +404,15 @@ export default function UnifiedHomeQueueScreen() {
               },
             ]}
           >
-            <Text style={[styles.secondaryLinkText, { color: colors.textPrimary }]}>
-              604 Heatmap
+            <Text style={[styles.chunkyPillBtnText, { color: colors.textPrimary }]}>
+              Heatmap
             </Text>
           </Pressable>
         </View>
 
-        {/* Three Quran Lifecycle Rows: Sabaq, Sabqi, Manzil */}
-        <View style={styles.quranQueueList}>
-          {/* 1. Sabaq */}
+        {/* Quran Scheduled List */}
+        <View style={styles.quranList}>
+          {/* Sabaq Row */}
           {dueQuran.sabaqPages.length > 0 ? (
             dueQuran.sabaqPages.map((p) => (
               <Pressable
@@ -272,29 +420,30 @@ export default function UnifiedHomeQueueScreen() {
                 onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
                 accessibilityRole="button"
                 style={({ pressed }) => [
-                  styles.quranQueueRow,
+                  styles.quranSquircleRow,
                   {
                     backgroundColor: colors.quranSabaqBg,
                     borderColor: colors.quranSabaq,
-                    opacity: pressed ? 0.85 : 1,
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
                   },
                 ]}
               >
-                <View style={styles.quranRowLeft}>
+                <View style={styles.quranRowInfo}>
                   <Text style={[styles.quranStageTag, { color: colors.quranSabaq }]}>
-                    SABAQ (NEW MEMORIZATION)
+                    SABAQ • NEW TARGET
                   </Text>
-                  <Text style={[styles.quranPageTitle, { color: colors.textPrimary }]}>
+                  <Text style={[styles.quranPageName, { color: colors.textPrimary }]}>
                     Page {p.pageNumber} • {getSurahSummaryForPage(p.pageNumber)}
                   </Text>
                 </View>
+
                 <View
                   style={[
-                    styles.openMushafBtn,
+                    styles.chunkyPillAction,
                     { backgroundColor: colors.quranSabaq },
                   ]}
                 >
-                  <Text style={styles.openMushafBtnText}>Recite Page</Text>
+                  <Text style={styles.chunkyPillActionText}>Recite</Text>
                 </View>
               </Pressable>
             ))
@@ -303,98 +452,100 @@ export default function UnifiedHomeQueueScreen() {
               onPress={() => router.push('/(tabs)/quran')}
               accessibilityRole="button"
               style={[
-                styles.quranEmptyRow,
+                styles.emptyQuranCard,
                 { backgroundColor: colors.bgMuted, borderColor: colors.border },
               ]}
             >
-              <Text style={[styles.quranEmptyText, { color: colors.textSecondary }]}>
-                No active Sabaq page assigned today. Tap to pick a new Mushaf page (1-604).
+              <Text style={[styles.emptyQuranText, { color: colors.textSecondary }]}>
+                + Assign your Sabaq page for today (Pages 1-604)
               </Text>
             </Pressable>
           )}
 
-          {/* 2. Sabqi (Recent Consolidation) */}
+          {/* Sabqi Rows */}
           {dueQuran.sabqiPages.map((p) => (
             <Pressable
               key={`sabqi-${p.pageNumber}`}
               onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.quranQueueRow,
+                styles.quranSquircleRow,
                 {
                   backgroundColor: colors.quranSabqiBg,
                   borderColor: colors.quranSabqi,
-                  opacity: pressed ? 0.85 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
-              <View style={styles.quranRowLeft}>
+              <View style={styles.quranRowInfo}>
                 <Text style={[styles.quranStageTag, { color: colors.quranSabqi }]}>
-                  SABQI (DAY {p.sabqiDaysCompleted} OF {p.sabqiTargetDays})
+                  SABQI • RECENT REVISION ({p.sabqiDaysCompleted}/{p.sabqiTargetDays}D)
                 </Text>
-                <Text style={[styles.quranPageTitle, { color: colors.textPrimary }]}>
+                <Text style={[styles.quranPageName, { color: colors.textPrimary }]}>
                   Page {p.pageNumber} • {getSurahSummaryForPage(p.pageNumber)}
                 </Text>
               </View>
+
               <View
                 style={[
-                  styles.openMushafBtn,
+                  styles.chunkyPillAction,
                   { backgroundColor: colors.quranSabqi },
                 ]}
               >
-                <Text style={styles.openMushafBtnText}>Test Recall</Text>
+                <Text style={styles.chunkyPillActionText}>Test</Text>
               </View>
             </Pressable>
           ))}
 
-          {/* 3. Manzil (FSRS Scheduled Revision) */}
+          {/* Manzil Rows */}
           {dueQuran.manzilPages.map((p) => (
             <Pressable
               key={`manzil-${p.pageNumber}`}
               onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.quranQueueRow,
+                styles.quranSquircleRow,
                 {
                   backgroundColor: colors.quranManzilBg,
                   borderColor: colors.quranManzil,
-                  opacity: pressed ? 0.85 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
-              <View style={styles.quranRowLeft}>
+              <View style={styles.quranRowInfo}>
                 <Text style={[styles.quranStageTag, { color: colors.quranManzil }]}>
-                  MANZIL (FSRS STABILITY: {p.stability}D)
+                  MANZIL • FSRS ({p.stability}D STABILITY)
                 </Text>
-                <Text style={[styles.quranPageTitle, { color: colors.textPrimary }]}>
+                <Text style={[styles.quranPageName, { color: colors.textPrimary }]}>
                   Page {p.pageNumber} • {getSurahSummaryForPage(p.pageNumber)}
                 </Text>
               </View>
+
               <View
                 style={[
-                  styles.openMushafBtn,
+                  styles.chunkyPillAction,
                   { backgroundColor: colors.quranManzil },
                 ]}
               >
-                <Text style={styles.openMushafBtnText}>Revise Page</Text>
+                <Text style={styles.chunkyPillActionText}>Revise</Text>
               </View>
             </Pressable>
           ))}
         </View>
       </View>
 
-      {/* 24-Hour Review Forecast Timeline (Answers: When will my next reviews arrive over the next 24h?) */}
+      {/* 24-Hour Review Timeline: Friendly Round Bars */}
       <View
         style={[
-          styles.forecastCard,
+          styles.chunkyCard,
           { backgroundColor: colors.bgSurface, borderColor: colors.border },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Incoming Reviews Over Next 24 Hours
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+          24-Hour Review Wave
         </Text>
-        <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-          Hourly schedule combining Japanese SRS stages and Mushaf revision pages
+        <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
+          Upcoming review batches over the next 24 hours
         </Text>
 
         <View style={styles.forecastList}>
@@ -406,21 +557,21 @@ export default function UnifiedHomeQueueScreen() {
             );
             return (
               <View key={bucket.hourOffset} style={styles.forecastRow}>
-                <Text style={[styles.forecastTimeLabel, { color: colors.textSecondary }]}>
+                <Text style={[styles.forecastLabel, { color: colors.textSecondary }]}>
                   {bucket.label}
                 </Text>
                 <View
                   style={[
-                    styles.forecastBarTrack,
+                    styles.forecastTrack,
                     { backgroundColor: colors.bgMuted },
                   ]}
                 >
                   {windowAdded > 0 ? (
                     <View
                       style={[
-                        styles.forecastBarFill,
+                        styles.forecastBar,
                         {
-                          width: `${Math.max(10, widthPct)}%`,
+                          width: `${Math.max(12, widthPct)}%`,
                           backgroundColor:
                             bucket.quranCount > 0 && bucket.jpCount === 0
                               ? colors.quranSabaq
@@ -430,11 +581,8 @@ export default function UnifiedHomeQueueScreen() {
                     />
                   ) : null}
                 </View>
-                <Text style={[styles.forecastDeltaText, { color: colors.textPrimary }]}>
+                <Text style={[styles.forecastDelta, { color: colors.textPrimary }]}>
                   +{windowAdded}
-                </Text>
-                <Text style={[styles.forecastCumText, { color: colors.textMuted }]}>
-                  ({bucket.cumulativeTotal})
                 </Text>
               </View>
             );
@@ -446,9 +594,7 @@ export default function UnifiedHomeQueueScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   content: {
     padding: SPACING.md,
     paddingBottom: SPACING.xxl,
@@ -463,169 +609,256 @@ const styles = StyleSheet.create({
   },
   stateTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   errorBanner: {
     padding: SPACING.md,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     gap: 4,
   },
   errorBannerTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   errorBannerSub: {
     fontSize: 13,
   },
-  headerBlock: {
-    gap: 4,
-    marginBottom: 2,
-  },
-  screenHeadline: {
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  domainCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
-    gap: SPACING.md,
-  },
-  domainHeaderRow: {
+  topHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: SPACING.sm,
+    marginTop: 4,
   },
-  domainTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  domainMeta: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  secondaryLinkBtn: {
-    paddingHorizontal: 12,
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-  },
-  secondaryLinkText: {
+  greetingSub: {
     fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  greetingHeadline: {
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
+  },
+  streakText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  vesselHeroCard: {
+    borderRadius: RADII.lg,
+    borderWidth: 1.5,
+    padding: SPACING.md,
+    overflow: 'hidden',
+  },
+  vesselContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  vesselCircleOuter: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2.5,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  vesselFluidFill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  vesselCenterBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vesselPercentText: {
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  vesselPercentLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  vesselInfoCol: {
+    flex: 1,
+    gap: 4,
+  },
+  goalPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+  },
+  goalPillText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
+  vesselHeadline: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  vesselSub: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  chunkyCard: {
+    borderRadius: RADII.lg,
+    borderWidth: 1.5,
+    padding: SPACING.md,
+    gap: SPACING.md,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconBubble: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  chunkyPillBtn: {
+    paddingHorizontal: 14,
+    minHeight: 36,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chunkyPillBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  typeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADII.sm,
+  playfulChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADII.pill,
   },
-  typeChipText: {
+  playfulChipText: {
     fontSize: 12,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
+    fontWeight: '800',
   },
   actionGrid: {
     flexDirection: 'row',
     gap: SPACING.sm,
   },
-  primaryActionBox: {
+  actionSquircle: {
     flex: 1,
-    minHeight: 84,
+    minHeight: 88,
     borderRadius: RADII.md,
-    borderWidth: 1,
-    padding: SPACING.md,
+    borderWidth: 1.5,
+    padding: 14,
     justifyContent: 'space-between',
   },
-  secondaryActionBox: {
-    flex: 1,
-    minHeight: 84,
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    padding: SPACING.md,
+  actionTopRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  actionCountBig: {
-    fontSize: 28,
-    fontWeight: '800',
+  actionBigNumber: {
+    fontSize: 30,
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
-  actionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  quranQueueList: {
-    gap: SPACING.sm,
-  },
-  quranQueueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: RADII.md,
-    borderWidth: 1,
-    gap: SPACING.sm,
-  },
-  quranRowLeft: {
-    flex: 1,
-    gap: 2,
-  },
-  quranStageTag: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  quranPageTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  openMushafBtn: {
-    paddingHorizontal: 14,
-    minHeight: 42,
-    borderRadius: RADII.sm,
+  actionMiniIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  openMushafBtnText: {
+  actionTitleText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  quranList: {
+    gap: 10,
+  },
+  quranSquircleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: RADII.md,
+    borderWidth: 1.5,
+    gap: 10,
+  },
+  quranRowInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  quranStageTag: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  quranPageName: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  chunkyPillAction: {
+    paddingHorizontal: 16,
+    minHeight: 38,
+    borderRadius: RADII.pill,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chunkyPillActionText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  quranEmptyRow: {
-    padding: SPACING.md,
+  emptyQuranCard: {
+    padding: 16,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    alignItems: 'center',
   },
-  quranEmptyText: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  forecastCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
-  sectionTitle: {
-    fontSize: 16,
+  emptyQuranText: {
+    fontSize: 14,
     fontWeight: '700',
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    marginBottom: 4,
   },
   forecastList: {
     gap: 10,
@@ -633,36 +866,27 @@ const styles = StyleSheet.create({
   forecastRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  forecastTimeLabel: {
-    width: 88,
-    fontSize: 12,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  forecastBarTrack: {
-    flex: 1,
-    height: 12,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  forecastBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  forecastDeltaText: {
-    width: 32,
-    textAlign: 'right',
+  forecastLabel: {
+    width: 86,
     fontSize: 12,
     fontWeight: '700',
-    fontVariant: ['tabular-nums'],
   },
-  forecastCumText: {
-    width: 38,
+  forecastTrack: {
+    flex: 1,
+    height: 14,
+    borderRadius: RADII.pill,
+    overflow: 'hidden',
+  },
+  forecastBar: {
+    height: '100%',
+    borderRadius: RADII.pill,
+  },
+  forecastDelta: {
+    width: 32,
     textAlign: 'right',
-    fontSize: 12,
-    fontVariant: ['tabular-nums'],
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
-

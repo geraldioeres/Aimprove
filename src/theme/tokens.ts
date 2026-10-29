@@ -11,7 +11,7 @@ export interface ThemePalette {
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
-  // Japanese Domain Accents (Indigo / Crimson / Sky)
+  // Japanese Domain Accents (Waterllama Pastel-Pop)
   jpRadical: string;
   jpRadicalBg: string;
   jpKanji: string;
@@ -20,7 +20,7 @@ export interface ThemePalette {
   jpVocabBg: string;
   jpGrammar: string;
   jpGrammarBg: string;
-  // Quran Domain Accents (Emerald / Warm Amber / Teal)
+  // Quran Domain Accents (Waterllama Fresh Pastels)
   quranSabaq: string;
   quranSabaqBg: string;
   quranSabqi: string;
@@ -29,6 +29,11 @@ export interface ThemePalette {
   quranManzilBg: string;
   mushafPaper: string;
   mushafBorder: string;
+  // Habit & Progress Accents
+  streakFlame: string;
+  streakFlameBg: string;
+  progressFluid: string;
+  progressFluidBg: string;
   // Semantic
   success: string;
   successBg: string;
@@ -40,78 +45,89 @@ export interface ThemePalette {
 
 export const LIGHT_PALETTE: ThemePalette = {
   mode: 'light',
-  bgPrimary: '#FAF7F2',
+  bgPrimary: '#F8F6F0',
   bgSurface: '#FFFFFF',
-  bgMuted: '#F2ECE1',
+  bgMuted: '#EFECE4',
   bgElevated: '#FFFFFF',
-  border: '#E5DEC9',
-  borderStrong: '#CFC5AE',
-  textPrimary: '#18181B',
-  textSecondary: '#4A4A52',
-  textMuted: '#686873',
-  jpRadical: '#0369A1',
+  border: '#E5E0D4',
+  borderStrong: '#D1C9B8',
+  textPrimary: '#1E1E24',
+  textSecondary: '#5C5C66',
+  textMuted: '#7A7A88',
+  jpRadical: '#0284C7',
   jpRadicalBg: '#E0F2FE',
-  jpKanji: '#BE123C',
+  jpKanji: '#F43F5E',
   jpKanjiBg: '#FFE4E6',
-  jpVocab: '#4338CA',
-  jpVocabBg: '#E0E7FF',
-  jpGrammar: '#6D28D9',
-  jpGrammarBg: '#EDE9FE',
-  quranSabaq: '#047857',
+  jpVocab: '#8B5CF6',
+  jpVocabBg: '#EDE9FE',
+  jpGrammar: '#D97706',
+  jpGrammarBg: '#FEF3C7',
+  quranSabaq: '#059669',
   quranSabaqBg: '#D1FAE5',
-  quranSabqi: '#B45309',
+  quranSabqi: '#D97706',
   quranSabqiBg: '#FEF3C7',
-  quranManzil: '#0F766E',
-  quranManzilBg: '#CCFBF1',
-  mushafPaper: '#FDFBF7',
-  mushafBorder: '#D6C7A9',
-  success: '#15803D',
-  successBg: '#DCFCE7',
-  danger: '#B91C1C',
+  quranManzil: '#0891B2',
+  quranManzilBg: '#CFFAFE',
+  mushafPaper: '#FCFBF7',
+  mushafBorder: '#DCD4C2',
+  streakFlame: '#FF5733',
+  streakFlameBg: '#FFE9E4',
+  progressFluid: '#38BDF8',
+  progressFluidBg: '#E0F2FE',
+  success: '#10B981',
+  successBg: '#D1FAE5',
+  danger: '#EF4444',
   dangerBg: '#FEE2E2',
-  warning: '#B45309',
+  warning: '#F59E0B',
   warningBg: '#FEF3C7',
 };
 
 export const DARK_PALETTE: ThemePalette = {
   mode: 'dark',
-  bgPrimary: '#111318',
-  bgSurface: '#1A1D24',
-  bgMuted: '#15181E',
-  bgElevated: '#222630',
-  border: '#2A2F3A',
-  borderStrong: '#3B4252',
-  textPrimary: '#F4F1EA',
-  textSecondary: '#B4B7C2',
-  textMuted: '#8E929F',
+  bgPrimary: '#13151D',
+  bgSurface: '#1C1F2B',
+  bgMuted: '#242838',
+  bgElevated: '#282D3E',
+  border: '#2E3447',
+  borderStrong: '#3D455D',
+  textPrimary: '#F5F5F8',
+  textSecondary: '#A9AFC2',
+  textMuted: '#7D849B',
   jpRadical: '#38BDF8',
-  jpRadicalBg: '#0C2D48',
+  jpRadicalBg: '#083344',
   jpKanji: '#FB7185',
-  jpKanjiBg: '#3B121D',
-  jpVocab: '#818CF8',
-  jpVocabBg: '#1E1B4B',
-  jpGrammar: '#C084FC',
-  jpGrammarBg: '#2E1065',
+  jpKanjiBg: '#4C0519',
+  jpVocab: '#A78BFA',
+  jpVocabBg: '#2E1065',
+  jpGrammar: '#FBBF24',
+  jpGrammarBg: '#451A03',
   quranSabaq: '#34D399',
-  quranSabaqBg: '#063628',
+  quranSabaqBg: '#064E3B',
   quranSabqi: '#FBBF24',
-  quranSabqiBg: '#3D2607',
-  quranManzil: '#2DD4BF',
-  quranManzilBg: '#083330',
-  mushafPaper: '#181B22',
-  mushafBorder: '#353B49',
-  success: '#4ADE80',
-  successBg: '#09331B',
+  quranSabqiBg: '#451A03',
+  quranManzil: '#22D3EE',
+  quranManzilBg: '#164E63',
+  mushafPaper: '#1A1D27',
+  mushafBorder: '#353B4E',
+  streakFlame: '#FF6B4A',
+  streakFlameBg: '#451509',
+  progressFluid: '#38BDF8',
+  progressFluidBg: '#083344',
+  success: '#34D399',
+  successBg: '#064E3B',
   danger: '#F87171',
-  dangerBg: '#3D1414',
+  dangerBg: '#450A0A',
   warning: '#FBBF24',
-  warningBg: '#3D2607',
+  warningBg: '#451A03',
 };
 
 export const RADII = {
-  sm: 6,
-  md: 10,
-  lg: 14,
+  xs: 8,
+  sm: 14,
+  md: 20,
+  lg: 26,
+  xl: 32,
+  pill: 999,
 } as const;
 
 export const SPACING = {
@@ -122,4 +138,3 @@ export const SPACING = {
   xl: 28,
   xxl: 40,
 } as const;
-
