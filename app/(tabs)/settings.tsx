@@ -18,26 +18,6 @@ import { getCurrentSupabaseConfig } from '../../src/lib/supabase';
 const ERASE_MESSAGE =
   'This deletes all your lessons, Quran pages and streak from this phone and your account. It cannot be undone.';
 
-/** Ask before erasing; the cloud copy goes too, so there is no way back. */
-function confirmErase(onConfirm: () => void) {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.confirm(`Erase all progress?
-
-${ERASE_MESSAGE}`)) {
-      onConfirm();
-    }
-    return;
-  }
-  Alert.alert('Erase all progress?', ERASE_MESSAGE, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Erase', style: 'destructive', onPress: onConfirm },
-  ]);
-}
-
-export default function SettingsAndCloudScreen() {
-  const { colors } = useTheme();
-  const state = useLearningStore();
-
   const host = (() => {
     try {
       return new URL(getCurrentSupabaseConfig().url).host;
@@ -147,7 +127,7 @@ export default function SettingsAndCloudScreen() {
           Signed in as {state.userEmail ?? 'unknown'}
         </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Your progress saves on this phone and syncs to your account, so it comes back when you sign in on another phone{host ? ` (${host})` : ''}.
+          Your progress saves on this phone and syncs to your account{host ? ` (${host})` : ''}.
         </Text>
         <PressBlock
           onPress={() => state.signOutSupabase()}
