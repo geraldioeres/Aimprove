@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import {
+  JP_SUBJECT_BY_ID,
   JP_SUBJECTS_BY_LEVEL,
   selectAvailableJapaneseLessons,
   selectDueJapaneseReviews,
@@ -28,6 +29,17 @@ const WANIKANI_TIERS = [
   { name: 'Reality', range: '51-60', start: 51, end: 60 },
 ] as const;
 
+// WaniKani's own item-type colors, kept on this screen so it reads like the original dashboard.
+const WK = { radical: '#00AAFF', kanji: '#FF00AA', vocab: '#AA00FF' } as const;
+
+const SPREAD_BUCKETS = [
+  { name: 'Apprentice', min: 1, max: 4 },
+  { name: 'Guru', min: 5, max: 6 },
+  { name: 'Master', min: 7, max: 7 },
+  { name: 'Enlightened', min: 8, max: 8 },
+  { name: 'Burned', min: 9, max: 9 },
+] as const;
+
 export default function JapaneseHubScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -43,23 +55,27 @@ export default function JapaneseHubScreen() {
   const dueReviews = selectDueJapaneseReviews(state);
   const availableLessons = selectAvailableJapaneseLessons(state);
 
-  // Calculate SRS Bucket Totals across all unlocked items + mined cards
-  const assignmentsList = Object.values(state.jpAssignments);
-  const apprenticeCount =
-    assignmentsList.filter((a) => a.srsStage >= 1 && a.srsStage <= 4).length +
-    state.jpMinedCards.filter((m) => m.srsStage >= 1 && m.srsStage <= 4).length;
-  const guruCount =
-    assignmentsList.filter((a) => a.srsStage >= 5 && a.srsStage <= 6).length +
-    state.jpMinedCards.filter((m) => m.srsStage >= 5 && m.srsStage <= 6).length;
-  const masterCount =
-    assignmentsList.filter((a) => a.srsStage === 7).length +
-    state.jpMinedCards.filter((m) => m.srsStage === 7).length;
-  const enlightenedCount =
-    assignmentsList.filter((a) => a.srsStage === 8).length +
-    state.jpMinedCards.filter((m) => m.srsStage === 8).length;
-  const burnedCount =
-    assignmentsList.filter((a) => a.srsStage === 9).length +
-    state.jpMinedCards.filter((m) => m.srsStage === 9).length;
+  const dashGray = colors.mode === 'dark' ? colors.bgMuted : '#E8ECF0';
+  const dashBorder = colors.mode === 'dark' ? colors.border : '#DEDEDE';
+
+  const spreadRows = SPREAD_BUCKETS.map((b) => {
+    const c = { radical: 0, kanji: 0, vocab: 0, total: 0 };
+    for (const [id, a] of Object.entries(state.jpAssignments)) {
+      if (a.srsStage < b.min || a.srsStage > b.max) continue;
+      const kind = JP_SUBJECT_BY_ID[id]?.kind;
+      if (kind === 'radical') c.radical++;
+      else if (kind === 'kanji') c.kanji++;
+      else if (kind === 'vocab') c.vocab++;
+      c.total++;
+    }
+    for (const m of state.jpMinedCards) {
+      if (m.srsStage >= b.min && m.srsStage <= b.max) {
+        c.vocab++;
+        c.total++;
+      }
+    }
+    return { name: b.name, ...c };
+  });
 
   const rawLevelSubjects = JP_SUBJECTS_BY_LEVEL[selectedLevel] || [];
 
@@ -77,6 +93,21 @@ export default function JapaneseHubScreen() {
     return true;
   });
 
+  const levelPassed = (kind: JPSubjectKind) =>
+    rawLevelSubjects.filter(
+      (s) => s.kind === kind && state.jpAssignments[s.id]?.passedGuru
+    ).length;
+  const levelPassedAll =
+    rawLevelSubjects.length > 0 &&
+    rawLevelSubjects
+      .filter((s) => s.kind !== 'grammar')
+      .every((s) => state.jpAssignments[s.id]?.passedGuru);
+  const goToLevel = (lvl: number) => {
+    const next = Math.min(60, Math.max(1, lvl));
+    setSelectedLevel(next);
+    setSelectedTierIndex(Math.floor((next - 1) / 10));
+  };
+
   const levelRadicalsCount = rawLevelSubjects.filter((s) => s.kind === 'radical').length;
   const levelKanjiCount = currentLevelKanji.length;
   const levelVocabCount = rawLevelSubjects.filter((s) => s.kind === 'vocab').length;
@@ -91,11 +122,11 @@ export default function JapaneseHubScreen() {
   const getKindColors = (kind: JPSubjectKind) => {
     switch (kind) {
       case 'radical':
-        return { fg: colors.jpRadical, bg: colors.jpRadicalBg, label: 'Radical' };
+        return { fg: WK.radical, bg: WK.radical, label: 'Radical' };
       case 'kanji':
-        return { fg: colors.jpKanji, bg: colors.jpKanjiBg, label: 'Kanji' };
+        return { fg: WK.kanji, bg: WK.kanji, label: 'Kanji' };
       case 'vocab':
-        return { fg: colors.jpVocab, bg: colors.jpVocabBg, label: 'Vocab' };
+        return { fg: WK.vocab, bg: WK.vocab, label: 'Vocab' };
       case 'grammar':
         return { fg: colors.jpGrammar, bg: colors.jpGrammarBg, label: 'Grammar' };
     }
@@ -103,81 +134,72 @@ export default function JapaneseHubScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
+      style={[styles.container, { backgroundColor: colors.mode === 'dark' ? colors.bgPrimary : '#F4F4F4' }]}
       contentContainerStyle={styles.content}
     >
-      {/* Top Study Session Launch Bar */}
+      {/* WaniKani-style dashboard: Lessons / Reviews / Reading */}
       <View style={styles.sessionBar}>
         <Pressable
-          onPress={() => router.push('/japanese/review')}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.launchCard,
-            {
-              backgroundColor:
-                dueReviews.totalCount > 0 ? colors.jpKanji : colors.bgSurface,
-              borderColor:
-                dueReviews.totalCount > 0 ? colors.jpKanji : colors.border,
-              opacity: pressed ? 0.88 : 1,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.launchCount,
-              { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textPrimary },
-            ]}
-          >
-            {dueReviews.totalCount}
-          </Text>
-          <Text
-            style={[
-              styles.launchTitle,
-              {
-                color:
-                  dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textSecondary,
-              },
-            ]}
-          >
-            Due Typed Reviews
-          </Text>
-        </Pressable>
-
-        <Pressable
+          disabled={availableLessons.length === 0}
           onPress={() => router.push('/japanese/lessons')}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
             {
-              backgroundColor:
-                availableLessons.length > 0 ? colors.jpVocab : colors.bgSurface,
-              borderColor:
-                availableLessons.length > 0 ? colors.jpVocab : colors.border,
+              backgroundColor: availableLessons.length > 0 ? WK.kanji : dashGray,
+              borderColor: availableLessons.length > 0 ? WK.kanji : dashBorder,
               opacity: pressed ? 0.88 : 1,
             },
           ]}
         >
-          <Text
-            style={[
-              styles.launchCount,
-              {
-                color:
-                  availableLessons.length > 0 ? '#FFFFFF' : colors.textPrimary,
-              },
-            ]}
-          >
-            {availableLessons.length}
+          <Text style={[styles.launchEyebrow, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textSecondary }]}>
+            Today's
           </Text>
-          <Text
-            style={[
-              styles.launchTitle,
-              {
-                color:
-                  availableLessons.length > 0 ? '#FFFFFF' : colors.textSecondary,
-              },
-            ]}
-          >
-            Available Lessons
+          <Text style={[styles.launchTitle, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textPrimary }]}>
+            Lessons
+          </Text>
+          {availableLessons.length > 0 ? (
+            <Text style={[styles.launchCount, { color: '#FFFFFF' }]}>{availableLessons.length}</Text>
+          ) : (
+            <View style={[styles.donePill, { borderColor: dashBorder, backgroundColor: colors.bgSurface }]}>
+              <Text style={[styles.donePillText, { color: colors.textSecondary }]}>Done!</Text>
+            </View>
+          )}
+          <Text style={[styles.launchHint, { color: availableLessons.length > 0 ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>
+            {availableLessons.length > 0
+              ? 'New items are ready to learn.'
+              : 'All done. Do your Reviews to unlock more Lessons.'}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          disabled={dueReviews.totalCount === 0}
+          onPress={() => router.push('/japanese/review')}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.launchCard,
+            {
+              backgroundColor: dueReviews.totalCount > 0 ? WK.radical : dashGray,
+              borderColor: dueReviews.totalCount > 0 ? WK.radical : dashBorder,
+              opacity: pressed ? 0.88 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.launchEyebrow, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textSecondary }]}>
+            Available
+          </Text>
+          <Text style={[styles.launchTitle, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textPrimary }]}>
+            Reviews
+          </Text>
+          <View style={[styles.donePill, { borderColor: dueReviews.totalCount > 0 ? '#FFFFFF' : dashBorder, backgroundColor: dueReviews.totalCount > 0 ? 'transparent' : colors.bgSurface }]}>
+            <Text style={[styles.donePillText, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textSecondary }]}>
+              {dueReviews.totalCount}
+            </Text>
+          </View>
+          <Text style={[styles.launchHint, { color: dueReviews.totalCount > 0 ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>
+            {dueReviews.totalCount > 0
+              ? 'Reviews are waiting for you.'
+              : 'There are no more Reviews to do right now.'}
           </Text>
         </Pressable>
 
@@ -186,56 +208,118 @@ export default function JapaneseHubScreen() {
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
-            {
-              backgroundColor: colors.bgSurface,
-              borderColor: colors.borderStrong,
-              opacity: pressed ? 0.88 : 1,
-            },
+            styles.launchCardWide,
+            { backgroundColor: colors.bgSurface, borderColor: dashBorder, opacity: pressed ? 0.88 : 1 },
           ]}
         >
-          <Text style={[styles.launchCount, { color: colors.jpRadical }]}>
-            {state.jpPassages.length}
+          <Text style={[styles.launchTitle, { color: colors.textPrimary }]}>Reading & Mining</Text>
+          <Text style={[styles.launchHint, { color: colors.textSecondary }]}>
+            {state.jpPassages.length} passages. Tap a word to add it to your SRS queue.
           </Text>
-          <Text style={[styles.launchTitle, { color: colors.textPrimary }]}>
-            Reading & Mining
-          </Text>
+          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open ›</Text>
         </Pressable>
       </View>
 
-      {/* WaniKani 9-Stage SRS Distribution */}
-      <View
-        style={[
-          styles.sectionCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          SRS Stage Distribution ({state.jpSubjects.length.toLocaleString()} Total Curriculum Items)
-        </Text>
-        <View style={styles.srsGrid}>
-          {[
-            { name: 'Apprentice', count: apprenticeCount, sub: 'Stages I-IV' },
-            { name: 'Guru', count: guruCount, sub: 'Unlocks Next' },
-            { name: 'Master', count: masterCount, sub: '1 Month' },
-            { name: 'Enlightened', count: enlightenedCount, sub: '4 Months' },
-            { name: 'Burned', count: burnedCount, sub: 'Permanent' },
-          ].map((b) => (
-            <View
-              key={b.name}
-              style={[
-                styles.srsBucketBox,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
-              ]}
+      {/* Level Progress */}
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+        <View style={styles.levelHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Level Progress</Text>
+          <View style={styles.levelStepper}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous level"
+              disabled={selectedLevel <= 1}
+              onPress={() => goToLevel(selectedLevel - 1)}
+              style={styles.stepperBtn}
             >
-              <Text style={[styles.srsBucketCount, { color: colors.textPrimary }]}>
-                {b.count}
+              <Text style={[styles.stepperText, { color: selectedLevel <= 1 ? colors.textMuted : colors.textPrimary }]}>‹</Text>
+            </Pressable>
+            <Text style={[styles.stepperLevel, { color: colors.textPrimary }]}>Level {selectedLevel}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next level"
+              disabled={selectedLevel >= 60}
+              onPress={() => goToLevel(selectedLevel + 1)}
+              style={styles.stepperBtn}
+            >
+              <Text style={[styles.stepperText, { color: selectedLevel >= 60 ? colors.textMuted : colors.textPrimary }]}>›</Text>
+            </Pressable>
+          </View>
+        </View>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          Number of items Guru'd in this level
+        </Text>
+        <View style={styles.levelColsRow}>
+          {([
+            { kind: 'radical', label: 'Radicals', color: WK.radical, passed: levelPassed('radical'), total: levelRadicalsCount },
+            { kind: 'kanji', label: 'Kanji', color: WK.kanji, passed: levelPassed('kanji'), total: levelKanjiCount },
+            { kind: 'vocab', label: 'Vocabulary', color: WK.vocab, passed: levelPassed('vocab'), total: levelVocabCount },
+          ] as const).map((col) => (
+            <Pressable
+              key={col.kind}
+              accessibilityRole="button"
+              onPress={() => setFilterKind(col.kind)}
+              style={[styles.levelCol, { borderTopColor: col.color, backgroundColor: colors.bgMuted }]}
+            >
+              <Text style={[styles.levelColLabel, { color: col.color }]}>{col.label}</Text>
+              <Text style={[styles.levelColCount, { color: colors.textPrimary }]}>
+                {col.passed}/{col.total}
               </Text>
-              <Text style={[styles.srsBucketName, { color: colors.textPrimary }]}>
-                {b.name}
-              </Text>
-              <Text style={[styles.srsBucketSub, { color: colors.textMuted }]}>
-                {b.sub}
-              </Text>
+              <Text style={[styles.seeAll, { color: colors.textSecondary }]}>See All ›</Text>
+            </Pressable>
+          ))}
+        </View>
+        <View
+          style={[
+            styles.passBanner,
+            {
+              backgroundColor: levelPassedAll ? '#DDF3E4' : colors.bgMuted,
+              borderColor: levelPassedAll ? '#9AD4AB' : dashBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.passBannerText, { color: levelPassedAll ? '#1F6B3A' : colors.textSecondary }]}>
+            {levelPassedAll
+              ? "You've passed this level, and you've Guru'd all its items. Great job!"
+              : `Guru ${requiredForLevelUp - guruKanjiInLevel} more kanji (90%) to pass level ${selectedLevel}.`}
+          </Text>
+        </View>
+      </View>
+
+      {/* Item Spread */}
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+        <View style={styles.levelHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Item Spread</Text>
+          <View style={styles.legendRow}>
+            {[
+              { label: 'Radicals', color: WK.radical },
+              { label: 'Kanji', color: WK.kanji },
+              { label: 'Vocab', color: WK.vocab },
+            ].map((l) => (
+              <View key={l.label} style={[styles.legendChip, { backgroundColor: l.color }]}>
+                <Text style={styles.legendChipText}>{l.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        <View style={styles.spreadTable}>
+          {spreadRows.map((row) => (
+            <View key={row.name} style={[styles.spreadRow, { backgroundColor: colors.bgMuted, borderColor: dashBorder }]}>
+              <Text style={[styles.spreadName, { color: colors.textPrimary }]}>{row.name}</Text>
+              <View style={styles.spreadPills}>
+                <View style={[styles.countPill, { backgroundColor: WK.radical }]}>
+                  <Text style={styles.countPillText}>{row.radical}</Text>
+                </View>
+                <View style={[styles.countPill, { backgroundColor: WK.kanji }]}>
+                  <Text style={styles.countPillText}>{row.kanji}</Text>
+                </View>
+                <View style={[styles.countPill, { backgroundColor: WK.vocab }]}>
+                  <Text style={styles.countPillText}>{row.vocab}</Text>
+                </View>
+                <View style={[styles.countPill, { backgroundColor: colors.textSecondary }]}>
+                  <Text style={styles.countPillText}>{row.total}</Text>
+                </View>
+              </View>
             </View>
           ))}
         </View>
@@ -506,36 +590,36 @@ export default function JapaneseHubScreen() {
                   ]}
                 >
                   <View style={styles.tileTopRow}>
-                    <Text style={[styles.tileKindTag, { color: kindStyle.fg }]}>
+                    <Text style={[styles.tileKindTag, { color: isLocked ? colors.textMuted : 'rgba(255,255,255,0.9)' }]}>
                       {kindStyle.label}
                     </Text>
                     <Text
                       style={[
                         styles.tileStageTag,
-                        { color: isLocked ? colors.textMuted : colors.textSecondary },
+                        { color: isLocked ? colors.textMuted : 'rgba(255,255,255,0.9)' },
                       ]}
                     >
                       {stageName}
                     </Text>
                   </View>
-                  <Text style={[styles.tileCharacter, { color: colors.textPrimary }]}>
+                  <Text style={[styles.tileCharacter, { color: isLocked ? colors.textPrimary : '#FFFFFF' }]}>
                     {subj.characters}
                   </Text>
                   <Text
                     numberOfLines={1}
-                    style={[styles.tileMeaning, { color: colors.textPrimary }]}
+                    style={[styles.tileMeaning, { color: isLocked ? colors.textPrimary : '#FFFFFF' }]}
                   >
                     {subj.meanings[0]}
                   </Text>
                   {subj.readings.length > 0 ? (
                     <Text
                       numberOfLines={1}
-                      style={[styles.tileReading, { color: colors.textSecondary }]}
+                      style={[styles.tileReading, { color: isLocked ? colors.textSecondary : 'rgba(255,255,255,0.9)' }]}
                     >
                       {subj.readings[0]}
                     </Text>
                   ) : (
-                    <Text style={[styles.tileReading, { color: colors.textMuted }]}>
+                    <Text style={[styles.tileReading, { color: isLocked ? colors.textMuted : 'rgba(255,255,255,0.85)' }]}>
                       Building Block
                     </Text>
                   )}
@@ -680,24 +764,153 @@ const styles = StyleSheet.create({
   },
   launchCard: {
     flex: 1,
-    minHeight: 82,
-    padding: 14,
-    borderRadius: RADII.md,
-    borderWidth: 1.5,
+    minWidth: 150,
+    minHeight: 150,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
+  launchCardWide: {
+    flexBasis: '100%',
+    minHeight: 0,
+  },
+  launchEyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  donePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  donePillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  launchHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 'auto',
+  },
+  seeAll: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  levelStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  stepperBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperText: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  stepperLevel: {
+    fontSize: 13,
+    fontWeight: '700',
+    minWidth: 62,
+    textAlign: 'center',
+  },
+  levelColsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  levelCol: {
+    flex: 1,
+    minHeight: 76,
+    padding: 10,
+    borderRadius: 8,
+    borderTopWidth: 4,
+    gap: 2,
     justifyContent: 'space-between',
   },
-  launchCount: {
-    fontSize: 24,
+  levelColLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  levelColCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  passBanner: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  passBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  legendChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  legendChipText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  spreadTable: {
+    gap: 6,
+  },
+  spreadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  spreadName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  spreadPills: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  countPill: {
+    minWidth: 34,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  countPillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },  launchCount: {
+    fontSize: 30,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   launchTitle: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
   },
   sectionCard: {
-    borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     padding: SPACING.md,
     gap: SPACING.md,
   },
