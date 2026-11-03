@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import {
@@ -235,7 +236,7 @@ export default function JapaneseHubScreen() {
           <Text style={[styles.launchHint, { color: colors.textSecondary }]}>
             {state.jpPassages.length} passages. Tap a word to add it to your SRS queue.
           </Text>
-          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open ›</Text>
+          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open â€º</Text>
         </Pressable>
       </View>
 
@@ -279,7 +280,7 @@ export default function JapaneseHubScreen() {
               onPress={() => goToLevel(selectedLevel - 1)}
               style={styles.stepperBtn}
             >
-              <Text style={[styles.stepperText, { color: selectedLevel <= 1 ? colors.textMuted : colors.textPrimary }]}>‹</Text>
+              <Feather name="chevron-left" size={22} color={selectedLevel <= 1 ? colors.textMuted : colors.textPrimary} />
             </Pressable>
             <Text style={[styles.stepperLevel, { color: colors.textPrimary }]}>Level {selectedLevel}</Text>
             <Pressable
@@ -289,7 +290,7 @@ export default function JapaneseHubScreen() {
               onPress={() => goToLevel(selectedLevel + 1)}
               style={styles.stepperBtn}
             >
-              <Text style={[styles.stepperText, { color: selectedLevel >= 60 ? colors.textMuted : colors.textPrimary }]}>›</Text>
+              <Feather name="chevron-right" size={22} color={selectedLevel >= 60 ? colors.textMuted : colors.textPrimary} />
             </Pressable>
           </View>
         </View>
@@ -312,7 +313,7 @@ export default function JapaneseHubScreen() {
               <Text style={[styles.levelColCount, { color: colors.textPrimary }]}>
                 {col.passed}/{col.total}
               </Text>
-              <Text style={[styles.seeAll, { color: colors.textSecondary }]}>See All ›</Text>
+              <Text style={[styles.seeAll, { color: colors.textSecondary }]}>See All â€º</Text>
             </Pressable>
           ))}
         </View>
@@ -412,7 +413,7 @@ export default function JapaneseHubScreen() {
         ]}
       >
         <View style={styles.levelHeaderRow}>
-          <View>
+          <View style={styles.headerTextWrap}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
               WaniKani Progressive Levels (1 to 60)
             </Text>
@@ -837,6 +838,10 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
     gap: SPACING.md,
   },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   stackCol: {
     flexDirection: 'column',
   },
@@ -972,6 +977,9 @@ const styles = StyleSheet.create({
   legendRow: {
     flexDirection: 'row',
     gap: 4,
+    flexWrap: 'wrap',
+    flexShrink: 1,
+    justifyContent: 'flex-end',
   },
   legendChip: {
     paddingHorizontal: 8,
@@ -1027,12 +1035,14 @@ const styles = StyleSheet.create({
   sectionCard: {
     borderRadius: 12,
     borderWidth: 1,
+    overflow: 'hidden',
     padding: SPACING.md,
     gap: SPACING.md,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
+    flexShrink: 1,
   },
   sectionSub: {
     fontSize: 12,
@@ -1068,6 +1078,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   tierRow: {
     flexDirection: 'row',
@@ -1076,9 +1087,9 @@ const styles = StyleSheet.create({
   },
   tierBtn: {
     flex: 1,
-    minWidth: 95,
+    minWidth: 88,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: RADII.pill,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -1163,7 +1174,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   subjectTile: {
-    width: '48%',
+    width: '47%',
+    flexGrow: 1,
     minHeight: 118,
     padding: 14,
     borderRadius: RADII.lg,
