@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   ScrollView,
-  TextInput,
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
+import { PressBlock } from '../../src/components/Stamp';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import { useLearningStore } from '../../src/store/useLearningStore';
 import { getCurrentSupabaseConfig } from '../../src/lib/supabase';
@@ -16,38 +17,13 @@ export default function SettingsAndCloudScreen() {
   const { colors } = useTheme();
   const state = useLearningStore();
 
-  const currentSb = getCurrentSupabaseConfig();
-  const [supabaseUrl, setSupabaseUrl] = useState(currentSb.url);
-  const [supabaseKey, setSupabaseKey] = useState(currentSb.anonKey);
-  const [configFeedback, setConfigFeedback] = useState<string | null>(null);
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authFeedback, setAuthFeedback] = useState<{
-    ok: boolean;
-    message: string;
-  } | null>(null);
-
-  const handleSaveSupabaseConfig = async () => {
-    const res = await state.connectSupabaseRuntime(supabaseUrl, supabaseKey);
-    setConfigFeedback(res.message);
-  };
-
-  const handleAuth = async (isSignUp: boolean) => {
-    if (!email.trim() || !password.trim()) {
-      setAuthFeedback({
-        ok: false,
-        message: 'Enter both your email address and password.',
-      });
-      return;
+  const host = (() => {
+    try {
+      return new URL(getCurrentSupabaseConfig().url).host;
+    } catch {
+      return null;
     }
-    const res = await state.signInWithSupabase(
-      email.trim(),
-      password.trim(),
-      isSignUp
-    );
-    setAuthFeedback(res);
-  };
+  })();
 
   return (
     <ScrollView
@@ -138,198 +114,28 @@ export default function SettingsAndCloudScreen() {
         </View>
       </View>
 
-      {/* Supabase Cloud Connection & Personal Account Auth */}
+      {/* Account */}
       <View
         style={[
           styles.card,
           { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
-        <View style={styles.statusHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            Cloud sync
-          </Text>
-          <View
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: currentSb.isConfigured
-                  ? colors.successBg
-                  : colors.warningBg,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusPillText,
-                {
-                  color: currentSb.isConfigured
-                    ? colors.success
-                    : colors.warning,
-                },
-              ]}
-            >
-              {currentSb.isConfigured ? 'Connected' : 'Saved on this device only'}
-            </Text>
-          </View>
-        </View>
-
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Account</Text>
+        <Text style={[styles.signedInText, { color: colors.textPrimary }]}>
+          Signed in as {state.userEmail ?? 'unknown'}
+        </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Enter your Supabase project URL and anon key (or set them in .env). The schema is in supabase/migrations.
+          Your progress saves on this phone and syncs to your account{host ? ` (${host})` : ''}.
         </Text>
-
-        <TextInput
-          value={supabaseUrl}
-          onChangeText={setSupabaseUrl}
-          placeholder="https://your-project-id.supabase.co"
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.bgSurface,
-              borderColor: colors.ink,
-              color: colors.textPrimary,
-            },
-          ]}
-        />
-
-        <TextInput
-          value={supabaseKey}
-          onChangeText={setSupabaseKey}
-          placeholder="Supabase Anon Public Key"
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          style={[
-            styles.input,
-            {
-              backgroundColor: colors.bgSurface,
-              borderColor: colors.ink,
-              color: colors.textPrimary,
-            },
-          ]}
-        />
-
-        <Pressable
-          onPress={handleSaveSupabaseConfig}
+        <PressBlock
+          onPress={() => state.signOutSupabase()}
           accessibilityRole="button"
-          style={[
-            styles.primaryBtn,
-            { backgroundColor: colors.indigo },
-          ]}
+          style={[styles.signOutBtn, { backgroundColor: colors.bgSurface }]}
         >
-          <Text style={styles.primaryBtnText}>Save connection</Text>
-        </Pressable>
-
-        {configFeedback ? (
-          <Text style={[styles.feedbackNote, { color: colors.textPrimary }]}>
-            {configFeedback}
-          </Text>
-        ) : null}
-
-        {/* Personal Account Sign-In / Sign-Up */}
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <Text style={[styles.subHeading, { color: colors.textPrimary }]}>
-          Account
-        </Text>
-
-        {state.userEmail ? (
-          <View style={styles.signedInBox}>
-            <Text style={[styles.signedInText, { color: colors.success }]}>
-              Signed in as: {state.userEmail}
-            </Text>
-            <Pressable
-              onPress={() => state.signOutSupabase()}
-              accessibilityRole="button"
-              style={[
-                styles.secondaryBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
-              ]}
-            >
-              <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
-                Sign Out
-              </Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.authForm}>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="email@example.com"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.bgSurface,
-                  borderColor: colors.ink,
-                  color: colors.textPrimary,
-                },
-              ]}
-            />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              style={[
-                styles.input,
-                {
-                  backgroundColor: colors.bgSurface,
-                  borderColor: colors.ink,
-                  color: colors.textPrimary,
-                },
-              ]}
-            />
-            <View style={styles.authBtnRow}>
-              <Pressable
-                onPress={() => handleAuth(false)}
-                accessibilityRole="button"
-                style={[
-                  styles.primaryBtn,
-                  { flex: 1, backgroundColor: colors.indigo },
-                ]}
-              >
-                <Text style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
-                  Sign In
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleAuth(true)}
-                accessibilityRole="button"
-                style={[
-                  styles.secondaryBtn,
-                  {
-                    flex: 1,
-                    backgroundColor: colors.bgSurface,
-                    borderColor: colors.ink,
-                  },
-                ]}
-              >
-                <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
-                  Create Account
-                </Text>
-              </Pressable>
-            </View>
-            {authFeedback ? (
-              <Text
-                style={[
-                  styles.feedbackNote,
-                  { color: authFeedback.ok ? colors.success : colors.danger },
-                ]}
-              >
-                {authFeedback.message}
-              </Text>
-            ) : null}
-          </View>
-        )}
+          <Feather name="log-out" size={18} color={colors.ink} />
+          <Text style={[styles.secondaryBtnText, { color: colors.ink }]}>Sign out</Text>
+        </PressBlock>
       </View>
 
       {/* Recent Review Log Activity */}
@@ -402,6 +208,7 @@ export default function SettingsAndCloudScreen() {
 }
 
 const styles = StyleSheet.create({
+  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50 },
   container: { flex: 1 },
   content: {
     padding: SPACING.md,
