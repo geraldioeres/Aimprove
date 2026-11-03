@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import { useLearningStore } from '../../src/store/useLearningStore';
 import { JPReadingSentence, JPReadingToken } from '../../src/data/jp-seed';
 
@@ -71,9 +71,9 @@ export default function JapaneseReadingMiningScreen() {
                 styles.passageTab,
                 {
                   backgroundColor: isSelected
-                    ? colors.jpVocab
+                    ? colors.textPrimary
                     : colors.bgSurface,
-                  borderColor: isSelected ? colors.jpVocab : colors.border,
+                  borderColor: isSelected ? colors.textPrimary : colors.border,
                 },
               ]}
             >
@@ -83,14 +83,14 @@ export default function JapaneseReadingMiningScreen() {
                   { color: isSelected ? '#FFFFFF' : colors.textPrimary },
                 ]}
               >
-                {p.jlptLevel} • {p.titleJa}
+                {p.jlptLevel} · {p.titleJa}
               </Text>
               <Text
                 style={[
                   styles.passageTabSub,
                   {
                     color: isSelected
-                      ? 'rgba(255,255,255,0.85)'
+                      ? '#FFFFFF'
                       : colors.textSecondary,
                   },
                 ]}
@@ -110,20 +110,18 @@ export default function JapaneseReadingMiningScreen() {
           style={[
             styles.toggleBtn,
             {
-              backgroundColor: showFurigana
-                ? colors.jpVocabBg
-                : colors.bgSurface,
-              borderColor: showFurigana ? colors.jpVocab : colors.border,
+              backgroundColor: showFurigana ? colors.textPrimary : colors.bgSurface,
+              borderColor: showFurigana ? colors.textPrimary : colors.border,
             },
           ]}
         >
           <Text
             style={[
               styles.toggleBtnText,
-              { color: showFurigana ? colors.jpVocab : colors.textSecondary },
+              { color: showFurigana ? '#FFFFFF' : colors.textSecondary },
             ]}
           >
-            Furigana: {showFurigana ? 'ON' : 'OFF'}
+            Furigana
           </Text>
         </Pressable>
 
@@ -133,10 +131,8 @@ export default function JapaneseReadingMiningScreen() {
           style={[
             styles.toggleBtn,
             {
-              backgroundColor: showTranslation
-                ? colors.jpRadicalBg
-                : colors.bgSurface,
-              borderColor: showTranslation ? colors.jpRadical : colors.border,
+              backgroundColor: showTranslation ? colors.textPrimary : colors.bgSurface,
+              borderColor: showTranslation ? colors.textPrimary : colors.border,
             },
           ]}
         >
@@ -145,12 +141,12 @@ export default function JapaneseReadingMiningScreen() {
               styles.toggleBtnText,
               {
                 color: showTranslation
-                  ? colors.jpRadical
+                  ? '#FFFFFF'
                   : colors.textSecondary,
               },
             ]}
           >
-            English Translation: {showTranslation ? 'ON' : 'OFF'}
+            English
           </Text>
         </Pressable>
       </View>
@@ -166,7 +162,7 @@ export default function JapaneseReadingMiningScreen() {
           {activePassage.titleJa}
         </Text>
         <Text style={[styles.passageSummary, { color: colors.textSecondary }]}>
-          {activePassage.summary} • Tap any underlined word below to look up its definition and mine it to SRS.
+          {activePassage.summary} Tap an underlined word to look it up.
         </Text>
 
         <View style={styles.sentenceList}>
@@ -217,7 +213,7 @@ export default function JapaneseReadingMiningScreen() {
                             : 'transparent',
                           borderBottomColor: isActive
                             ? colors.jpVocab
-                            : colors.borderStrong,
+                            : colors.jpVocab + '66',
                         },
                       ]}
                     >
@@ -225,7 +221,7 @@ export default function JapaneseReadingMiningScreen() {
                         <Text
                           style={[
                             styles.furiganaText,
-                            { color: colors.jpVocab },
+                            { color: colors.textMuted },
                           ]}
                         >
                           {tok.reading}
@@ -260,7 +256,7 @@ export default function JapaneseReadingMiningScreen() {
           styles.dictionarySheet,
           {
             backgroundColor: colors.bgSurface,
-            borderColor: selectedWord ? colors.jpVocab : colors.border,
+            borderColor: colors.border,
           },
         ]}
       >
@@ -268,12 +264,14 @@ export default function JapaneseReadingMiningScreen() {
           <>
             <View style={styles.dictTopRow}>
               <View>
-                <Text style={[styles.dictWord, { color: colors.textPrimary }]}>
-                  {selectedWord.token.baseForm || selectedWord.token.surface}
-                </Text>
-                <Text style={[styles.dictReading, { color: colors.jpVocab }]}>
-                  Reading: {selectedWord.token.reading}
-                  {selectedWord.token.jlpt ? ` • ${selectedWord.token.jlpt}` : ''}
+                <View style={[styles.dictGlyph, TILE_LIP, { backgroundColor: colors.jpVocab }]}>
+                  <Text style={[styles.dictWord, GLYPH_SHADOW, { color: '#FFFFFF' }]}>
+                    {selectedWord.token.baseForm || selectedWord.token.surface}
+                  </Text>
+                </View>
+                <Text style={[styles.dictReading, { color: colors.textPrimary }]}>
+                  {selectedWord.token.reading}
+                  {selectedWord.token.jlpt ? ` · ${selectedWord.token.jlpt}` : ''}
                 </Text>
               </View>
               <Pressable
@@ -281,18 +279,19 @@ export default function JapaneseReadingMiningScreen() {
                 accessibilityRole="button"
                 style={[
                   styles.mineBtn,
-                  { backgroundColor: colors.jpVocab },
+                  TILE_LIP,
+                  { backgroundColor: colors.textPrimary },
                 ]}
               >
-                <Text style={styles.mineBtnText}>+ Mine to SRS Queue</Text>
+                <Text style={styles.mineBtnText}>Add to reviews</Text>
               </Pressable>
             </View>
 
             <Text style={[styles.dictMeaning, { color: colors.textPrimary }]}>
-              Definition: {selectedWord.token.meaning}
+              {selectedWord.token.meaning}
             </Text>
             <Text style={[styles.dictSentenceContext, { color: colors.textSecondary }]}>
-              Context: {selectedWord.sentence.ja}
+              {selectedWord.sentence.ja}
             </Text>
 
             {mineNotice ? (
@@ -310,7 +309,7 @@ export default function JapaneseReadingMiningScreen() {
           </>
         ) : (
           <Text style={[styles.dictPlaceholder, { color: colors.textSecondary }]}>
-            Tap any word in the passage above to inspect its reading, dictionary definition, and add it to your Japanese SRS queue in one tap. Currently mined cards: {minedCards.length}.
+            Tap a word in the passage to see its reading and meaning, then add it to your reviews. {minedCards.length} words added so far.
           </Text>
         )}
       </View>
@@ -334,13 +333,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 150,
     padding: SPACING.md,
-    borderRadius: 22,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     gap: 2,
   },
   passageTabTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   passageTabSub: {
     fontSize: 12,
@@ -352,25 +351,25 @@ const styles = StyleSheet.create({
   toggleBtn: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 12,
   },
   toggleBtnText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   readerCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
   passageHeadline: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   passageSummary: {
     fontSize: 13,
@@ -405,7 +404,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 4,
     borderBottomWidth: 2,
     marginHorizontal: 1,
   },
@@ -424,8 +423,8 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   dictionarySheet: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: 10,
   },
@@ -435,9 +434,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
   },
+  dictGlyph: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: RADII.sm,
+    marginBottom: 4,
+  },
   dictWord: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   dictReading: {
     fontSize: 14,
@@ -446,14 +452,14 @@ const styles = StyleSheet.create({
   mineBtn: {
     paddingHorizontal: 22,
     minHeight: 46,
-    borderRadius: 999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   mineBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   dictMeaning: {
     fontSize: 15,
@@ -464,8 +470,8 @@ const styles = StyleSheet.create({
   },
   mineSuccessBanner: {
     padding: 12,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     marginTop: 4,
   },
   mineSuccessText: {

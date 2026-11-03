@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../../src/theme/tokens';
+import { RADII, SPACING, TILE_LIP } from '../../../src/theme/tokens';
 import {
   fetchMushafPageFromQuranApi,
   MushafPageData,
@@ -138,25 +138,25 @@ export default function MushafPageReaderScreen() {
           style={[
             styles.navBtn,
             {
-              backgroundColor: colors.bgMuted,
-              borderColor: colors.border,
+              backgroundColor: colors.bgSurface,
+              borderColor: colors.borderStrong,
               opacity: pageNum <= 1 ? 0.4 : 1,
             },
           ]}
         >
           <Text style={[styles.navBtnText, { color: colors.textPrimary }]}>
-            Prev Page
+            Previous
           </Text>
         </Pressable>
 
         <View style={styles.pageCenterMeta}>
           <Text style={[styles.pageTitleText, { color: colors.textPrimary }]}>
-            Mushaf Page {pageNum} of 604
+            Page {pageNum}
           </Text>
           <Text style={[styles.pageSubText, { color: colors.textSecondary }]}>
             {pageData
-              ? `Juz ${pageData.juz} • Hizb ${pageData.hizb} • ${pageData.surahSummary}`
-              : `Juz • Page ${pageNum}`}
+              ? `Juz ${pageData.juz} · Hizb ${pageData.hizb} · ${pageData.surahSummary}`
+              : `Page ${pageNum}`}
           </Text>
         </View>
 
@@ -167,14 +167,14 @@ export default function MushafPageReaderScreen() {
           style={[
             styles.navBtn,
             {
-              backgroundColor: colors.bgMuted,
-              borderColor: colors.border,
+              backgroundColor: colors.bgSurface,
+              borderColor: colors.borderStrong,
               opacity: pageNum >= 604 ? 0.4 : 1,
             },
           ]}
         >
           <Text style={[styles.navBtnText, { color: colors.textPrimary }]}>
-            Next Page
+            Next
           </Text>
         </Pressable>
       </View>
@@ -188,7 +188,7 @@ export default function MushafPageReaderScreen() {
       >
         <View style={styles.controlsTopRow}>
           <Text style={[styles.controlsHeading, { color: colors.textPrimary }]}>
-            Hide-Mode Recall Test
+            Test yourself
           </Text>
           <View
             style={[
@@ -220,7 +220,7 @@ export default function MushafPageReaderScreen() {
                 },
               ]}
             >
-              STAGE: {currentStage.toUpperCase()}
+              {currentStage === 'unstarted' ? 'Not started' : currentStage.charAt(0).toUpperCase() + currentStage.slice(1)}
             </Text>
           </View>
         </View>
@@ -228,9 +228,9 @@ export default function MushafPageReaderScreen() {
         <View style={styles.hideModeButtonRow}>
           {(
             [
-              { key: 'none', label: 'Full View' },
-              { key: 'first_word_cue', label: 'First-Word Cue' },
-              { key: 'hide_all', label: 'Hide All (Tap to Peek)' },
+              { key: 'none', label: 'Full page' },
+              { key: 'first_word_cue', label: 'First word' },
+              { key: 'hide_all', label: 'Hide all' },
             ] as const
           ).map((mode) => {
             const active = hideMode === mode.key;
@@ -245,10 +245,8 @@ export default function MushafPageReaderScreen() {
                 style={[
                   styles.hideModeBtn,
                   {
-                    backgroundColor: active
-                      ? colors.quranSabaq
-                      : colors.bgMuted,
-                    borderColor: active ? colors.quranSabaq : colors.border,
+                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
+                    borderColor: active ? colors.textPrimary : colors.border,
                   },
                 ]}
               >
@@ -276,7 +274,7 @@ export default function MushafPageReaderScreen() {
         >
           <ActivityIndicator size="large" color={colors.quranSabaq} />
           <Text style={[styles.stateText, { color: colors.textPrimary }]}>
-            Loading 15-line Uthmani Mushaf Page {pageNum}...
+            Loading page {pageNum}…
           </Text>
         </View>
       ) : error ? (
@@ -287,7 +285,7 @@ export default function MushafPageReaderScreen() {
           ]}
         >
           <Text style={[styles.stateErrorTitle, { color: colors.danger }]}>
-            Could Not Load Mushaf Page {pageNum}
+            Couldn't load page {pageNum}
           </Text>
           <Text style={[styles.stateText, { color: colors.textPrimary }]}>
             {error}
@@ -429,10 +427,10 @@ export default function MushafPageReaderScreen() {
         <View style={styles.mistakeCounterRow}>
           <View>
             <Text style={[styles.gradingTitle, { color: colors.textPrimary }]}>
-              Peeks & Hesitations on Page {pageNum}: {mistakesCount}
+              Mistakes and peeks: {mistakesCount}
             </Text>
             <Text style={[styles.gradingSub, { color: colors.textSecondary }]}>
-              FSRS Rating: {gradePreview === 4 ? 'Easy (0 mistakes)' : gradePreview === 3 ? 'Good (1-2 peeks)' : gradePreview === 2 ? 'Hard (3-4 mistakes)' : 'Again (5+ mistakes)'}
+              Grade: {gradePreview === 4 ? 'Easy (0 mistakes)' : gradePreview === 3 ? 'Good (1–2)' : gradePreview === 2 ? 'Hard (3–4)' : 'Again (5+)'}
             </Text>
           </View>
 
@@ -442,7 +440,7 @@ export default function MushafPageReaderScreen() {
               accessibilityRole="button"
               style={[
                 styles.stepBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
               ]}
             >
               <Text style={[styles.stepBtnText, { color: colors.textPrimary }]}>
@@ -454,7 +452,7 @@ export default function MushafPageReaderScreen() {
               accessibilityRole="button"
               style={[
                 styles.stepBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
               ]}
             >
               <Text style={[styles.stepBtnText, { color: colors.textPrimary }]}>
@@ -471,11 +469,11 @@ export default function MushafPageReaderScreen() {
               accessibilityRole="button"
               style={[
                 styles.secondaryActionBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.quranSabaq },
+                { backgroundColor: colors.bgSurface, borderColor: colors.quranSabaq },
               ]}
             >
               <Text style={[styles.secondaryActionText, { color: colors.quranSabaq }]}>
-                Assign as Sabaq
+                Set as Sabaq
               </Text>
             </Pressable>
           ) : null}
@@ -485,11 +483,12 @@ export default function MushafPageReaderScreen() {
             accessibilityRole="button"
             style={[
               styles.completeRecitationBtn,
+              TILE_LIP,
               { backgroundColor: colors.quranSabaq },
             ]}
           >
             <Text style={styles.completeRecitationBtnText}>
-              Record Page Recitation & Schedule Next Review
+              Save recitation
             </Text>
           </Pressable>
         </View>
@@ -522,7 +521,7 @@ export default function MushafPageReaderScreen() {
             style={styles.translationToggleHeader}
           >
             <Text style={[styles.controlsHeading, { color: colors.textPrimary }]}>
-              Ayah Translations (Indonesian & English)
+              Translations
             </Text>
             <Text style={[styles.toggleLinkText, { color: colors.quranManzil }]}>
               {showTranslations ? 'Hide Translations' : 'Show Translations'}
@@ -577,21 +576,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 24,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     gap: 8,
   },
   navBtn: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   navBtnText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   pageCenterMeta: {
     flex: 1,
@@ -600,7 +599,7 @@ const styles = StyleSheet.create({
   },
   pageTitleText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   pageSubText: {
@@ -608,8 +607,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   controlsCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
@@ -620,16 +619,16 @@ const styles = StyleSheet.create({
   },
   controlsHeading: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   stageChip: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 999,
+    borderRadius: 4,
   },
   stageChipText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   hideModeButtonRow: {
     flexDirection: 'row',
@@ -641,20 +640,20 @@ const styles = StyleSheet.create({
     minWidth: 100,
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   hideModeBtnText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
   },
   stateCard: {
     minHeight: 220,
-    borderRadius: 28,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.xl,
     justifyContent: 'center',
     alignItems: 'center',
@@ -662,7 +661,7 @@ const styles = StyleSheet.create({
   },
   stateErrorTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   stateText: {
     fontSize: 14,
@@ -673,37 +672,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 20,
     minHeight: 46,
-    borderRadius: 999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   retryBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   mushafFrame: {
-    borderRadius: 28,
-    borderWidth: 2,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.md,
     gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
   },
   surahBanner: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     alignItems: 'center',
     gap: 2,
   },
   surahArabicTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   surahLatinTitle: {
     fontSize: 12,
@@ -741,7 +735,7 @@ const styles = StyleSheet.create({
   wordCell: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 4,
     minHeight: 44,
     justifyContent: 'center',
   },
@@ -754,11 +748,11 @@ const styles = StyleSheet.create({
   ayahEndMarkerText: {
     fontSize: 20,
     lineHeight: 38,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   gradingCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -771,7 +765,7 @@ const styles = StyleSheet.create({
   },
   gradingTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   gradingSub: {
@@ -785,14 +779,14 @@ const styles = StyleSheet.create({
   stepBtn: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepBtnText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   submitRow: {
     flexDirection: 'row',
@@ -802,42 +796,42 @@ const styles = StyleSheet.create({
   secondaryActionBtn: {
     paddingHorizontal: 20,
     minHeight: 48,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryActionText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   completeRecitationBtn: {
     flex: 1,
     minWidth: 220,
     minHeight: 48,
     paddingHorizontal: 20,
-    borderRadius: 999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   completeRecitationBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     textAlign: 'center',
   },
   completionBanner: {
     padding: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   completionText: {
     fontSize: 13,
     fontWeight: '700',
   },
   translationCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
@@ -862,7 +856,7 @@ const styles = StyleSheet.create({
   },
   trAyahKey: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   trArabic: {
     fontSize: 20,

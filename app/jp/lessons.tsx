@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectAvailableJapaneseLessons,
   useLearningStore,
@@ -64,17 +64,17 @@ export default function JapaneseLessonsScreen() {
           ]}
         >
           <Text style={[styles.headline, { color: colors.textPrimary }]}>
-            No Unlocked Lessons Waiting
+            No lessons right now
           </Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}>
-            All currently unlocked items are already in your active SRS queue. Complete due reviews so Radicals and Kanji reach Guru I to unlock new Kanji, Vocabulary, and Levels.
+            Everything unlocked is already in your reviews. Get radicals and kanji to Guru to unlock new items.
           </Text>
           <Pressable
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
-            style={[styles.primaryBtn, { backgroundColor: colors.jpVocab }]}
+            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.jpRadical }]}
           >
-            <Text style={styles.primaryBtnText}>Return to Today's Queue</Text>
+            <Text style={styles.primaryBtnText}>Back to Today</Text>
           </Pressable>
         </View>
       </View>
@@ -91,17 +91,17 @@ export default function JapaneseLessonsScreen() {
           ]}
         >
           <Text style={[styles.headline, { color: colors.textPrimary }]}>
-            Lesson Batch Promoted to Apprentice I
+            Lessons done
           </Text>
           <Text style={[styles.body, { color: colors.textSecondary }]}>
-            {batch.length} new Japanese items have entered Apprentice I and will appear in your review queue in 4 hours.
+            {batch.length} items moved to Apprentice. Your first review for them is in 4 hours.
           </Text>
           <Pressable
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
-            style={[styles.primaryBtn, { backgroundColor: colors.jpVocab }]}
+            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.jpRadical }]}
           >
-            <Text style={styles.primaryBtnText}>Return to Today's Queue</Text>
+            <Text style={styles.primaryBtnText}>Back to Today</Text>
           </Pressable>
         </View>
       </View>
@@ -149,21 +149,22 @@ export default function JapaneseLessonsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={[styles.stepMeta, { color: colors.textSecondary }]}>
-          Lesson Quiz • Item {quizIndex + 1} of {batch.length}
+          Quiz · {quizIndex + 1} of {batch.length}
         </Text>
 
         <View
           style={[
             styles.lessonBanner,
+            TILE_LIP,
             { backgroundColor: getKindColor(currentQuizSubject.kind) },
           ]}
         >
           <View style={styles.bannerTagWrap}>
             <Text style={styles.bannerKind}>
-              {currentQuizSubject.kind.toUpperCase()} QUIZ
+              {currentQuizSubject.kind === 'vocab' ? 'Vocabulary' : currentQuizSubject.kind.charAt(0).toUpperCase() + currentQuizSubject.kind.slice(1)}
             </Text>
           </View>
-          <Text style={styles.bannerChars}>{currentQuizSubject.characters}</Text>
+          <Text style={[styles.bannerChars, GLYPH_SHADOW]}>{currentQuizSubject.characters}</Text>
           <Text style={styles.bannerMeanings}>
             {askReading
               ? `Meaning: ${currentQuizSubject.meanings.join(', ')}`
@@ -173,8 +174,8 @@ export default function JapaneseLessonsScreen() {
 
         <Text style={[styles.quizPromptLabel, { color: colors.textPrimary }]}>
           {askReading
-            ? 'Type Reading in Romaji -> Hiragana:'
-            : 'Type English Meaning:'}
+            ? 'Reading (type in romaji)'
+            : 'Meaning'}
         </Text>
 
         <View style={styles.quizInputRow}>
@@ -188,7 +189,7 @@ export default function JapaneseLessonsScreen() {
             }}
             onSubmitEditing={handleQuizCheck}
             placeholder={
-              askReading ? 'Type reading (e.g. くち)...' : 'Type meaning...'
+              askReading ? '答え' : 'Your response'
             }
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
@@ -207,10 +208,11 @@ export default function JapaneseLessonsScreen() {
             accessibilityRole="button"
             style={[
               styles.quizSubmitBtn,
-              { backgroundColor: colors.jpVocab },
+              TILE_LIP,
+              { backgroundColor: colors.textPrimary },
             ]}
           >
-            <Text style={styles.primaryBtnText}>Verify</Text>
+            <Text style={styles.primaryBtnText}>Check</Text>
           </Pressable>
         </View>
 
@@ -239,7 +241,7 @@ export default function JapaneseLessonsScreen() {
     >
       <View style={styles.topRow}>
         <Text style={[styles.stepMeta, { color: colors.textSecondary }]}>
-          Lesson Study • {stepIndex + 1} of {batch.length}
+          Lesson {stepIndex + 1} of {batch.length}
         </Text>
         <View style={styles.miniPillRow}>
           {batch.map((item, idx) => (
@@ -251,10 +253,11 @@ export default function JapaneseLessonsScreen() {
                 styles.miniPill,
                 {
                   backgroundColor:
-                    idx === stepIndex ? colors.jpVocab : colors.bgSurface,
+                    idx === stepIndex ? getKindColor(item.kind) : colors.bgSurface,
                   borderColor:
-                    idx === stepIndex ? colors.jpVocab : colors.border,
+                    idx === stepIndex ? getKindColor(item.kind) : colors.border,
                 },
+                idx === stepIndex && TILE_LIP,
               ]}
             >
               <Text
@@ -275,15 +278,16 @@ export default function JapaneseLessonsScreen() {
       <View
         style={[
           styles.lessonBanner,
+          TILE_LIP,
           { backgroundColor: getKindColor(currentSubject.kind) },
         ]}
       >
         <View style={styles.bannerTagWrap}>
           <Text style={styles.bannerKind}>
-            LEVEL {currentSubject.level} • {currentSubject.kind.toUpperCase()}
+            Level {currentSubject.level} · {currentSubject.kind === 'vocab' ? 'Vocabulary' : currentSubject.kind.charAt(0).toUpperCase() + currentSubject.kind.slice(1)}
           </Text>
         </View>
-        <Text style={styles.bannerChars}>{currentSubject.characters}</Text>
+        <Text style={[styles.bannerChars, GLYPH_SHADOW]}>{currentSubject.characters}</Text>
         <Text style={styles.bannerMeanings}>
           {currentSubject.meanings.join(', ')}
         </Text>
@@ -298,10 +302,10 @@ export default function JapaneseLessonsScreen() {
         {currentSubject.readings.length > 0 ? (
           <View style={styles.detailBlock}>
             <Text style={[styles.detailHeading, { color: colors.textSecondary }]}>
-              Accepted Readings
+              Reading
             </Text>
-            <Text style={[styles.detailReadingBig, { color: colors.jpVocab }]}>
-              {currentSubject.readings.join(' • ')}
+            <Text style={[styles.detailReadingBig, { color: colors.textPrimary }]}>
+              {currentSubject.readings.join(' · ')}
             </Text>
           </View>
         ) : null}
@@ -309,7 +313,7 @@ export default function JapaneseLessonsScreen() {
         {currentSubject.grammarStructure ? (
           <View style={styles.detailBlock}>
             <Text style={[styles.detailHeading, { color: colors.textSecondary }]}>
-              Grammar Formation
+              Structure
             </Text>
             <Text style={[styles.detailBody, { color: colors.jpGrammar }]}>
               {currentSubject.grammarStructure}
@@ -319,14 +323,14 @@ export default function JapaneseLessonsScreen() {
 
         <View style={styles.detailBlock}>
           <Text style={[styles.detailHeading, { color: colors.textSecondary }]}>
-            Mnemonic & Explanation
+            Mnemonic
           </Text>
           <Text style={[styles.detailBody, { color: colors.textPrimary }]}>
             {currentSubject.mnemonic}
           </Text>
           {currentSubject.readingMnemonic ? (
             <Text style={[styles.detailBody, { color: colors.textSecondary, marginTop: 4 }]}>
-              Reading Memory Cue: {currentSubject.readingMnemonic}
+              Reading hint: {currentSubject.readingMnemonic}
             </Text>
           ) : null}
         </View>
@@ -334,7 +338,7 @@ export default function JapaneseLessonsScreen() {
         {currentSubject.contextSentences.length > 0 ? (
           <View style={styles.detailBlock}>
             <Text style={[styles.detailHeading, { color: colors.textSecondary }]}>
-              Example Usage
+              Context sentences
             </Text>
             {currentSubject.contextSentences.map((cs, i) => (
               <View
@@ -365,11 +369,11 @@ export default function JapaneseLessonsScreen() {
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
               ]}
             >
               <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
-                Previous Item
+                Previous
               </Text>
             </Pressable>
           ) : <View />}
@@ -378,17 +382,17 @@ export default function JapaneseLessonsScreen() {
             <Pressable
               onPress={() => setStepIndex(stepIndex + 1)}
               accessibilityRole="button"
-              style={[styles.primaryBtn, { backgroundColor: colors.jpVocab }]}
+              style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.textPrimary }]}
             >
-              <Text style={styles.primaryBtnText}>Next Lesson Card</Text>
+              <Text style={styles.primaryBtnText}>Next</Text>
             </Pressable>
           ) : (
             <Pressable
               onPress={() => setPhase('quiz')}
               accessibilityRole="button"
-              style={[styles.primaryBtn, { backgroundColor: colors.success }]}
+              style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.jpKanji }]}
             >
-              <Text style={styles.primaryBtnText}>Start Lesson Quiz</Text>
+              <Text style={styles.primaryBtnText}>Start quiz</Text>
             </Pressable>
           )}
         </View>
@@ -410,19 +414,17 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   card: {
-    borderRadius: 28,
-    borderWidth: 1.5,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.xl,
     gap: SPACING.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
   },
   headline: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   body: {
     fontSize: 15,
@@ -433,8 +435,7 @@ const styles = StyleSheet.create({
   },
   stepMeta: {
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
   miniPillRow: {
     flexDirection: 'row',
@@ -444,53 +445,47 @@ const styles = StyleSheet.create({
   miniPill: {
     paddingHorizontal: 14,
     minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   miniPillText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   lessonBanner: {
-    minHeight: 180,
-    borderRadius: 28,
+    minHeight: 200,
+    borderRadius: RADII.sm,
     padding: SPACING.lg,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
   },
   bannerTagWrap: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
+    position: 'absolute',
+    top: 10,
+    left: 14,
   },
   bannerKind: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontWeight: '700',
   },
   bannerChars: {
     color: '#FFFFFF',
-    fontSize: 58,
-    fontWeight: '900',
+    fontSize: 80,
+    lineHeight: 100,
+    fontWeight: '400',
   },
   bannerMeanings: {
     color: '#FFFFFF',
     fontSize: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   detailCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -498,14 +493,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   detailHeading: {
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '700',
   },
   detailReadingBig: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   detailBody: {
     fontSize: 14,
@@ -513,7 +506,7 @@ const styles = StyleSheet.create({
   },
   exampleBox: {
     padding: 14,
-    borderRadius: 18,
+    borderRadius: 6,
     borderWidth: 1,
     gap: 4,
     marginTop: 4,
@@ -538,26 +531,26 @@ const styles = StyleSheet.create({
   primaryBtn: {
     paddingHorizontal: 22,
     minHeight: 50,
-    borderRadius: 999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   secondaryBtn: {
     paddingHorizontal: 20,
     minHeight: 50,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   quizPromptLabel: {
     fontSize: 14,
@@ -570,23 +563,23 @@ const styles = StyleSheet.create({
   quizInput: {
     flex: 1,
     minHeight: 54,
-    borderRadius: 999,
-    borderWidth: 2,
+    borderRadius: 4,
+    borderWidth: 1,
     paddingHorizontal: 18,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    textAlign: 'center',
   },
   quizSubmitBtn: {
     paddingHorizontal: 24,
     minHeight: 54,
-    borderRadius: 999,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quizAlert: {
     padding: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
   },
   quizAlertText: {
     fontSize: 14,

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectDueQuranPages,
   useLearningStore,
@@ -38,7 +38,7 @@ export default function QuranHafalanHubScreen() {
   const handleOpenOrAssignPage = async (assignAsSabaq: boolean) => {
     const num = parseInt(jumpPageInput.trim(), 10);
     if (isNaN(num) || num < 1 || num > 604) {
-      setPageInputError('Enter a valid Madani Mushaf page between 1 and 604.');
+      setPageInputError('Enter a page number from 1 to 604.');
       return;
     }
     setPageInputError(null);
@@ -58,51 +58,54 @@ export default function QuranHafalanHubScreen() {
         <View
           style={[
             styles.summaryBox,
-            { backgroundColor: colors.quranSabaqBg, borderColor: colors.quranSabaq },
+            TILE_LIP,
+            { backgroundColor: colors.quranSabaq, borderColor: colors.quranSabaq },
           ]}
         >
-          <Text style={[styles.summaryCount, { color: colors.quranSabaq }]}>
+          <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
             {sabaqTotal}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.textPrimary }]}>
-            Sabaq (New)
+          <Text style={styles.summaryLabel}>
+            Sabaq
           </Text>
-          <Text style={[styles.summarySub, { color: colors.textSecondary }]}>
-            Active Pages
+          <Text style={styles.summarySub}>
+            New pages
           </Text>
         </View>
 
         <View
           style={[
             styles.summaryBox,
-            { backgroundColor: colors.quranSabqiBg, borderColor: colors.quranSabqi },
+            TILE_LIP,
+            { backgroundColor: colors.quranSabqi, borderColor: colors.quranSabqi },
           ]}
         >
-          <Text style={[styles.summaryCount, { color: colors.quranSabqi }]}>
+          <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
             {sabqiTotal}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.textPrimary }]}>
-            Sabqi ({state.sabqiWindowDays}d)
+          <Text style={styles.summaryLabel}>
+            Sabqi
           </Text>
-          <Text style={[styles.summarySub, { color: colors.textSecondary }]}>
-            Recent Window
+          <Text style={styles.summarySub}>
+            Last {state.sabqiWindowDays} days
           </Text>
         </View>
 
         <View
           style={[
             styles.summaryBox,
-            { backgroundColor: colors.quranManzilBg, borderColor: colors.quranManzil },
+            TILE_LIP,
+            { backgroundColor: colors.quranManzil, borderColor: colors.quranManzil },
           ]}
         >
-          <Text style={[styles.summaryCount, { color: colors.quranManzil }]}>
+          <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
             {manzilTotal}
           </Text>
-          <Text style={[styles.summaryLabel, { color: colors.textPrimary }]}>
-            Manzil (FSRS)
+          <Text style={styles.summaryLabel}>
+            Manzil
           </Text>
-          <Text style={[styles.summarySub, { color: colors.textSecondary }]}>
-            of 604 Pages
+          <Text style={styles.summarySub}>
+            Long-term
           </Text>
         </View>
       </View>
@@ -114,27 +117,23 @@ export default function QuranHafalanHubScreen() {
         style={({ pressed }) => [
           styles.heatmapBanner,
           {
-            backgroundColor: colors.bgSurface,
-            borderColor: colors.borderStrong,
-            opacity: pressed ? 0.85 : 1,
+            backgroundColor: pressed ? colors.bgMuted : colors.bgSurface,
+            borderColor: colors.border,
           },
         ]}
       >
         <View style={styles.heatmapLeft}>
           <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>
-            30-Juz & 604-Page Mastery Heatmap
+            Mushaf map
           </Text>
           <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
-            Inspect memorization stability across all 604 Madani Mushaf pages
+            All 604 pages by memorisation stage, grouped by juz
           </Text>
         </View>
         <View
-          style={[
-            styles.heatmapBtn,
-            { backgroundColor: colors.quranManzil },
-          ]}
+          style={styles.heatmapBtn}
         >
-          <Text style={styles.heatmapBtnText}>View 604 Grid</Text>
+          <Text style={[styles.heatmapBtnText, { color: colors.quranSabaq }]}>Open ›</Text>
         </View>
       </Pressable>
 
@@ -146,16 +145,16 @@ export default function QuranHafalanHubScreen() {
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Today's Scheduled Mushaf Queue
+          Today's pages
         </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          New pages begin in Sabaq, consolidate daily in Sabqi for {state.sabqiWindowDays} days, then graduate to FSRS Manzil intervals.
+          New pages start in Sabaq, are revised daily in Sabqi for {state.sabqiWindowDays} days, then move to spaced Manzil revision.
         </Text>
 
         {/* 1. Sabaq Section */}
         <View style={styles.stageGroup}>
           <Text style={[styles.stageHeading, { color: colors.quranSabaq }]}>
-            1. SABAQ (NEW MEMORIZATION TARGET)
+            Sabaq · new
           </Text>
           {dueQuran.sabaqPages.length > 0 ? (
             dueQuran.sabaqPages.map((p) => (
@@ -166,32 +165,33 @@ export default function QuranHafalanHubScreen() {
                 style={[
                   styles.pageCard,
                   {
-                    backgroundColor: colors.quranSabaqBg,
-                    borderColor: colors.quranSabaq,
+                    backgroundColor: colors.bgSurface,
+                    borderColor: colors.border,
                   },
                 ]}
               >
                 <View style={styles.pageCardLeft}>
                   <Text style={[styles.pageCardTitle, { color: colors.textPrimary }]}>
-                    Page {p.pageNumber} • Juz {getJuzForPage(p.pageNumber)}
+                    Page {p.pageNumber} · Juz {getJuzForPage(p.pageNumber)}
                   </Text>
                   <Text style={[styles.pageCardSub, { color: colors.textSecondary }]}>
-                    {getSurahSummaryForPage(p.pageNumber)} • Pass with 0-1 mistakes to graduate to Sabqi
+                    {getSurahSummaryForPage(p.pageNumber)} · pass with 0–1 mistakes to move to Sabqi
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.actionBadge,
+                    TILE_LIP,
                     { backgroundColor: colors.quranSabaq },
                   ]}
                 >
-                  <Text style={styles.actionBadgeText}>Open Page</Text>
+                  <Text style={styles.actionBadgeText}>Recite</Text>
                 </View>
               </Pressable>
             ))
           ) : (
             <Text style={[styles.emptyQueueText, { color: colors.textMuted }]}>
-              No page currently in Sabaq. Assign any Mushaf page (1-604) below.
+              No Sabaq page yet. Pick one below.
             </Text>
           )}
         </View>
@@ -199,7 +199,7 @@ export default function QuranHafalanHubScreen() {
         {/* 2. Sabqi Section */}
         <View style={styles.stageGroup}>
           <Text style={[styles.stageHeading, { color: colors.quranSabqi }]}>
-            2. SABQI (RECENT {state.sabqiWindowDays}-DAY CONSOLIDATION)
+            Sabqi · recent
           </Text>
           {dueQuran.sabqiPages.length > 0 ? (
             dueQuran.sabqiPages.map((p) => (
@@ -210,35 +210,36 @@ export default function QuranHafalanHubScreen() {
                 style={[
                   styles.pageCard,
                   {
-                    backgroundColor: colors.quranSabqiBg,
-                    borderColor: colors.quranSabqi,
+                    backgroundColor: colors.bgSurface,
+                    borderColor: colors.border,
                   },
                 ]}
               >
                 <View style={styles.pageCardLeft}>
                   <Text style={[styles.pageCardTitle, { color: colors.textPrimary }]}>
-                    Page {p.pageNumber} • Day {p.sabqiDaysCompleted} of {p.sabqiTargetDays}
+                    Page {p.pageNumber} · day {p.sabqiDaysCompleted} of {p.sabqiTargetDays}
                   </Text>
                   <Text style={[styles.pageCardSub, { color: colors.textSecondary }]}>
                     {getSurahSummaryForPage(p.pageNumber)}
                     {p.flaggedAyahKeys.length > 0
-                      ? ` • Watch Ayah ${p.flaggedAyahKeys.join(', ')}`
+                      ? ` · watch ayah ${p.flaggedAyahKeys.join(', ')}`
                       : ''}
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.actionBadge,
+                    TILE_LIP,
                     { backgroundColor: colors.quranSabqi },
                   ]}
                 >
-                  <Text style={styles.actionBadgeText}>Recite</Text>
+                  <Text style={styles.actionBadgeText}>Test</Text>
                 </View>
               </Pressable>
             ))
           ) : (
             <Text style={[styles.emptyQueueText, { color: colors.textMuted }]}>
-              All Sabqi consolidation pages for today are complete.
+              Sabqi is done for today.
             </Text>
           )}
         </View>
@@ -246,7 +247,7 @@ export default function QuranHafalanHubScreen() {
         {/* 3. Manzil Section */}
         <View style={styles.stageGroup}>
           <Text style={[styles.stageHeading, { color: colors.quranManzil }]}>
-            3. MANZIL (DUE FSRS LONG-TERM REVISION)
+            Manzil · long-term
           </Text>
           {dueQuran.manzilPages.length > 0 ? (
             dueQuran.manzilPages.map((p) => (
@@ -257,32 +258,33 @@ export default function QuranHafalanHubScreen() {
                 style={[
                   styles.pageCard,
                   {
-                    backgroundColor: colors.quranManzilBg,
-                    borderColor: colors.quranManzil,
+                    backgroundColor: colors.bgSurface,
+                    borderColor: colors.border,
                   },
                 ]}
               >
                 <View style={styles.pageCardLeft}>
                   <Text style={[styles.pageCardTitle, { color: colors.textPrimary }]}>
-                    Page {p.pageNumber} • Stability {p.stability}d
+                    Page {p.pageNumber} · {p.stability}d stability
                   </Text>
                   <Text style={[styles.pageCardSub, { color: colors.textSecondary }]}>
-                    {getSurahSummaryForPage(p.pageNumber)} • Difficulty {p.difficulty.toFixed(1)}
+                    {getSurahSummaryForPage(p.pageNumber)} · difficulty {p.difficulty.toFixed(1)}
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.actionBadge,
+                    TILE_LIP,
                     { backgroundColor: colors.quranManzil },
                   ]}
                 >
-                  <Text style={styles.actionBadgeText}>Test Page</Text>
+                  <Text style={styles.actionBadgeText}>Revise</Text>
                 </View>
               </Pressable>
             ))
           ) : (
             <Text style={[styles.emptyQueueText, { color: colors.textMuted }]}>
-              No Manzil pages due right now.
+              No Manzil pages due.
             </Text>
           )}
         </View>
@@ -296,10 +298,10 @@ export default function QuranHafalanHubScreen() {
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Open or Assign Any Mushaf Page (1-604)
+          Go to a page
         </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Standard 15-Line Madani Mushaf. Enter any page number or pick a bookmark below.
+          15-line Madani Mushaf, pages 1–604.
         </Text>
 
         <View style={styles.jumpRow}>
@@ -315,7 +317,7 @@ export default function QuranHafalanHubScreen() {
             style={[
               styles.pageInput,
               {
-                backgroundColor: colors.bgMuted,
+                backgroundColor: colors.bgSurface,
                 borderColor: colors.borderStrong,
                 color: colors.textPrimary,
               },
@@ -326,11 +328,11 @@ export default function QuranHafalanHubScreen() {
             accessibilityRole="button"
             style={[
               styles.openBtn,
-              { backgroundColor: colors.textPrimary },
+              { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
             ]}
           >
-            <Text style={[styles.openBtnText, { color: colors.bgPrimary }]}>
-              Read Page
+            <Text style={[styles.openBtnText, { color: colors.textPrimary }]}>
+              Read
             </Text>
           </Pressable>
           <Pressable
@@ -338,6 +340,7 @@ export default function QuranHafalanHubScreen() {
             accessibilityRole="button"
             style={[
               styles.assignSabaqBtn,
+              TILE_LIP,
               { backgroundColor: colors.quranSabaq },
             ]}
           >
@@ -354,13 +357,13 @@ export default function QuranHafalanHubScreen() {
         {/* Quick Bookmarks */}
         <View style={styles.bookmarkGrid}>
           {[
-            { page: 1, label: 'P. 1 • Al-Fatihah' },
-            { page: 2, label: 'P. 2 • Al-Baqarah 1-5' },
-            { page: 293, label: 'P. 293 • Al-Kahf' },
-            { page: 562, label: 'P. 562 • Al-Mulk' },
-            { page: 582, label: 'P. 582 • An-Naba' },
-            { page: 602, label: 'P. 602 • Al-Kafirun' },
-            { page: 604, label: 'P. 604 • Al-Ikhlas/Nas' },
+            { page: 1, label: '1 · Al-Fatihah' },
+            { page: 2, label: '2 · Al-Baqarah' },
+            { page: 293, label: '293 · Al-Kahf' },
+            { page: 562, label: '562 · Al-Mulk' },
+            { page: 582, label: '582 · An-Naba' },
+            { page: 602, label: '602 · Al-Kafirun' },
+            { page: 604, label: '604 · Al-Ikhlas' },
           ].map((bm) => (
             <Pressable
               key={bm.page}
@@ -368,7 +371,7 @@ export default function QuranHafalanHubScreen() {
               accessibilityRole="button"
               style={[
                 styles.bookmarkChip,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.border },
               ]}
             >
               <Text style={[styles.bookmarkChipText, { color: colors.textPrimary }]}>
@@ -397,20 +400,23 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 3,
   },
   summaryCount: {
-    fontSize: 26,
-    fontWeight: '900',
+    color: '#FFFFFF',
+    fontSize: 30,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   summaryLabel: {
-    fontSize: 13,
-    fontWeight: '800',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   summarySub: {
-    fontSize: 11,
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600',
   },
   heatmapBanner: {
@@ -419,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.md,
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: SPACING.sm,
   },
   heatmapLeft: {
@@ -427,8 +433,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   heatmapTitle: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
   },
   heatmapSub: {
     fontSize: 12,
@@ -443,37 +449,35 @@ const styles = StyleSheet.create({
   heatmapBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   sectionCard: {
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     padding: SPACING.md,
     gap: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
   },
   sectionSub: {
     fontSize: 12,
     lineHeight: 18,
   },
   stageGroup: {
-    gap: 8,
+    gap: 2,
   },
   stageHeading: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+    fontSize: 13,
+    fontWeight: '700',
   },
   pageCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: RADII.md,
-    borderWidth: 1.5,
+    paddingVertical: 10,
+    borderTopWidth: 1,
     gap: SPACING.sm,
   },
   pageCardLeft: {
@@ -481,8 +485,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   pageCardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
   pageCardSub: {
     fontSize: 12,
@@ -497,11 +501,10 @@ const styles = StyleSheet.create({
   actionBadgeText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   emptyQueueText: {
     fontSize: 13,
-    fontStyle: 'italic',
   },
   jumpRow: {
     flexDirection: 'row',
@@ -512,13 +515,14 @@ const styles = StyleSheet.create({
     width: 120,
     minHeight: 46,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: 16,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   openBtn: {
+    borderWidth: 1,
     paddingHorizontal: 18,
     minHeight: 46,
     borderRadius: RADII.pill,
@@ -527,7 +531,7 @@ const styles = StyleSheet.create({
   },
   openBtnText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   assignSabaqBtn: {
     paddingHorizontal: 18,
@@ -539,7 +543,7 @@ const styles = StyleSheet.create({
   assignSabaqBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   errorText: {
     fontSize: 13,
@@ -554,7 +558,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 38,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
   },
   bookmarkChipText: {

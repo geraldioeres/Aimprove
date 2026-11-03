@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import { ALL_604_PAGE_SUMMARIES } from '../../src/data/quran-seed';
 import { useLearningStore } from '../../src/store/useLearningStore';
 
@@ -40,10 +40,10 @@ export default function QuranMasteryHeatmapScreen() {
         ]}
       >
         <Text style={[styles.title, { color: colors.textPrimary }]}>
-          604-Page Madani Mushaf Mastery Map
+          Mushaf map
         </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Active or memorized pages: {totalStarted} of 604 • Tap any page cell to open the 15-line Mushaf reader.
+          {totalStarted} of 604 pages started. Tap a page to open it.
         </Text>
 
         {/* Legend */}
@@ -56,7 +56,7 @@ export default function QuranMasteryHeatmapScreen() {
               ]}
             />
             <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
-              Sabaq (New)
+              Sabaq
             </Text>
           </View>
           <View style={styles.legendItem}>
@@ -67,7 +67,7 @@ export default function QuranMasteryHeatmapScreen() {
               ]}
             />
             <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
-              Sabqi (Recent)
+              Sabqi
             </Text>
           </View>
           <View style={styles.legendItem}>
@@ -78,7 +78,7 @@ export default function QuranMasteryHeatmapScreen() {
               ]}
             />
             <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
-              Manzil (FSRS)
+              Manzil
             </Text>
           </View>
           <View style={styles.legendItem}>
@@ -89,7 +89,7 @@ export default function QuranMasteryHeatmapScreen() {
               ]}
             />
             <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
-              Unstarted
+              Not started
             </Text>
           </View>
         </View>
@@ -103,7 +103,7 @@ export default function QuranMasteryHeatmapScreen() {
         ]}
       >
         <Text style={[styles.filterHeading, { color: colors.textPrimary }]}>
-          Filter by Juz (1 to 30)
+          Juz
         </Text>
         <ScrollView
           horizontal
@@ -117,7 +117,7 @@ export default function QuranMasteryHeatmapScreen() {
               styles.juzPill,
               {
                 backgroundColor:
-                  selectedJuz === 'all' ? colors.textPrimary : colors.bgMuted,
+                  selectedJuz === 'all' ? colors.textPrimary : colors.bgSurface,
                 borderColor:
                   selectedJuz === 'all' ? colors.textPrimary : colors.border,
               },
@@ -132,7 +132,7 @@ export default function QuranMasteryHeatmapScreen() {
                 },
               ]}
             >
-              All 604 Pages
+              All
             </Text>
           </Pressable>
 
@@ -146,10 +146,8 @@ export default function QuranMasteryHeatmapScreen() {
                 style={[
                   styles.juzPill,
                   {
-                    backgroundColor: active
-                      ? colors.quranManzil
-                      : colors.bgMuted,
-                    borderColor: active ? colors.quranManzil : colors.border,
+                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
+                    borderColor: active ? colors.textPrimary : colors.border,
                   },
                 ]}
               >
@@ -176,8 +174,8 @@ export default function QuranMasteryHeatmapScreen() {
       >
         <Text style={[styles.filterHeading, { color: colors.textPrimary }]}>
           {selectedJuz === 'all'
-            ? 'All 604 Mushaf Pages'
-            : `Juz ${selectedJuz} Pages (${filteredPages.length} Pages)`}
+            ? 'All 604 pages'
+            : `Juz ${selectedJuz} · ${filteredPages.length} pages`}
         </Text>
 
         <View style={styles.heatmapGrid}>
@@ -185,7 +183,7 @@ export default function QuranMasteryHeatmapScreen() {
             const prog = quranProgress[item.pageNumber];
             const stage = prog?.stage || 'unstarted';
 
-            let bg = colors.bgMuted;
+            let bg = colors.bgSurface;
             let border = colors.border;
             let textColor = colors.textPrimary;
 
@@ -211,9 +209,10 @@ export default function QuranMasteryHeatmapScreen() {
                 style={[
                   styles.pageCell,
                   { backgroundColor: bg, borderColor: border },
+                  stage !== 'unstarted' && TILE_LIP,
                 ]}
               >
-                <Text style={[styles.pageCellNumber, { color: textColor }]}>
+                <Text style={[styles.pageCellNumber, stage !== 'unstarted' && GLYPH_SHADOW, { color: textColor }]}>
                   {item.pageNumber}
                 </Text>
                 <Text
@@ -224,11 +223,11 @@ export default function QuranMasteryHeatmapScreen() {
                       color:
                         stage === 'unstarted'
                           ? colors.textMuted
-                          : 'rgba(255,255,255,0.9)',
+                          : '#FFFFFF',
                     },
                   ]}
                 >
-                  {stage === 'unstarted' ? `J${item.juz}` : stage.toUpperCase()}
+                  {stage === 'unstarted' ? `Juz ${item.juz}` : stage.charAt(0).toUpperCase() + stage.slice(1)}
                 </Text>
               </Pressable>
             );
@@ -247,14 +246,14 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   headerCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
   title: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   subtitle: {
     fontSize: 13,
@@ -274,21 +273,21 @@ const styles = StyleSheet.create({
   legendSwatch: {
     width: 14,
     height: 14,
-    borderRadius: 999,
+    borderRadius: 4,
   },
   legendLabel: {
     fontSize: 12,
     fontWeight: '700',
   },
   filterCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
   filterHeading: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   juzScroll: {
     gap: 8,
@@ -297,18 +296,18 @@ const styles = StyleSheet.create({
   juzPill: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   juzPillText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   gridCard: {
-    borderRadius: 26,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -320,19 +319,19 @@ const styles = StyleSheet.create({
   pageCell: {
     width: 60,
     minHeight: 56,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 4,
   },
   pageCellNumber: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   pageCellSub: {
-    fontSize: 9,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

@@ -1,4 +1,4 @@
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light';
 
 export interface ThemePalette {
   mode: ThemeMode;
@@ -11,7 +11,7 @@ export interface ThemePalette {
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
-  // Japanese domain accents (single blue ramp plus slate)
+  // Japanese item types. Solid fills carry white glyphs; *Bg is the quiet tint.
   jpRadical: string;
   jpRadicalBg: string;
   jpKanji: string;
@@ -20,7 +20,7 @@ export interface ThemePalette {
   jpVocabBg: string;
   jpGrammar: string;
   jpGrammarBg: string;
-  // Quran stage accents (same blue ramp)
+  // Quran memorisation stages
   quranSabaq: string;
   quranSabaqBg: string;
   quranSabqi: string;
@@ -29,7 +29,13 @@ export interface ThemePalette {
   quranManzilBg: string;
   mushafPaper: string;
   mushafBorder: string;
-  // Habit & Progress Accents
+  // SRS stage groups
+  srsApprentice: string;
+  srsGuru: string;
+  srsMaster: string;
+  srsEnlightened: string;
+  srsBurned: string;
+  // Legacy aliases kept so older screens still resolve
   streakFlame: string;
   streakFlameBg: string;
   progressFluid: string;
@@ -45,89 +51,61 @@ export interface ThemePalette {
 
 export const LIGHT_PALETTE: ThemePalette = {
   mode: 'light',
-  bgPrimary: '#F8F6F0',
+  bgPrimary: '#F4F4F4',
   bgSurface: '#FFFFFF',
-  bgMuted: '#EFECE4',
+  bgMuted: '#F4F4F4',
   bgElevated: '#FFFFFF',
-  border: '#E5E0D4',
-  borderStrong: '#D1C9B8',
-  textPrimary: '#1E1E24',
-  textSecondary: '#5C5C66',
-  textMuted: '#7A7A88',
-  jpRadical: '#2563EB',
-  jpRadicalBg: '#E8F0FE',
-  jpKanji: '#1E40AF',
-  jpKanjiBg: '#E8F0FE',
-  jpVocab: '#1D4ED8',
-  jpVocabBg: '#E8F0FE',
-  jpGrammar: '#475569',
-  jpGrammarBg: '#EEF1F5',
-  quranSabaq: '#1E40AF',
-  quranSabaqBg: '#E8F0FE',
-  quranSabqi: '#2563EB',
-  quranSabqiBg: '#E8F0FE',
-  quranManzil: '#4B7BEC',
-  quranManzilBg: '#E8F0FE',
-  mushafPaper: '#FCFBF7',
-  mushafBorder: '#DCD4C2',
-  streakFlame: '#2563EB',
-  streakFlameBg: '#E8F0FE',
-  progressFluid: '#5B93F5',
-  progressFluidBg: '#E8F0FE',
-  success: '#10B981',
-  successBg: '#D1FAE5',
-  danger: '#EF4444',
-  dangerBg: '#FEE2E2',
-  warning: '#F59E0B',
-  warningBg: '#FEF3C7',
+  border: '#E1E1E1',
+  borderStrong: '#C9C9C9',
+  textPrimary: '#333333',
+  textSecondary: '#555555',
+  textMuted: '#6E6E6E',
+  jpRadical: '#0082C8',
+  jpRadicalBg: '#E3F3FC',
+  jpKanji: '#E0009A',
+  jpKanjiBg: '#FCE4F4',
+  jpVocab: '#A000F0',
+  jpVocabBg: '#F3E4FD',
+  jpGrammar: '#00806F',
+  jpGrammarBg: '#E0F2EF',
+  quranSabaq: '#1E8A4C',
+  quranSabaqBg: '#E3F3E9',
+  quranSabqi: '#B86400',
+  quranSabqiBg: '#FBEEDC',
+  quranManzil: '#294DDB',
+  quranManzilBg: '#E6EBFB',
+  mushafPaper: '#FFFEF9',
+  mushafBorder: '#E3DDCB',
+  srsApprentice: '#DD0093',
+  srsGuru: '#882D9E',
+  srsMaster: '#294DDB',
+  srsEnlightened: '#0082C8',
+  srsBurned: '#434343',
+  streakFlame: '#E0009A',
+  streakFlameBg: '#FCE4F4',
+  progressFluid: '#0082C8',
+  progressFluidBg: '#E3F3FC',
+  success: '#3B8F1C',
+  successBg: '#E8F5E0',
+  danger: '#E0002B',
+  dangerBg: '#FDE4E8',
+  warning: '#B86400',
+  warningBg: '#FBEEDC',
 };
 
-export const DARK_PALETTE: ThemePalette = {
-  mode: 'dark',
-  bgPrimary: '#13151D',
-  bgSurface: '#1C1F2B',
-  bgMuted: '#242838',
-  bgElevated: '#282D3E',
-  border: '#2E3447',
-  borderStrong: '#3D455D',
-  textPrimary: '#F5F5F8',
-  textSecondary: '#A9AFC2',
-  textMuted: '#7D849B',
-  jpRadical: '#6B9BF5',
-  jpRadicalBg: '#1B2744',
-  jpKanji: '#4F7FE8',
-  jpKanjiBg: '#1B2744',
-  jpVocab: '#5B8BF0',
-  jpVocabBg: '#1B2744',
-  jpGrammar: '#94A3B8',
-  jpGrammarBg: '#232A3A',
-  quranSabaq: '#4F7FE8',
-  quranSabaqBg: '#1B2744',
-  quranSabqi: '#6B9BF5',
-  quranSabqiBg: '#1B2744',
-  quranManzil: '#8FB1F7',
-  quranManzilBg: '#1B2744',
-  mushafPaper: '#1A1D27',
-  mushafBorder: '#353B4E',
-  streakFlame: '#6B9BF5',
-  streakFlameBg: '#1B2744',
-  progressFluid: '#5B93F5',
-  progressFluidBg: '#1B2744',
-  success: '#34D399',
-  successBg: '#064E3B',
-  danger: '#F87171',
-  dangerBg: '#450A0A',
-  warning: '#FBBF24',
-  warningBg: '#451A03',
-};
+// Light only. Kept as an alias so imports elsewhere keep compiling.
+export const DARK_PALETTE = LIGHT_PALETTE;
 
+// Flat, square-ish corners. `pill` is used for buttons and tags, which stay
+// nearly square in this system; `round` is for true circles and count badges.
 export const RADII = {
-  xs: 8,
-  sm: 14,
-  md: 20,
-  lg: 26,
-  xl: 32,
-  pill: 999,
+  xs: 3,
+  sm: 4,
+  md: 5,
+  lg: 6,
+  xl: 8,
+  pill: 4,
+  round: 999,
 } as const;
 
 export const SPACING = {
@@ -137,4 +115,19 @@ export const SPACING = {
   lg: 20,
   xl: 28,
   xxl: 40,
+} as const;
+
+/**
+ * The item-tile signature: a solid type colour with a darker bottom lip and
+ * a hard 1px shadow under the white glyph.
+ */
+export const TILE_LIP = {
+  borderBottomWidth: 3,
+  borderBottomColor: 'rgba(0,0,0,0.22)',
+} as const;
+
+export const GLYPH_SHADOW = {
+  textShadowColor: 'rgba(0,0,0,0.28)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 0,
 } as const;

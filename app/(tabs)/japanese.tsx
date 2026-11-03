@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   JP_SUBJECT_BY_ID,
   JP_SUBJECTS_BY_LEVEL,
@@ -31,8 +31,6 @@ const WANIKANI_TIERS = [
   { name: 'Reality', range: '51-60', start: 51, end: 60 },
 ] as const;
 
-// WaniKani's own item-type colors, kept on this screen so it reads like the original dashboard.
-const WK = { radical: '#00AAFF', kanji: '#FF00AA', vocab: '#AA00FF' } as const;
 
 const SPREAD_BUCKETS = [
   { name: 'Apprentice', min: 1, max: 4 },
@@ -73,8 +71,9 @@ export default function JapaneseHubScreen() {
   const dueReviews = selectDueJapaneseReviews(state);
   const availableLessons = selectAvailableJapaneseLessons(state);
 
-  const dashGray = colors.mode === 'dark' ? colors.bgMuted : '#E8ECF0';
-  const dashBorder = colors.mode === 'dark' ? colors.border : '#DEDEDE';
+  const WK = { radical: colors.jpRadical, kanji: colors.jpKanji, vocab: colors.jpVocab };
+  const dashGray = colors.bgSurface;
+  const dashBorder = colors.border;
 
   const spreadRows = SPREAD_BUCKETS.map((b) => {
     const c = { radical: 0, kanji: 0, vocab: 0, total: 0 };
@@ -146,13 +145,13 @@ export default function JapaneseHubScreen() {
       case 'vocab':
         return { fg: WK.vocab, bg: WK.vocab, label: 'Vocab' };
       case 'grammar':
-        return { fg: colors.jpGrammar, bg: colors.jpGrammarBg, label: 'Grammar' };
+        return { fg: colors.jpGrammar, bg: colors.jpGrammar, label: 'Grammar' };
     }
   };
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.mode === 'dark' ? colors.bgPrimary : '#F4F4F4' }]}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       contentContainerStyle={styles.content}
     >
       {/* WaniKani-style dashboard: Lessons / Reviews / Reading */}
@@ -169,22 +168,18 @@ export default function JapaneseHubScreen() {
               borderColor: availableLessons.length > 0 ? WK.kanji : dashBorder,
               opacity: pressed ? 0.88 : 1,
             },
+            availableLessons.length > 0 && TILE_LIP,
           ]}
         >
-          <Text style={[styles.launchEyebrow, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textSecondary }]}>
-            Today's
-          </Text>
           <Text style={[styles.launchTitle, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textPrimary }]}>
             Lessons
           </Text>
           {availableLessons.length > 0 ? (
-            <Text style={[styles.launchCount, { color: '#FFFFFF' }]}>{availableLessons.length}</Text>
+            <Text style={[styles.launchCount, GLYPH_SHADOW, { color: '#FFFFFF' }]}>{availableLessons.length}</Text>
           ) : (
-            <View style={[styles.donePill, { borderColor: dashBorder, backgroundColor: colors.bgSurface }]}>
-              <Text style={[styles.donePillText, { color: colors.textSecondary }]}>Done!</Text>
-            </View>
+            <Text style={[styles.launchCount, { color: colors.textMuted }]}>0</Text>
           )}
-          <Text style={[styles.launchHint, { color: availableLessons.length > 0 ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>
+          <Text style={[styles.launchHint, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textMuted }]}>
             {availableLessons.length > 0
               ? 'New items are ready to learn.'
               : 'All done. Do your Reviews to unlock more Lessons.'}
@@ -203,20 +198,16 @@ export default function JapaneseHubScreen() {
               borderColor: dueReviews.totalCount > 0 ? WK.radical : dashBorder,
               opacity: pressed ? 0.88 : 1,
             },
+            dueReviews.totalCount > 0 && TILE_LIP,
           ]}
         >
-          <Text style={[styles.launchEyebrow, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textSecondary }]}>
-            Available
-          </Text>
           <Text style={[styles.launchTitle, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textPrimary }]}>
             Reviews
           </Text>
-          <View style={[styles.donePill, { borderColor: dueReviews.totalCount > 0 ? '#FFFFFF' : dashBorder, backgroundColor: dueReviews.totalCount > 0 ? 'transparent' : colors.bgSurface }]}>
-            <Text style={[styles.donePillText, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textSecondary }]}>
-              {dueReviews.totalCount}
-            </Text>
-          </View>
-          <Text style={[styles.launchHint, { color: dueReviews.totalCount > 0 ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>
+          <Text style={[styles.launchCount, dueReviews.totalCount > 0 ? [GLYPH_SHADOW, { color: '#FFFFFF' }] : { color: colors.textMuted }]}>
+            {dueReviews.totalCount}
+          </Text>
+          <Text style={[styles.launchHint, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textMuted }]}>
             {dueReviews.totalCount > 0
               ? 'Reviews are waiting for you.'
               : 'There are no more Reviews to do right now.'}
@@ -236,7 +227,7 @@ export default function JapaneseHubScreen() {
           <Text style={[styles.launchHint, { color: colors.textSecondary }]}>
             {state.jpPassages.length} passages. Tap a word to add it to your SRS queue.
           </Text>
-          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open ›</Text>
+          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open reading ›</Text>
         </Pressable>
       </View>
 
@@ -321,12 +312,12 @@ export default function JapaneseHubScreen() {
           style={[
             styles.passBanner,
             {
-              backgroundColor: levelPassedAll ? '#DDF3E4' : colors.bgMuted,
-              borderColor: levelPassedAll ? '#9AD4AB' : dashBorder,
+              backgroundColor: levelPassedAll ? colors.successBg : colors.bgMuted,
+              borderColor: levelPassedAll ? colors.success : dashBorder,
             },
           ]}
         >
-          <Text style={[styles.passBannerText, { color: levelPassedAll ? '#1F6B3A' : colors.textSecondary }]}>
+          <Text style={[styles.passBannerText, { color: levelPassedAll ? colors.success : colors.textSecondary }]}>
             {levelPassedAll
               ? "You've passed this level, and you've Guru'd all its items. Great job!"
               : `Guru ${requiredForLevelUp - guruKanjiInLevel} more kanji (90%) to pass level ${selectedLevel}.`}
@@ -395,9 +386,9 @@ export default function JapaneseHubScreen() {
                     key={a.subjectId}
                     accessibilityRole="button"
                     onPress={() => setInspectedSubject(subj)}
-                    style={[styles.itemChip, { backgroundColor: kc }]}
+                    style={[styles.itemChip, TILE_LIP, { backgroundColor: kc }]}
                   >
-                    <Text style={styles.itemChipText}>{subj.characters}</Text>
+                    <Text style={[styles.itemChipText, GLYPH_SHADOW]}>{subj.characters}</Text>
                   </Pressable>
                 );
               })}
@@ -415,10 +406,10 @@ export default function JapaneseHubScreen() {
         <View style={styles.levelHeaderRow}>
           <View style={styles.headerTextWrap}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              WaniKani Progressive Levels (1 to 60)
+              All Levels
             </Text>
             <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-              478 Radicals • 2,026 Kanji • 6,345 Vocabulary • JLPT Cloze Grammar
+              478 radicals · 2,026 kanji · 6,345 vocabulary · grammar
             </Text>
           </View>
         </View>
@@ -438,7 +429,7 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.tierBtn,
                   {
-                    backgroundColor: active ? colors.textPrimary : colors.bgMuted,
+                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
                     borderColor: active ? colors.textPrimary : colors.border,
                   },
                 ]}
@@ -446,7 +437,7 @@ export default function JapaneseHubScreen() {
                 <Text
                   style={[
                     styles.tierBtnName,
-                    { color: active ? colors.bgPrimary : colors.textPrimary },
+                    { color: active ? '#FFFFFF' : colors.textPrimary },
                   ]}
                 >
                   {tier.name}
@@ -455,7 +446,7 @@ export default function JapaneseHubScreen() {
                   style={[
                     styles.tierBtnRange,
                     {
-                      color: active ? colors.bgPrimary : colors.textSecondary,
+                      color: active ? '#FFFFFF' : colors.textSecondary,
                     },
                   ]}
                 >
@@ -479,14 +470,13 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.levelPill,
                   {
-                    backgroundColor: isSelected
-                      ? colors.jpVocab
-                      : colors.bgMuted,
+                    backgroundColor: isSelected ? colors.textPrimary : colors.bgSurface,
                     borderColor: isSelected
-                      ? colors.jpVocab
+                      ? colors.textPrimary
                       : isCurrent
                       ? colors.jpKanji
                       : colors.border,
+                    borderWidth: isCurrent && !isSelected ? 2 : 1,
                   },
                 ]}
               >
@@ -514,10 +504,10 @@ export default function JapaneseHubScreen() {
         >
           <View style={styles.unlockProgressTextRow}>
             <Text style={[styles.unlockProgressLabel, { color: colors.textPrimary }]}>
-              Level {selectedLevel} Kanji at Guru I ({levelRadicalsCount} Radicals • {levelKanjiCount} Kanji • {levelVocabCount} Vocab)
+              Level {selectedLevel} kanji at Guru
             </Text>
             <Text style={[styles.unlockProgressValue, { color: colors.jpKanji }]}>
-              {guruKanjiInLevel} / {requiredForLevelUp} for Lv {Math.min(60, selectedLevel + 1)}
+              {guruKanjiInLevel} / {requiredForLevelUp}
             </Text>
           </View>
           <View
@@ -562,15 +552,15 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.filterTab,
                   {
-                    backgroundColor: active ? colors.jpVocabBg : colors.bgMuted,
-                    borderColor: active ? colors.jpVocab : colors.border,
+                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
+                    borderColor: active ? colors.textPrimary : colors.border,
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.filterTabText,
-                    { color: active ? colors.jpVocab : colors.textSecondary },
+                    { color: active ? '#FFFFFF' : colors.textSecondary },
                   ]}
                 >
                   {tab.label}
@@ -632,10 +622,10 @@ export default function JapaneseHubScreen() {
                   <View
                     style={[
                       styles.stageBadge,
-                      { backgroundColor: colors.jpVocabBg },
+                      { backgroundColor: colors.srsApprentice },
                     ]}
                   >
-                    <Text style={[styles.stageBadgeText, { color: colors.jpVocab }]}>
+                    <Text style={[styles.stageBadgeText, { color: '#FFFFFF' }]}>
                       {WANIKANI_STAGES[card.srsStage].name}
                     </Text>
                   </View>
@@ -665,8 +655,9 @@ export default function JapaneseHubScreen() {
                         ? colors.bgMuted
                         : kindStyle.bg,
                       borderColor: isLocked ? colors.border : kindStyle.fg,
-                      opacity: pressed ? 0.8 : isLocked ? 0.72 : 1,
+                      opacity: pressed ? 0.8 : 1,
                     },
+                    !isLocked && TILE_LIP,
                   ]}
                 >
                   <View style={styles.tileTopRow}>
@@ -682,7 +673,7 @@ export default function JapaneseHubScreen() {
                       {stageName}
                     </Text>
                   </View>
-                  <Text style={[styles.tileCharacter, { color: isLocked ? colors.textPrimary : '#FFFFFF' }]}>
+                  <Text style={[styles.tileCharacter, isLocked ? { color: colors.textMuted } : [GLYPH_SHADOW, { color: '#FFFFFF' }]]}>
                     {subj.characters}
                   </Text>
                   <Text
@@ -729,11 +720,13 @@ export default function JapaneseHubScreen() {
                 <View style={styles.modalHeader}>
                   <View>
                     <Text style={[styles.modalMeta, { color: colors.textSecondary }]}>
-                      Level {inspectedSubject.level} • {inspectedSubject.kind.toUpperCase()}
+                      Level {inspectedSubject.level} · {getKindColors(inspectedSubject.kind).label}
                     </Text>
-                    <Text style={[styles.modalCharacter, { color: colors.textPrimary }]}>
-                      {inspectedSubject.characters}
-                    </Text>
+                    <View style={[styles.modalGlyphBox, TILE_LIP, { backgroundColor: getKindColors(inspectedSubject.kind).bg }]}>
+                      <Text style={[styles.modalCharacter, GLYPH_SHADOW, { color: '#FFFFFF' }]}>
+                        {inspectedSubject.characters}
+                      </Text>
+                    </View>
                   </View>
                   <Pressable
                     onPress={() => setInspectedSubject(null)}
@@ -754,8 +747,8 @@ export default function JapaneseHubScreen() {
                 </Text>
 
                 {inspectedSubject.readings.length > 0 ? (
-                  <Text style={[styles.modalReading, { color: colors.jpVocab }]}>
-                    Readings: {inspectedSubject.readings.join(' • ')}
+                  <Text style={[styles.modalReading, { color: colors.textPrimary }]}>
+                    Readings: {inspectedSubject.readings.join(' · ')}
                   </Text>
                 ) : null}
 
@@ -871,7 +864,7 @@ const styles = StyleSheet.create({
     minWidth: 44,
     minHeight: 44,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -888,7 +881,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
     minHeight: 150,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     gap: 4,
   },
@@ -904,7 +897,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: 4,
     borderWidth: 1,
   },
   donePillText: {
@@ -950,7 +943,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 76,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 4,
     borderTopWidth: 4,
     gap: 2,
     justifyContent: 'space-between',
@@ -966,7 +959,7 @@ const styles = StyleSheet.create({
   },
   passBanner: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
   },
   passBannerText: {
@@ -1000,7 +993,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
   },
   spreadName: {
@@ -1015,7 +1008,7 @@ const styles = StyleSheet.create({
     minWidth: 34,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 999,
+    borderRadius: 4,
     alignItems: 'center',
   },
   countPillText: {
@@ -1024,8 +1017,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },  launchCount: {
-    fontSize: 30,
-    fontWeight: '900',
+    fontSize: 40,
+    lineHeight: 48,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   launchTitle: {
@@ -1033,15 +1027,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   sectionCard: {
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     overflow: 'hidden',
     padding: SPACING.md,
     gap: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     flexShrink: 1,
   },
   sectionSub: {
@@ -1058,17 +1052,17 @@ const styles = StyleSheet.create({
     minWidth: 92,
     padding: 12,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 3,
   },
   srsBucketCount: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   srsBucketName: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   srsBucketSub: {
     fontSize: 10,
@@ -1091,12 +1085,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: 'center',
   },
   tierBtnName: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   tierBtnRange: {
     fontSize: 11,
@@ -1112,19 +1106,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     minHeight: 40,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   levelPillText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   unlockProgressBox: {
     padding: 14,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 8,
   },
   unlockProgressTextRow: {
@@ -1140,7 +1134,7 @@ const styles = StyleSheet.create({
   },
   unlockProgressValue: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   progressTrack: {
@@ -1161,12 +1155,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 38,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
   },
   filterTabText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   subjectGrid: {
     flexDirection: 'row',
@@ -1179,7 +1173,7 @@ const styles = StyleSheet.create({
     minHeight: 118,
     padding: 14,
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'space-between',
   },
   tileTopRow: {
@@ -1188,10 +1182,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tileKindTag: {
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '700',
   },
   tileStageTag: {
     fontSize: 11,
@@ -1199,12 +1191,12 @@ const styles = StyleSheet.create({
   },
   tileCharacter: {
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: '700',
     marginVertical: 4,
   },
   tileMeaning: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   tileReading: {
     fontSize: 12,
@@ -1213,13 +1205,13 @@ const styles = StyleSheet.create({
   emptyMinedBox: {
     padding: SPACING.lg,
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 8,
     alignItems: 'flex-start',
   },
   emptyMinedTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   emptyMinedSub: {
     fontSize: 13,
@@ -1235,7 +1227,7 @@ const styles = StyleSheet.create({
   emptyActionBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   minedList: {
     gap: 8,
@@ -1246,7 +1238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 10,
   },
   minedLeft: {
@@ -1255,7 +1247,7 @@ const styles = StyleSheet.create({
   },
   minedChars: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   minedMeaning: {
     fontSize: 13,
@@ -1272,7 +1264,7 @@ const styles = StyleSheet.create({
   },
   stageBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,
@@ -1282,9 +1274,12 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     borderRadius: RADII.xl,
-    borderWidth: 2,
+    borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.sm,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1293,31 +1288,40 @@ const styles = StyleSheet.create({
   },
   modalMeta: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
+  },
+  modalGlyphBox: {
+    alignSelf: 'flex-start',
+    minWidth: 72,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: RADII.sm,
+    alignItems: 'center',
+    marginTop: 6,
   },
   modalCharacter: {
     fontSize: 44,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 2,
   },
   closeModalBtn: {
     paddingHorizontal: 16,
     minHeight: 40,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
   },
   closeModalBtnText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalMeaning: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalReading: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalPitch: {
     fontSize: 13,
@@ -1326,21 +1330,21 @@ const styles = StyleSheet.create({
   grammarFormulaBox: {
     padding: 12,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   grammarFormulaText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   mnemonicBox: {
     padding: 14,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 4,
   },
   mnemonicTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   mnemonicBody: {
     fontSize: 13,
@@ -1355,7 +1359,7 @@ const styles = StyleSheet.create({
   },
   contextJa: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   contextFuri: {
     fontSize: 12,

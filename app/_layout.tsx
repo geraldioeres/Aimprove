@@ -7,7 +7,7 @@ import { useLearningStore } from '../src/store/useLearningStore';
 import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 
 function RootNavigator() {
-  const { colors, mode } = useTheme();
+  const { colors } = useTheme();
   const hydrate = useLearningStore((s) => s.hydrate);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerStyle: {
@@ -28,6 +28,7 @@ function RootNavigator() {
             fontSize: 17,
           },
           headerShadowVisible: false,
+          headerTitleAlign: 'left',
           contentStyle: {
             backgroundColor: colors.bgPrimary,
           },
@@ -36,23 +37,23 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="jp/review"
-          options={{ title: 'Japanese SRS Review', presentation: 'card' }}
+          options={{ title: 'Reviews', presentation: 'card' }}
         />
         <Stack.Screen
           name="jp/lessons"
-          options={{ title: 'Japanese New Lessons', presentation: 'card' }}
+          options={{ title: 'Lessons', presentation: 'card' }}
         />
         <Stack.Screen
           name="jp/reading"
-          options={{ title: 'Reading & Sentence Mining', presentation: 'card' }}
+          options={{ title: 'Reading', presentation: 'card' }}
         />
         <Stack.Screen
           name="mushaf/page/[pageNumber]"
-          options={{ title: '15-Line Madani Mushaf', presentation: 'card' }}
+          options={{ title: 'Mushaf', presentation: 'card' }}
         />
         <Stack.Screen
           name="mushaf/heatmap"
-          options={{ title: '604-Page Mastery Heatmap', presentation: 'card' }}
+          options={{ title: 'Mushaf Map', presentation: 'card' }}
         />
       </Stack>
     </>

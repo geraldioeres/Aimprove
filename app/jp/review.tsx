@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { RADII, SPACING } from '../../src/theme/tokens';
+import { Feather } from '@expo/vector-icons';
+import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectDueJapaneseReviews,
   useLearningStore,
@@ -168,12 +169,12 @@ export default function JapaneseTypedReviewScreen() {
           ]}
         >
           <Text style={[styles.summaryHeadline, { color: colors.textPrimary }]}>
-            Review Session Complete
+            Reviews complete
           </Text>
           <Text style={[styles.summaryBody, { color: colors.textSecondary }]}>
             {totalInitialCount > 0
-              ? `You completed all ${totalInitialCount} typed review prompts in this batch.`
-              : 'There are no Japanese items due for review right now. Check back at the next hour mark or start a new lesson batch.'}
+              ? `You answered all ${totalInitialCount} prompts in this session.`
+              : 'Nothing is due right now. Check the forecast on Today, or start some lessons.'}
           </Text>
 
           <View style={styles.summaryBtnRow}>
@@ -182,21 +183,22 @@ export default function JapaneseTypedReviewScreen() {
               accessibilityRole="button"
               style={[
                 styles.primaryBtn,
-                { backgroundColor: colors.jpVocab },
+                { backgroundColor: colors.jpRadical },
+                TILE_LIP,
               ]}
             >
-              <Text style={styles.primaryBtnText}>Return to Today's Queue</Text>
+              <Text style={styles.primaryBtnText}>Back to Today</Text>
             </Pressable>
             <Pressable
               onPress={() => router.replace('/jp/lessons')}
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
               ]}
             >
               <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
-                Open Lessons
+                Open lessons
               </Text>
             </Pressable>
           </View>
@@ -311,575 +313,393 @@ export default function JapaneseTypedReviewScreen() {
     }
   };
 
+  const kindLabel =
+    currentTask.kind === 'vocab'
+      ? 'Vocabulary'
+      : currentTask.kind.charAt(0).toUpperCase() + currentTask.kind.slice(1);
+  const questionLabel =
+    currentTask.promptType === 'cloze' ? 'Grammar' : kindLabel;
+  const questionKind =
+    currentTask.promptType === 'meaning' ? 'Meaning' : currentTask.promptType === 'cloze' ? 'Fill the blank' : 'Reading';
+  const pct =
+    totalInitialCount > 0 ? Math.round((completedCount / totalInitialCount) * 100) : 0;
+  const graded = feedback?.status;
+  const inputBg =
+    graded === 'correct' ? colors.success : graded === 'incorrect' ? colors.danger : colors.bgSurface;
+  const inputFg = graded ? '#FFFFFF' : colors.textPrimary;
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Top Progress Bar */}
-      <View style={styles.progressHeader}>
-        <View style={styles.progressTextRow}>
-          <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
-            Completed {completedCount} of {totalInitialCount} Prompts
+      {/* Character band */}
+      <View style={[styles.band, { backgroundColor: getBannerColor() }]}>
+        <View style={styles.bandStats}>
+          <Text style={styles.bandStat}>{pct}%</Text>
+          <Text style={styles.bandStat}>
+            {completedCount} done · {queue.length} left
           </Text>
-          <View style={[styles.remainingBadge, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-            <Text style={[styles.remainingLabel, { color: colors.textPrimary }]}>
-              {queue.length} left
-            </Text>
-          </View>
         </View>
-        <View style={[styles.progressTrack, { backgroundColor: colors.bgMuted }]}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                backgroundColor: colors.jpVocab,
-                width: `${totalInitialCount > 0 ? Math.min(100, Math.round((completedCount / totalInitialCount) * 100)) : 0}%`,
-              },
-            ]}
-          />
-        </View>
-      </View>
-
-      {/* Main Prompt Stage Banner */}
-      <View
-        style={[
-          styles.promptBanner,
-          { backgroundColor: getBannerColor() },
-        ]}
-      >
-        <View style={styles.kindTagWrap}>
-          <Text style={styles.kindTag}>
-            {currentTask.kind.toUpperCase()}
-            {currentTask.isMined ? ' • MINED CARD' : ''}
-          </Text>
+        <View style={[styles.bandProgress]}>
+          <View style={[styles.bandProgressFill, { width: `${Math.min(100, pct)}%` }]} />
         </View>
 
         {currentTask.promptType === 'cloze' && currentTask.clozePrompt ? (
           <View style={styles.clozePromptWrap}>
-            <Text style={styles.clozeSentenceText}>
+            <Text style={[styles.clozeSentenceText, GLYPH_SHADOW]}>
               {currentTask.clozePrompt.sentenceBefore}
-              <Text style={styles.clozeBlankHighlight}> [ ＿＿＿ ] </Text>
+              <Text style={styles.clozeBlankHighlight}> ＿＿＿ </Text>
               {currentTask.clozePrompt.sentenceAfter}
             </Text>
-            <Text style={styles.clozeNuanceText}>
-              Hint: {currentTask.clozePrompt.nuanceHint}
-            </Text>
-            <Text style={styles.clozeTranslationText}>
-              "{currentTask.clozePrompt.fullTranslation}"
-            </Text>
+            <Text style={styles.clozeNuanceText}>Hint: {currentTask.clozePrompt.nuanceHint}</Text>
+            <Text style={styles.clozeTranslationText}>“{currentTask.clozePrompt.fullTranslation}”</Text>
           </View>
         ) : (
-          <Text style={styles.mainCharacters}>{currentTask.characters}</Text>
+          <Text
+            style={[styles.mainCharacters, GLYPH_SHADOW]}
+            adjustsFontSizeToFit
+            numberOfLines={1}
+          >
+            {currentTask.characters}
+          </Text>
         )}
+        {currentTask.isMined ? <Text style={styles.minedNote}>Mined from your reading</Text> : null}
       </View>
 
-      {/* Prompt Type Bar (Black/Dark bar for Reading, Light bar for Meaning, just like WaniKani) */}
+      {/* Question type bar: dark for reading, light for meaning */}
       <View
         style={[
-          styles.questionTypeBar,
-          {
-            backgroundColor: isKanaPrompt ? '#18181B' : colors.bgMuted,
-            borderColor: colors.border,
-          },
+          styles.questionBar,
+          isKanaPrompt
+            ? { backgroundColor: '#2B2B2B', borderColor: '#2B2B2B' }
+            : { backgroundColor: '#E9E9E9', borderColor: colors.border },
         ]}
       >
-        <Text
-          style={[
-            styles.questionTypeText,
-            { color: isKanaPrompt ? '#FAF7F2' : colors.textPrimary },
-          ]}
-        >
-          {currentTask.promptType === 'meaning'
-            ? `${currentTask.kind.toUpperCase()} MEANING (ENGLISH)`
-            : currentTask.promptType === 'cloze'
-            ? 'GRAMMAR CLOZE INPUT (TYPE ROMAJI -> KANA)'
-            : `${currentTask.kind.toUpperCase()} READING (TYPE ROMAJI -> KANA)`}
+        <Text style={[styles.questionText, { color: isKanaPrompt ? '#FFFFFF' : colors.textPrimary }]}>
+          {questionLabel} <Text style={styles.questionStrong}>{questionKind}</Text>
         </Text>
       </View>
 
-      {/* Strict Typed Input Field */}
-      <View style={styles.inputRow}>
-        <TextInput
-          value={inputValue}
-          onChangeText={handleTextChange}
-          onSubmitEditing={handleSubmitOrNext}
-          placeholder={
-            isKanaPrompt
-              ? 'Type romaji (e.g. hito -> ひと)...'
-              : 'Type English meaning...'
-          }
-          placeholderTextColor={colors.textMuted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[
-            styles.answerInput,
-            {
-              backgroundColor:
-                feedback?.status === 'correct'
-                  ? colors.successBg
-                  : feedback?.status === 'incorrect'
-                  ? colors.dangerBg
-                  : colors.bgSurface,
-              borderColor:
-                feedback?.status === 'correct'
-                  ? colors.success
-                  : feedback?.status === 'incorrect'
-                  ? colors.danger
-                  : colors.borderStrong,
-              color: colors.textPrimary,
-            },
-          ]}
-        />
-        <Pressable
-          onPress={handleSubmitOrNext}
-          accessibilityRole="button"
-          style={[
-            styles.submitBtn,
-            {
-              backgroundColor: feedback
-                ? colors.textPrimary
-                : colors.jpVocab,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.submitBtnText,
-              { color: feedback ? colors.bgPrimary : '#FFFFFF' },
+      <View style={styles.body}>
+        {/* Answer field */}
+        <View style={[styles.inputWrap, { backgroundColor: inputBg, borderColor: graded ? inputBg : colors.borderStrong }]}>
+          <TextInput
+            value={inputValue}
+            onChangeText={handleTextChange}
+            onSubmitEditing={handleSubmitOrNext}
+            placeholder={isKanaPrompt ? '答え' : 'Your response'}
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            accessibilityLabel={`${questionLabel} ${questionKind}`}
+            style={[styles.answerInput, { color: inputFg }]}
+          />
+          <Pressable
+            onPress={handleSubmitOrNext}
+            accessibilityRole="button"
+            accessibilityLabel={feedback ? 'Next item' : 'Submit answer'}
+            style={({ pressed }) => [
+              styles.submitBtn,
+              { backgroundColor: graded ? 'rgba(0,0,0,0.18)' : colors.bgMuted, opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            {feedback ? 'Next' : 'Check'}
-          </Text>
-        </Pressable>
-      </View>
+            <Feather name="arrow-right" size={20} color={graded ? '#FFFFFF' : colors.textSecondary} />
+          </Pressable>
+        </View>
+        <Text style={[styles.inputHint, { color: colors.textMuted }]}>
+          {isKanaPrompt ? 'Type in romaji. It turns into kana as you type.' : 'Type the English meaning.'}
+        </Text>
 
-      {/* Answer Feedback & Stage Transition Banner */}
-      {feedback ? (
-        <View
-          style={[
-            styles.feedbackBox,
-            {
-              backgroundColor:
-                feedback.status === 'correct'
-                  ? colors.successBg
-                  : colors.dangerBg,
-              borderColor:
-                feedback.status === 'correct' ? colors.success : colors.danger,
-            },
-          ]}
-        >
-          <View style={styles.feedbackTopRow}>
-            <Text
-              style={[
-                styles.feedbackStatusText,
-                {
-                  color:
-                    feedback.status === 'correct'
-                      ? colors.success
-                      : colors.danger,
-                },
-              ]}
-            >
-              {feedback.status === 'correct' ? 'PASS' : 'NEEDS RETRY'}
-            </Text>
-            {feedback.stageChange ? (
-              <Text style={[styles.stagePillText, { color: colors.textPrimary }]}>
-                SRS: {feedback.stageChange}
+        {/* Result */}
+        {feedback ? (
+          <View style={[styles.result, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <View style={styles.resultTop}>
+              <Text
+                style={[styles.resultStatus, { color: graded === 'correct' ? colors.success : colors.danger }]}
+              >
+                {graded === 'correct' ? 'Correct' : 'Incorrect'}
+              </Text>
+              {feedback.stageChange ? (
+                <View style={[styles.stageChip, { backgroundColor: colors.srsGuru }]}>
+                  <Text style={styles.stageChipText}>{feedback.stageChange.replace('->', '→')}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.resultMessage, { color: colors.textPrimary }]}>{feedback.message}</Text>
+
+            {feedback.unlockedItems && feedback.unlockedItems.length > 0 ? (
+              <View style={[styles.unlockedBox, { backgroundColor: colors.successBg }]}>
+                <Text style={[styles.unlockedTitle, { color: colors.success }]}>Unlocked for lessons</Text>
+                <Text style={[styles.unlockedItems, { color: colors.textPrimary }]}>
+                  {feedback.unlockedItems.join(' · ')}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.resultActions}>
+              <Pressable
+                onPress={() => setShowItemInfo((v) => !v)}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.ghostBtn,
+                  { borderColor: colors.borderStrong, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Feather name={showItemInfo ? 'chevron-up' : 'info'} size={15} color={colors.textPrimary} />
+                <Text style={[styles.ghostBtnText, { color: colors.textPrimary }]}>
+                  {showItemInfo ? 'Hide item info' : 'Item info'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSubmitOrNext}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.solidBtn,
+                  TILE_LIP,
+                  { backgroundColor: colors.textPrimary, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <Text style={styles.solidBtnText}>Next</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Item info */}
+        {showItemInfo && feedback ? (
+          <View style={[styles.infoDrawer, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+            <View style={styles.infoSection}>
+              <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Meaning</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{currentTask.meanings.join(', ')}</Text>
+            </View>
+            {currentTask.readings.length > 0 ? (
+              <View style={styles.infoSection}>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Reading</Text>
+                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
+                  {currentTask.readings.join(' · ')}
+                </Text>
+              </View>
+            ) : null}
+            {currentTask.pitchAccent ? (
+              <Text style={[styles.infoSub, { color: colors.textSecondary }]}>Pitch accent: {currentTask.pitchAccent}</Text>
+            ) : null}
+            {currentTask.grammarStructure ? (
+              <Text style={[styles.infoSub, { color: colors.jpGrammar }]}>Structure: {currentTask.grammarStructure}</Text>
+            ) : null}
+            <View style={[styles.rule, { backgroundColor: colors.border }]} />
+            <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>{currentTask.mnemonic}</Text>
+            {currentTask.readingMnemonic ? (
+              <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>
+                Reading hint: {currentTask.readingMnemonic}
               </Text>
             ) : null}
+            {currentTask.contextSentence ? (
+              <View style={[styles.contextBox, { backgroundColor: colors.bgMuted }]}>
+                <Text style={[styles.contextJa, { color: colors.textPrimary }]}>{currentTask.contextSentence.ja}</Text>
+                <Text style={[styles.contextEn, { color: colors.textSecondary }]}>{currentTask.contextSentence.en}</Text>
+              </View>
+            ) : null}
           </View>
-
-          <Text style={[styles.feedbackMessage, { color: colors.textPrimary }]}>
-            {feedback.message}
-          </Text>
-
-          {feedback.unlockedItems && feedback.unlockedItems.length > 0 ? (
-            <View
-              style={[
-                styles.unlockedAlertBox,
-                { backgroundColor: colors.bgSurface, borderColor: colors.success },
-              ]}
-            >
-              <Text style={[styles.unlockedAlertTitle, { color: colors.success }]}>
-                Guru I Reached! Newly Unlocked in Lesson Queue:
-              </Text>
-              <Text style={[styles.unlockedAlertItems, { color: colors.textPrimary }]}>
-                {feedback.unlockedItems.join(' • ')}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.feedbackActionsRow}>
-            <Pressable
-              onPress={() => setShowItemInfo((v) => !v)}
-              accessibilityRole="button"
-              style={[
-                styles.toggleInfoBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.toggleInfoBtnText, { color: colors.textPrimary }]}>
-                {showItemInfo ? 'Hide Item Breakdown' : 'Inspect Mnemonic & Context'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={handleSubmitOrNext}
-              accessibilityRole="button"
-              style={[
-                styles.nextPromptBtn,
-                { backgroundColor: colors.textPrimary },
-              ]}
-            >
-              <Text style={[styles.nextPromptBtnText, { color: colors.bgPrimary }]}>
-                Continue Queue
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Expandable Item Information Drawer */}
-      {showItemInfo && feedback ? (
-        <View
-          style={[
-            styles.infoDrawer,
-            { backgroundColor: colors.bgSurface, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.infoHeading, { color: colors.textPrimary }]}>
-            {currentTask.characters} • {currentTask.meanings.join(', ')}
-          </Text>
-          {currentTask.readings.length > 0 ? (
-            <Text style={[styles.infoReadings, { color: colors.jpVocab }]}>
-              Readings: {currentTask.readings.join(' • ')}
-            </Text>
-          ) : null}
-          {currentTask.pitchAccent ? (
-            <Text style={[styles.infoSub, { color: colors.textSecondary }]}>
-              Pitch Accent: {currentTask.pitchAccent}
-            </Text>
-          ) : null}
-          {currentTask.grammarStructure ? (
-            <Text style={[styles.infoSub, { color: colors.jpGrammar }]}>
-              Structure: {currentTask.grammarStructure}
-            </Text>
-          ) : null}
-          <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>
-            {currentTask.mnemonic}
-          </Text>
-          {currentTask.readingMnemonic ? (
-            <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>
-              Reading Hint: {currentTask.readingMnemonic}
-            </Text>
-          ) : null}
-          {currentTask.contextSentence ? (
-            <View
-              style={[
-                styles.contextBox,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.contextJa, { color: colors.textPrimary }]}>
-                {currentTask.contextSentence.ja}
-              </Text>
-              <Text style={[styles.contextEn, { color: colors.textSecondary }]}>
-                {currentTask.contextSentence.en}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
-    gap: SPACING.md,
-  },
+  content: { paddingBottom: SPACING.xxl },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     padding: SPACING.lg,
   },
   summaryCard: {
-    borderRadius: RADII.lg,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    borderRadius: RADII.sm,
     borderWidth: 1,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
-  summaryHeadline: {
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  summaryBody: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  summaryBtnRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
-  },
+  summaryHeadline: { fontSize: 20, fontWeight: '700' },
+  summaryBody: { fontSize: 14, lineHeight: 21 },
+  summaryBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   primaryBtn: {
     paddingHorizontal: 18,
-    minHeight: 46,
+    minHeight: 44,
     borderRadius: RADII.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   secondaryBtn: {
     paddingHorizontal: 18,
-    minHeight: 46,
+    minHeight: 44,
     borderRadius: RADII.sm,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  secondaryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+  secondaryBtnText: { fontSize: 14, fontWeight: '700' },
+
+  band: {
+    minHeight: 240,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  progressHeader: {
-    gap: 6,
-    marginBottom: 4,
-  },
-  progressTextRow: {
+  bandStats: {
+    position: 'absolute',
+    top: 10,
+    left: SPACING.md,
+    right: SPACING.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  progressLabel: {
-    fontSize: 13,
+  bandStat: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  remainingBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: 1,
+  bandProgress: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
-  remainingLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  progressTrack: {
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  promptBanner: {
-    minHeight: 180,
-    borderRadius: 28,
-    padding: SPACING.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  kindTagWrap: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  kindTag: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
+  bandProgressFill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.85)' },
   mainCharacters: {
     color: '#FFFFFF',
-    fontSize: 62,
-    fontWeight: '900',
+    fontSize: 96,
+    lineHeight: 120,
+    fontWeight: '400',
     textAlign: 'center',
+    marginTop: SPACING.lg,
   },
+  minedNote: { color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginTop: 4 },
   clozePromptWrap: {
-    alignItems: 'center',
+    width: '100%',
+    maxWidth: 640,
     gap: 8,
+    marginTop: SPACING.xl,
+    alignItems: 'center',
   },
   clozeSentenceText: {
     color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    lineHeight: 38,
     textAlign: 'center',
-    lineHeight: 32,
   },
-  clozeBlankHighlight: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  clozeNuanceText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  clozeTranslationText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-  },
-  questionTypeBar: {
-    minHeight: 42,
-    borderRadius: 999,
-    borderWidth: 1,
+  clozeBlankHighlight: { textDecorationLine: 'underline', fontWeight: '700' },
+  clozeNuanceText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  clozeTranslationText: { color: '#FFFFFF', fontSize: 13, fontStyle: 'italic', textAlign: 'center' },
+
+  questionBar: {
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    paddingHorizontal: SPACING.md,
   },
-  questionTypeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+  questionText: { fontSize: 16 },
+  questionStrong: { fontWeight: '700' },
+
+  body: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    padding: SPACING.md,
+    gap: SPACING.md,
   },
-  inputRow: {
+  inputWrap: {
     flexDirection: 'row',
-    gap: SPACING.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: RADII.sm,
+    overflow: 'hidden',
   },
   answerInput: {
     flex: 1,
-    minHeight: 54,
-    borderRadius: 999,
-    borderWidth: 2,
-    paddingHorizontal: 20,
-    fontSize: 18,
-    fontWeight: '700',
-  },
+    minHeight: 56,
+    paddingHorizontal: 56,
+    fontSize: 22,
+    textAlign: 'center',
+    outlineStyle: 'none',
+  } as any,
   submitBtn: {
-    paddingHorizontal: 24,
-    minHeight: 54,
-    borderRadius: 999,
-    justifyContent: 'center',
+    position: 'absolute',
+    right: 6,
+    width: 44,
+    height: 44,
+    borderRadius: RADII.sm,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  submitBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
+  inputHint: { fontSize: 12, textAlign: 'center', marginTop: -6 },
+
+  result: {
+    borderWidth: 1,
+    borderRadius: RADII.sm,
+    padding: SPACING.md,
+    gap: 10,
   },
-  feedbackBox: {
-    borderRadius: 24,
-    borderWidth: 1.5,
-    padding: SPACING.md + 2,
-    gap: SPACING.sm,
-  },
-  feedbackTopRow: {
+  resultTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  feedbackStatusText: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  stagePillText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  feedbackMessage: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  unlockedAlertBox: {
-    padding: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 4,
-  },
-  unlockedAlertTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  unlockedAlertItems: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  feedbackActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    marginTop: 4,
-  },
-  toggleInfoBtn: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-  },
-  toggleInfoBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  nextPromptBtn: {
-    minHeight: 46,
-    paddingHorizontal: 22,
-    borderRadius: 999,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextPromptBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  infoDrawer: {
-    borderRadius: 26,
-    borderWidth: 1,
-    padding: SPACING.lg,
     gap: 8,
   },
-  infoHeading: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  infoReadings: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  infoSub: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  infoMnemonic: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  contextBox: {
-    padding: 14,
-    borderRadius: 18,
+  resultStatus: { fontSize: 16, fontWeight: '700' },
+  stageChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADII.xs },
+  stageChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  resultMessage: { fontSize: 14, lineHeight: 20 },
+  unlockedBox: { padding: 10, borderRadius: RADII.sm, gap: 2 },
+  unlockedTitle: { fontSize: 13, fontWeight: '700' },
+  unlockedItems: { fontSize: 14 },
+  resultActions: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' },
+  ghostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    gap: 4,
-    marginTop: 4,
+    borderRadius: RADII.sm,
   },
-  contextJa: {
-    fontSize: 15,
-    fontWeight: '700',
+  ghostBtnText: { fontSize: 14, fontWeight: '600' },
+  solidBtn: {
+    flex: 1,
+    minWidth: 120,
+    minHeight: 44,
+    borderRadius: RADII.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  contextEn: {
-    fontSize: 13,
-  },
-});
+  solidBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
+  infoDrawer: {
+    borderWidth: 1,
+    borderRadius: RADII.sm,
+    padding: SPACING.md,
+    gap: 10,
+  },
+  infoSection: { gap: 2 },
+  infoLabel: { fontSize: 12, fontWeight: '700' },
+  infoValue: { fontSize: 17, fontWeight: '600' },
+  infoSub: { fontSize: 13, fontWeight: '600' },
+  rule: { height: 1 },
+  infoMnemonic: { fontSize: 14, lineHeight: 21 },
+  contextBox: { padding: 12, borderRadius: RADII.sm, gap: 4 },
+  contextJa: { fontSize: 16, lineHeight: 24 },
+  contextEn: { fontSize: 13, lineHeight: 19 },
+});

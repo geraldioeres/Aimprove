@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, StyleSheet, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeContext';
 import {
@@ -11,7 +11,7 @@ import {
 } from '../../src/store/useLearningStore';
 
 export default function TabsLayout() {
-  const { colors, mode, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const state = useLearningStore();
   const dueJP = selectDueJapaneseReviews(state).totalCount;
@@ -25,14 +25,17 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: {
-          backgroundColor: colors.bgSurface,
-        },
         headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: '700',
-          fontSize: 18,
+          fontSize: 17,
         },
+        headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: colors.bgSurface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        } as any,
         tabBarStyle: {
           backgroundColor: colors.bgSurface,
           borderTopColor: colors.border,
@@ -40,54 +43,30 @@ export default function TabsLayout() {
           height: tabBarHeight,
           paddingBottom: bottomInset,
           paddingTop: 6,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarActiveTintColor: colors.textPrimary,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveBackgroundColor: colors.bgSurface,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
+          fontSize: 11,
+          fontWeight: '700',
           marginBottom: 2,
         },
-        headerRight: () => (
-          <Pressable
-            onPress={toggleTheme}
-            accessibilityRole="button"
-            accessibilityLabel={
-              mode === 'light'
-                ? 'Switch to Deep Ink Dark mode'
-                : 'Switch to Warm Paper Light mode'
-            }
-            style={({ pressed }) => [
-              styles.themeToggleBtn,
-              {
-                backgroundColor: colors.bgMuted,
-                borderColor: colors.border,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Ionicons
-              name={mode === 'light' ? 'moon-outline' : 'sunny-outline'}
-              size={16}
-              color={colors.textPrimary}
-            />
-            <Text style={[styles.themeToggleText, { color: colors.textPrimary }]}>
-              {mode === 'light' ? 'Dark' : 'Light'}
-            </Text>
-          </Pressable>
-        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Today's Queue",
+          title: 'Today',
           tabBarBadge: totalDue > 0 ? totalDue : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: colors.jpKanji,
+            backgroundColor: colors.jpRadical,
             color: '#FFFFFF',
             fontSize: 11,
             fontWeight: '700',
+            borderRadius: 3,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="layers-outline" size={size} color={color} />
@@ -100,10 +79,11 @@ export default function TabsLayout() {
           title: 'Japanese',
           tabBarBadge: dueJP > 0 ? dueJP : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: colors.jpVocab,
+            backgroundColor: colors.jpRadical,
             color: '#FFFFFF',
             fontSize: 11,
             fontWeight: '700',
+            borderRadius: 3,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="language-outline" size={size} color={color} />
@@ -113,13 +93,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="quran"
         options={{
-          title: 'Quran Hafalan',
+          title: 'Quran',
           tabBarBadge: dueQuran > 0 ? dueQuran : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.quranSabaq,
             color: '#FFFFFF',
             fontSize: 11,
             fontWeight: '700',
+            borderRadius: 3,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
@@ -129,29 +110,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Cloud & Settings',
+          title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cloud-done-outline" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  themeToggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginRight: 14,
-    paddingHorizontal: 12,
-    minHeight: 38,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  themeToggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});
