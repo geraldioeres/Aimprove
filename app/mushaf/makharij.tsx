@@ -21,6 +21,17 @@ import {
 } from '../../src/data/makharij';
 
 const WIDE = 760;
+
+// The quick picker lists letters in alphabet (hijāʾī) order, not makhraj order.
+const ALPHABET_IDS = [
+  'alif-madd', 'ba', 'ta', 'tha', 'jim', 'hha', 'kha', 'dal', 'dhal', 'ra',
+  'zay', 'sin', 'shin', 'sad', 'dad', 'tta', 'zza', 'ayn', 'ghayn', 'fa',
+  'qaf', 'kaf', 'lam', 'mim', 'nun', 'ha', 'waw', 'hamzah', 'ya',
+];
+const ALPHABET = ALPHABET_IDS.map((id) => MAKHRAJ_LETTERS.find((l) => l.id === id)!);
+const QUICK_ROWS = 3;
+const QUICK_GAP = 4;
+
 // On wide web screens the diagram stays in view while the letter grid scrolls.
 const STICKY = Platform.OS === 'web' ? ({ position: 'sticky', top: 16 } as unknown as object) : null;
 
@@ -101,28 +112,71 @@ export default function MakharijScreen() {
     </View>
   );
 
-  return (
-    <ScrollView
-      ref={scrollRef}
-      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
-      contentContainerStyle={[styles.content, wide && styles.contentWide]}
+  // Size the chips so every letter fits in a few rows across the phone width.
+  const perRow = Math.ceil(ALPHABET.length / QUICK_ROWS);
+  const chipWidth = Math.floor((width - 32 - (perRow - 1) * QUICK_GAP) / perRow);
+
+  const quickPicker = (
+    <View
+      style={[styles.quickBar, { backgroundColor: colors.bgPrimary, borderColor: colors.border }]}
+      accessibilityLabel="Quick letter picker"
     >
-      <Text style={[styles.intro, { color: colors.textSecondary }]}>
-        Tap a letter to see where in the mouth it is made. To feel the spot, say the letter
-        with a sukun after a hamzah, like أَبْ.
-      </Text>
-      {wide ? (
-        <View style={styles.columns}>
-          <View style={[styles.colLeft, STICKY]}>{diagramCard}</View>
-          <View style={styles.colRight}>{grid}</View>
-        </View>
-      ) : (
-        <>
-          {diagramCard}
-          {grid}
-        </>
-      )}
-    </ScrollView>
+      <View style={styles.quickGrid}>
+        {ALPHABET.map((l) => {
+          const on = l.id === selected.id;
+          return (
+            <Pressable
+              key={l.id}
+              onPress={() => select(l)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={l.kind === 'madd' ? 'Alif' : l.name}
+              hitSlop={2}
+              style={({ pressed }) => [
+                styles.quickChip,
+                {
+                  width: chipWidth,
+                  borderColor: colors.ink,
+                  backgroundColor: on ? colors.indigo : colors.bgSurface,
+                },
+                pressed && styles.quickChipPressed,
+              ]}
+            >
+              <Text style={[styles.quickGlyph, { color: on ? '#FFFFFF' : colors.ink }]}>
+                {l.glyph}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+      {wide ? null : quickPicker}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={[styles.content, wide && styles.contentWide]}
+      >
+        <Text style={[styles.intro, { color: colors.textSecondary }]}>
+          Tap a letter to see where in the mouth it is made. To feel the spot, say the letter
+          with a sukun after a hamzah, like أَبْ.
+        </Text>
+        {wide ? (
+          <View style={styles.columns}>
+            <View style={[styles.colLeft, STICKY]}>{diagramCard}</View>
+            <View style={styles.colRight}>{grid}</View>
+          </View>
+        ) : (
+          <>
+            {diagramCard}
+            {grid}
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -196,6 +250,18 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: SPACING.xxl, gap: 16 },
   contentWide: { width: '100%', maxWidth: 1040, alignSelf: 'center', padding: 24 },
+  quickBar: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1 },
+  // Right to left, as the alphabet reads.
+  quickGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: QUICK_GAP },
+  quickChip: {
+    height: 34,
+    borderWidth: 1.5,
+    borderRadius: RADII.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickChipPressed: { opacity: 0.6 },
+  quickGlyph: { fontSize: 18, fontWeight: '700', lineHeight: 28 },
   intro: { fontSize: 14, fontWeight: '500', lineHeight: 21 },
   columns: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
   colLeft: { flex: 1 },
