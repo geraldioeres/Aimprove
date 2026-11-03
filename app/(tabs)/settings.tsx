@@ -5,6 +5,8 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
@@ -13,9 +15,8 @@ import { RADII, SPACING } from '../../src/theme/tokens';
 import { useLearningStore } from '../../src/store/useLearningStore';
 import { getCurrentSupabaseConfig } from '../../src/lib/supabase';
 
-export default function SettingsAndCloudScreen() {
-  const { colors } = useTheme();
-  const state = useLearningStore();
+const ERASE_MESSAGE =
+  'This deletes all your lessons, Quran pages and streak from this phone and your account. It cannot be undone.';
 
   const host = (() => {
     try {
@@ -150,7 +151,7 @@ export default function SettingsAndCloudScreen() {
             Review history
           </Text>
           <Pressable
-            onPress={() => state.resetDemoProgress()}
+            onPress={() => confirmErase(() => state.resetDemoProgress())}
             accessibilityRole="button"
             style={[
               styles.resetBtn,

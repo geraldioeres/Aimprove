@@ -53,15 +53,15 @@ The app works with no configuration: progress is stored on the device with Async
 ### Optional: Supabase sync
 
 1. Create a Supabase project.
-2. Run the SQL in `supabase/migrations/` in order (`001_initial_schema.sql`, then `002_full_wanikani_support.sql`).
+2. Run the SQL in `supabase/migrations/` in order (`001_initial_schema.sql`, `002_full_wanikani_support.sql`, then `003_user_profiles_and_sync.sql`).
 3. Copy `.env.example` to `.env` and fill in your project URL and anon key:
    ```
    EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
    EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
-4. Optionally upload the full level 1–60 curriculum with `npm run seed:supabase`.
+4. Optionally upload the full level 1–60 curriculum with `npm run seed:supabase`. This needs `SUPABASE_SERVICE_ROLE_KEY` in `.env`, because app users can only read the curriculum.
 
-You can also enter the URL and key in **Settings → Cloud sync** while the app is running, then sign in or create an account there. Each user's progress is kept private by row-level security.
+You can also enter the URL and key in **Settings → Cloud sync** while the app is running, then sign in or create an account there. Each user's progress is kept private by row-level security. Signing in on a new phone restores your lessons, Quran pages, streak and settings from your account, and each account on a shared phone keeps its own progress.
 
 ## Scripts
 
