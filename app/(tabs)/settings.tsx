@@ -13,7 +13,7 @@ import { useLearningStore } from '../../src/store/useLearningStore';
 import { getCurrentSupabaseConfig } from '../../src/lib/supabase';
 
 export default function SettingsAndCloudScreen() {
-  const { colors, mode, setThemeMode } = useTheme();
+  const { colors } = useTheme();
   const state = useLearningStore();
 
   const currentSb = getCurrentSupabaseConfig();
@@ -55,7 +55,7 @@ export default function SettingsAndCloudScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Theme & Atmosphere Card */}
+      {/* Sabqi revision window Config */}
       <View
         style={[
           styles.card,
@@ -63,73 +63,10 @@ export default function SettingsAndCloudScreen() {
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Study Sanctuary Theme
+          Sabqi revision window
         </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Switch between Warm Paper Light and Deep Ink Dark mode.
-        </Text>
-
-        <View style={styles.themeBtnRow}>
-          <Pressable
-            onPress={() => setThemeMode('light')}
-            accessibilityRole="button"
-            style={[
-              styles.themeOptionBtn,
-              {
-                backgroundColor:
-                  mode === 'light' ? colors.textPrimary : colors.bgMuted,
-                borderColor:
-                  mode === 'light' ? colors.textPrimary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.themeOptionText,
-                { color: mode === 'light' ? colors.bgPrimary : colors.textPrimary },
-              ]}
-            >
-              Warm Paper (Light)
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setThemeMode('dark')}
-            accessibilityRole="button"
-            style={[
-              styles.themeOptionBtn,
-              {
-                backgroundColor:
-                  mode === 'dark' ? colors.textPrimary : colors.bgMuted,
-                borderColor:
-                  mode === 'dark' ? colors.textPrimary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.themeOptionText,
-                { color: mode === 'dark' ? colors.bgPrimary : colors.textPrimary },
-              ]}
-            >
-              Deep Ink (Dark)
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Quran Sabqi Consolidation Window Config */}
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Quran Sabqi Consolidation Window
-        </Text>
-        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Number of consecutive daily reviews a newly memorized Sabaq page completes before graduating to FSRS Manzil.
+          How many days a new page stays in daily Sabqi revision before it moves to Manzil.
         </Text>
 
         <View style={styles.windowPillRow}>
@@ -144,9 +81,9 @@ export default function SettingsAndCloudScreen() {
                   styles.windowPill,
                   {
                     backgroundColor: active
-                      ? colors.quranSabqi
-                      : colors.bgMuted,
-                    borderColor: active ? colors.quranSabqi : colors.border,
+                      ? colors.textPrimary
+                      : colors.bgSurface,
+                    borderColor: active ? colors.textPrimary : colors.border,
                   },
                 ]}
               >
@@ -156,7 +93,7 @@ export default function SettingsAndCloudScreen() {
                     { color: active ? '#FFFFFF' : colors.textPrimary },
                   ]}
                 >
-                  {days} Days
+                  {days} days
                 </Text>
               </Pressable>
             );
@@ -173,7 +110,7 @@ export default function SettingsAndCloudScreen() {
       >
         <View style={styles.statusHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            Supabase Cloud Backend & Auth
+            Cloud sync
           </Text>
           <View
             style={[
@@ -195,13 +132,13 @@ export default function SettingsAndCloudScreen() {
                 },
               ]}
             >
-              {currentSb.isConfigured ? 'CLOUD CONNECTED' : 'LOCAL FALLBACK ACTIVE'}
+              {currentSb.isConfigured ? 'Connected' : 'Saved on this device only'}
             </Text>
           </View>
         </View>
 
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          SQL schema is in supabase/migrations/001_initial_schema.sql. Enter your Supabase Project URL and Anon Key below (or in .env) to enable live PostgreSQL sync.
+          Enter your Supabase project URL and anon key (or set them in .env). The schema is in supabase/migrations.
         </Text>
 
         <TextInput
@@ -214,7 +151,7 @@ export default function SettingsAndCloudScreen() {
           style={[
             styles.input,
             {
-              backgroundColor: colors.bgMuted,
+              backgroundColor: colors.bgSurface,
               borderColor: colors.borderStrong,
               color: colors.textPrimary,
             },
@@ -232,7 +169,7 @@ export default function SettingsAndCloudScreen() {
           style={[
             styles.input,
             {
-              backgroundColor: colors.bgMuted,
+              backgroundColor: colors.bgSurface,
               borderColor: colors.borderStrong,
               color: colors.textPrimary,
             },
@@ -244,10 +181,10 @@ export default function SettingsAndCloudScreen() {
           accessibilityRole="button"
           style={[
             styles.primaryBtn,
-            { backgroundColor: colors.jpVocab },
+            { backgroundColor: colors.textPrimary },
           ]}
         >
-          <Text style={styles.primaryBtnText}>Save Supabase Connection</Text>
+          <Text style={styles.primaryBtnText}>Save connection</Text>
         </Pressable>
 
         {configFeedback ? (
@@ -260,7 +197,7 @@ export default function SettingsAndCloudScreen() {
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
         <Text style={[styles.subHeading, { color: colors.textPrimary }]}>
-          Personal Account (Supabase Auth + RLS)
+          Account
         </Text>
 
         {state.userEmail ? (
@@ -273,7 +210,7 @@ export default function SettingsAndCloudScreen() {
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,
-                { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.border },
               ]}
             >
               <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
@@ -293,7 +230,7 @@ export default function SettingsAndCloudScreen() {
               style={[
                 styles.input,
                 {
-                  backgroundColor: colors.bgMuted,
+                  backgroundColor: colors.bgSurface,
                   borderColor: colors.borderStrong,
                   color: colors.textPrimary,
                 },
@@ -308,7 +245,7 @@ export default function SettingsAndCloudScreen() {
               style={[
                 styles.input,
                 {
-                  backgroundColor: colors.bgMuted,
+                  backgroundColor: colors.bgSurface,
                   borderColor: colors.borderStrong,
                   color: colors.textPrimary,
                 },
@@ -323,7 +260,7 @@ export default function SettingsAndCloudScreen() {
                   { flex: 1, backgroundColor: colors.textPrimary },
                 ]}
               >
-                <Text style={[styles.primaryBtnText, { color: colors.bgPrimary }]}>
+                <Text style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
                   Sign In
                 </Text>
               </Pressable>
@@ -334,7 +271,7 @@ export default function SettingsAndCloudScreen() {
                   styles.secondaryBtn,
                   {
                     flex: 1,
-                    backgroundColor: colors.bgMuted,
+                    backgroundColor: colors.bgSurface,
                     borderColor: colors.borderStrong,
                   },
                 ]}
@@ -367,18 +304,18 @@ export default function SettingsAndCloudScreen() {
       >
         <View style={styles.statusHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            Session Review Log
+            Review history
           </Text>
           <Pressable
             onPress={() => state.resetDemoProgress()}
             accessibilityRole="button"
             style={[
               styles.resetBtn,
-              { backgroundColor: colors.bgMuted, borderColor: colors.border },
+              { backgroundColor: colors.bgSurface, borderColor: colors.border },
             ]}
           >
             <Text style={[styles.resetBtnText, { color: colors.textSecondary }]}>
-              Reset Starter Queue
+              Reset starter data
             </Text>
           </Pressable>
         </View>
@@ -394,7 +331,7 @@ export default function SettingsAndCloudScreen() {
                 key={log.id}
                 style={[
                   styles.logRow,
-                  { backgroundColor: colors.bgMuted, borderColor: colors.border },
+                  { backgroundColor: colors.bgSurface, borderColor: colors.border },
                 ]}
               >
                 <View style={styles.logLeft}>
@@ -436,13 +373,13 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
+    borderWidth: 1,
     padding: SPACING.md,
     gap: SPACING.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
   },
   sectionSub: {
     fontSize: 13,
@@ -457,13 +394,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 46,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   themeOptionText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   windowPillRow: {
     flexDirection: 'row',
@@ -475,13 +412,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     minHeight: 42,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   windowPillText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   statusHeaderRow: {
     flexDirection: 'row',
@@ -496,13 +433,13 @@ const styles = StyleSheet.create({
     borderRadius: RADII.pill,
   },
   statusPillText: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
   },
   input: {
     minHeight: 48,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     paddingHorizontal: 18,
     fontSize: 14,
   },
@@ -516,19 +453,19 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   secondaryBtn: {
     minHeight: 48,
     paddingHorizontal: 18,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryBtnText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   feedbackNote: {
     fontSize: 13,
@@ -540,14 +477,14 @@ const styles = StyleSheet.create({
   },
   subHeading: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   signedInBox: {
     gap: 8,
   },
   signedInText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   authForm: {
     gap: 8,
@@ -560,13 +497,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 36,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   resetBtnText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   emptyLogsText: {
     fontSize: 13,
@@ -581,7 +518,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: RADII.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     gap: 8,
   },
   logLeft: {
@@ -590,14 +527,14 @@ const styles = StyleSheet.create({
   },
   logTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   logMeta: {
     fontSize: 12,
   },
   logDomainTag: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 
