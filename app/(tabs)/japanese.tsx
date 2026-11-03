@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -44,6 +45,22 @@ export default function JapaneseHubScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const state = useLearningStore();
+  const { width } = useWindowDimensions();
+  const narrow = width < 640;
+  const DAY = 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  const within = (iso: string | null | undefined, ms: number) =>
+    Boolean(iso) && nowMs - new Date(iso as string).getTime() <= ms;
+  const recentlyUnlocked = Object.values(state.jpAssignments).filter((a) => within(a.unlockedAt, 30 * DAY));
+  const recentlyBurned = Object.values(state.jpAssignments).filter((a) => a.srsStage === 9 && within(a.burnedAt, 30 * DAY));
+  const criticalItems = Object.values(state.jpAssignments).filter(
+    (a) => a.srsStage >= 1 && a.srsStage < 9 && a.incorrectCount > 0 && a.incorrectCount >= a.correctStreak
+  );
+  const recentMistakeCount = state.reviewLogs.filter(
+    (l) => l.domain === 'japanese' && l.mistakes > 0 && within(l.reviewedAt, DAY)
+  ).length;
+  const recentLessonCount = recentlyUnlocked.filter((a) => within(a.unlockedAt, DAY)).length;
+  const burnedTotal = Object.values(state.jpAssignments).filter((a) => a.srsStage === 9).length;
 
   const [selectedTierIndex, setSelectedTierIndex] = useState<number>(
     Math.floor((state.currentJPLevel - 1) / 10)
@@ -138,13 +155,14 @@ export default function JapaneseHubScreen() {
       contentContainerStyle={styles.content}
     >
       {/* WaniKani-style dashboard: Lessons / Reviews / Reading */}
-      <View style={styles.sessionBar}>
+      <View style={[styles.sessionBar, narrow && styles.stackCol]}>
         <Pressable
           disabled={availableLessons.length === 0}
           onPress={() => router.push('/japanese/lessons')}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
+            narrow && styles.launchCardNarrow,
             {
               backgroundColor: availableLessons.length > 0 ? WK.kanji : dashGray,
               borderColor: availableLessons.length > 0 ? WK.kanji : dashBorder,
@@ -178,6 +196,7 @@ export default function JapaneseHubScreen() {
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
+            narrow && styles.launchCardNarrow,
             {
               backgroundColor: dueReviews.totalCount > 0 ? WK.radical : dashGray,
               borderColor: dueReviews.totalCount > 0 ? WK.radical : dashBorder,
@@ -220,6 +239,34 @@ export default function JapaneseHubScreen() {
         </Pressable>
       </View>
 
+      {/* Recent Mistakes + Extra Study */}
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Mistakes</Text>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          {recentMistakeCount > 0
+            ? `${recentMistakeCount} review${recentMistakeCount === 1 ? '' : 's'} with a mistake in the last 24 hours. They resurface in your normal queue.`
+            : 'Come back within 24 hours of getting something wrong. Then you will have something here to study.'}
+        </Text>
+      </View>
+
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Extra Study</Text>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          A snapshot of your recent activity, outside your regular Reviews.
+        </Text>
+        {[
+          { label: 'Recent Lessons', n: recentLessonCount },
+          { label: 'Recent Mistakes', n: recentMistakeCount },
+          { label: 'Burned Items', n: burnedTotal },
+        ].map((r) => (
+          <View key={r.label} style={[styles.spreadRow, { backgroundColor: colors.bgMuted, borderColor: dashBorder }]}>
+            <Text style={[styles.spreadName, { color: colors.textPrimary }]}>{r.label}</Text>
+            <View style={[styles.countPill, { backgroundColor: colors.textSecondary }]}>
+              <Text style={styles.countPillText}>{r.n}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
       {/* Level Progress */}
       <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
         <View style={styles.levelHeaderRow}>
@@ -249,7 +296,7 @@ export default function JapaneseHubScreen() {
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
           Number of items Guru'd in this level
         </Text>
-        <View style={styles.levelColsRow}>
+        <View style={[styles.levelColsRow, narrow && styles.stackCol]}>
           {([
             { kind: 'radical', label: 'Radicals', color: WK.radical, passed: levelPassed('radical'), total: levelRadicalsCount },
             { kind: 'kanji', label: 'Kanji', color: WK.kanji, passed: levelPassed('kanji'), total: levelKanjiCount },
@@ -259,7 +306,7 @@ export default function JapaneseHubScreen() {
               key={col.kind}
               accessibilityRole="button"
               onPress={() => setFilterKind(col.kind)}
-              style={[styles.levelCol, { borderTopColor: col.color, backgroundColor: colors.bgMuted }]}
+              style={[styles.levelCol, narrow && styles.levelColRow, narrow ? { borderLeftColor: col.color } : null, { borderTopColor: col.color, backgroundColor: colors.bgMuted }]}
             >
               <Text style={[styles.levelColLabel, { color: col.color }]}>{col.label}</Text>
               <Text style={[styles.levelColCount, { color: colors.textPrimary }]}>
@@ -325,6 +372,38 @@ export default function JapaneseHubScreen() {
         </View>
       </View>
 
+      {/* Recently Unlocked / Critical Condition / Recently Burned */}
+      {[
+        { title: 'Recently Unlocked', sub: 'Items that you have unlocked in the last 30 days.', empty: 'Do Lessons and Reviews to unlock more items.', items: recentlyUnlocked },
+        { title: 'Critical Condition Items', sub: 'Items that could use some extra study time.', empty: 'Your items are in good health.', items: criticalItems },
+        { title: 'Recently Burned', sub: 'Items that you have burned in the last 30 days.', empty: 'Nothing burned yet. Keep reviewing.', items: recentlyBurned },
+      ].map((box) => (
+        <View key={box.title} style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{box.title}</Text>
+          <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>{box.sub}</Text>
+          {box.items.length === 0 ? (
+            <Text style={[styles.sectionSub, { color: colors.textMuted }]}>{box.empty}</Text>
+          ) : (
+            <View style={styles.chipWrap}>
+              {box.items.slice(0, 24).map((a) => {
+                const subj = JP_SUBJECT_BY_ID[a.subjectId];
+                if (!subj) return null;
+                const kc = subj.kind === 'radical' ? WK.radical : subj.kind === 'kanji' ? WK.kanji : WK.vocab;
+                return (
+                  <Pressable
+                    key={a.subjectId}
+                    accessibilityRole="button"
+                    onPress={() => setInspectedSubject(subj)}
+                    style={[styles.itemChip, { backgroundColor: kc }]}
+                  >
+                    <Text style={styles.itemChipText}>{subj.characters}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      ))}
       {/* Full WaniKani Level 1-60 Navigator */}
       <View
         style={[
@@ -758,7 +837,44 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
     gap: SPACING.md,
   },
-  sessionBar: {
+  stackCol: {
+    flexDirection: 'column',
+  },
+  launchCardNarrow: {
+    flex: 0,
+    flexBasis: 'auto',
+    minHeight: 120,
+    minWidth: 0,
+    width: '100%',
+  },
+  levelColRow: {
+    flex: 0,
+    width: '100%',
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 0,
+    borderLeftWidth: 5,
+    gap: 10,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  itemChip: {
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemChipText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },  sessionBar: {
     flexDirection: 'row',
     gap: SPACING.sm,
   },
