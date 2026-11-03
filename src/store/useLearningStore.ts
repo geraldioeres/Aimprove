@@ -12,6 +12,7 @@ import {
 import { buildInitialQuranProgress } from '../data/quran-seed';
 import { calculateNextWaniKaniStage, WANIKANI_STAGES, WaniKaniStage } from '../lib/srs-wanikani';
 import { evaluateQuranPageSession, QuranPageProgress } from '../lib/srs-fsrs';
+import { isAuthRetryableFetchError, SupabaseClient } from '@supabase/supabase-js';
 import { configureRuntimeSupabase, getSupabaseClient, loadSavedSupabaseConfig } from '../lib/supabase';
 
 // Before accounts, progress lived under one key for the whole phone. It is
@@ -61,6 +62,8 @@ interface LearningState {
   isHydrated: boolean;
   // True once we know whether a signed-in Supabase session exists.
   authReady: boolean;
+  // True while sign-in downloads the account's saved progress.
+  isRestoring: boolean;
   syncError: string | null;
   lastSyncedAt: string | null;
   userEmail: string | null;
@@ -121,10 +124,15 @@ interface LearningState {
 }
 
 let authListenerAttached = false;
+// Set while signInWithSupabase runs, so the auth listener leaves it alone.
+let signingIn = false;
+// The account whose cloud progress has been merged in during this launch.
+let pulledForUser: string | null = null;
 
 export const useLearningStore = create<LearningState>((set, get) => ({
   isHydrated: false,
   authReady: false,
+  isRestoring: false,
   syncError: null,
   lastSyncedAt: null,
   userEmail: null,
@@ -135,27 +143,10 @@ export const useLearningStore = create<LearningState>((set, get) => ({
 
   hydrate: async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.supabaseUrl && parsed.supabaseKey && !getSupabaseClient()) {
-          configureRuntimeSupabase(parsed.supabaseUrl, parsed.supabaseKey);
-        }
-        set({
-          jpAssignments: parsed.jpAssignments || buildInitialJPAssignments(),
-          jpMinedCards: parsed.jpMinedCards || [],
-          quranProgress: parsed.quranProgress || buildInitialQuranProgress(),
-          reviewLogs: parsed.reviewLogs || [],
-          studyDays: parsed.studyDays || studyDaysFromLogs(parsed.reviewLogs || []),
-          dailyGoal: parsed.dailyGoal || 10,
-          sabqiWindowDays: parsed.sabqiWindowDays || 7,
-          currentJPLevel: parsed.currentJPLevel || 1,
-          userEmail: parsed.userEmail || null,
-          userId: parsed.userId || null,
-          isHydrated: true,
-        });
-      } else {
-        set({ isHydrated: true });
+      // Older builds kept a typed-in connection inside the progress blob.
+      const legacy = await readJSON(LEGACY_STORAGE_KEY);
+      if (legacy?.supabaseUrl && legacy?.supabaseKey && !getSupabaseClient()) {
+        configureRuntimeSupabase(legacy.supabaseUrl, legacy.supabaseKey);
       }
 
       await loadSavedSupabaseConfig();
@@ -163,23 +154,30 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       let user: AccountUser | null = null;
       let online = false;
       if (sb) {
-        const { data } = await sb.auth.getSession();
-        const user = data?.session?.user;
-        set({
-          userId: user?.id ?? null,
-          userEmail: user?.email ?? null,
-          lastSyncedAt: user ? new Date().toISOString() : get().lastSyncedAt,
-        });
-        if (!authListenerAttached) {
-          authListenerAttached = true;
-          sb.auth.onAuthStateChange((_event, session) => {
-            set({ userId: session?.user?.id ?? null, userEmail: session?.user?.email ?? null });
-          });
+        const { data, error } = await sb.auth.getSession();
+        const sessionUser = data?.session?.user;
+        if (sessionUser) {
+          user = { id: sessionUser.id, email: sessionUser.email ?? null };
+          online = true;
+        } else if (error && isAuthRetryableFetchError(error)) {
+          // Offline and the token needs a refresh. The session is still stored,
+          // so keep the last account open; it refreshes once back online.
+          const last = await readJSON(LAST_USER_KEY);
+          if (last?.id) user = { id: last.id, email: last.email ?? null };
         }
-      } else {
-        set({ userId: null, userEmail: null });
       }
-      set({ authReady: true });
+
+      if (user) {
+        set(await loadAccount(user));
+        await rememberLastUser(user);
+      } else {
+        set({ ...emptyProgress(), userId: null, userEmail: null });
+      }
+      set({ isHydrated: true, authReady: true });
+      if (sb) attachAuthListener(sb);
+
+      // Show local progress right away; cloud changes merge in when they arrive.
+      if (user && online) void pullAndMerge(user.id);
     } catch (err: any) {
       set({ isHydrated: true, authReady: true, syncError: err?.message || 'Failed to load state' });
     }
@@ -556,24 +554,32 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         return { ok: false, message: res.error.message };
       }
 
-    const session = res.data.session;
-    if (!session) {
-      // Sign-up with email confirmation turned on: no session until confirmed.
-      return {
-        ok: true,
-        needsConfirmation: true,
-        message: `We sent a confirmation link to ${email}. Open it, then sign in.`,
-      };
-    }
+      const session = res.data.session;
+      if (!session) {
+        // Sign-up with email confirmation turned on: no session until confirmed.
+        return {
+          ok: true,
+          needsConfirmation: true,
+          message: `We sent a confirmation link to ${email}. Open it, then sign in.`,
+        };
+      }
 
-    set({
-      userId: session.user.id,
-      userEmail: session.user.email || email,
-      lastSyncedAt: new Date().toISOString(),
-      syncError: null,
-    });
-    await persistState(get());
-    return { ok: true, message: isSignUp ? 'Account created.' : 'Signed in.' };
+      const user: AccountUser = { id: session.user.id, email: session.user.email || email };
+      // Hold the app on a spinner while the account's progress downloads, so a
+      // new phone opens straight onto the full card. Give up waiting after a
+      // while; the download keeps going and merges in when it lands.
+      set({ ...(await loadAccount(user)), isRestoring: true, syncError: null });
+      await rememberLastUser(user);
+      await persistState(get());
+      await Promise.race([
+        pullAndMerge(user.id),
+        new Promise((resolve) => setTimeout(resolve, RESTORE_WAIT_MS)),
+      ]);
+      set({ isRestoring: false });
+      return { ok: true, message: isSignUp ? 'Account created.' : 'Signed in.' };
+    } finally {
+      signingIn = false;
+    }
   },
 
   signOutSupabase: async () => {

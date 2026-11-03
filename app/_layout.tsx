@@ -12,6 +12,7 @@ function RootNavigator() {
   const hydrate = useLearningStore((s) => s.hydrate);
   const authReady = useLearningStore((s) => s.authReady);
   const userId = useLearningStore((s) => s.userId);
+  const isRestoring = useLearningStore((s) => s.isRestoring);
   const segments = useSegments();
   const router = useRouter();
 
@@ -27,8 +28,13 @@ function RootNavigator() {
     else if (userId && onAuthScreen) router.replace('/');
   }, [authReady, userId, onAuthScreen, router]);
 
-  // Hold a blank desk until we know where to go, so the app never flashes.
-  const holding = !authReady || (!userId && !onAuthScreen) || (Boolean(userId) && onAuthScreen);
+  // Hold a blank desk until we know where to go, so the app never flashes,
+  // and while sign-in downloads saved progress, so the card opens complete.
+  const holding =
+    !authReady ||
+    isRestoring ||
+    (!userId && !onAuthScreen) ||
+    (Boolean(userId) && onAuthScreen);
 
   return (
     <>
