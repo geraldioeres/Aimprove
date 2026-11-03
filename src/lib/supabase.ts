@@ -4,6 +4,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const ENV_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const ENV_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
+const CONFIG_KEY = 'aimprove.supabase.config';
+
 let activeSupabaseClient: SupabaseClient | null = null;
 let activeUrl = ENV_URL;
 let activeAnonKey = ENV_KEY;
@@ -37,7 +39,28 @@ export function configureRuntimeSupabase(url: string, anonKey: string): Supabase
   activeUrl = url.trim();
   activeAnonKey = anonKey.trim();
   activeSupabaseClient = null;
-  return getSupabaseClient();
+  const client = getSupabaseClient();
+  if (client) {
+    AsyncStorage.setItem(CONFIG_KEY, JSON.stringify({ url: activeUrl, anonKey: activeAnonKey })).catch(() => {});
+  }
+  return client;
+}
+
+/** Restore a connection entered in the app on an earlier run (.env wins). */
+export async function loadSavedSupabaseConfig(): Promise<void> {
+  if (isValidSupabaseConfig(ENV_URL, ENV_KEY)) return;
+  try {
+    const raw = await AsyncStorage.getItem(CONFIG_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (isValidSupabaseConfig(saved.url, saved.anonKey)) {
+      activeUrl = saved.url;
+      activeAnonKey = saved.anonKey;
+      activeSupabaseClient = null;
+    }
+  } catch {
+    // ignore unreadable config
+  }
 }
 
 export function getCurrentSupabaseConfig() {

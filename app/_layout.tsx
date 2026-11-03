@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
@@ -9,10 +10,25 @@ import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 function RootNavigator() {
   const { colors } = useTheme();
   const hydrate = useLearningStore((s) => s.hydrate);
+  const authReady = useLearningStore((s) => s.authReady);
+  const userId = useLearningStore((s) => s.userId);
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // An account is required: signed-out users only see sign-in and sign-up.
+  const onAuthScreen = segments[0] === 'sign-in' || segments[0] === 'sign-up';
+  useEffect(() => {
+    if (!authReady) return;
+    if (!userId && !onAuthScreen) router.replace('/sign-in');
+    else if (userId && onAuthScreen) router.replace('/');
+  }, [authReady, userId, onAuthScreen, router]);
+
+  // Hold a blank desk until we know where to go, so the app never flashes.
+  const holding = !authReady || (!userId && !onAuthScreen) || (Boolean(userId) && onAuthScreen);
 
   return (
     <>
@@ -35,6 +51,8 @@ function RootNavigator() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="sign-in" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="sign-up" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen
           name="jp/review"
           options={{ title: 'Reviews', presentation: 'card' }}
@@ -56,6 +74,11 @@ function RootNavigator() {
           options={{ title: 'Mushaf Map', presentation: 'card' }}
         />
       </Stack>
+      {holding ? (
+        <View style={[StyleSheet.absoluteFill, styles.hold, { backgroundColor: colors.bgPrimary }]}>
+          <ActivityIndicator color={colors.indigo} />
+        </View>
+      ) : null}
     </>
   );
 }
@@ -74,3 +97,7 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  hold: { alignItems: 'center', justifyContent: 'center' },
+});

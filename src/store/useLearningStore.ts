@@ -12,7 +12,7 @@ import {
 import { buildInitialQuranProgress } from '../data/quran-seed';
 import { calculateNextWaniKaniStage, WANIKANI_STAGES, WaniKaniStage } from '../lib/srs-wanikani';
 import { evaluateQuranPageSession, QuranPageProgress } from '../lib/srs-fsrs';
-import { configureRuntimeSupabase, getSupabaseClient } from '../lib/supabase';
+import { configureRuntimeSupabase, getSupabaseClient, loadSavedSupabaseConfig } from '../lib/supabase';
 
 const STORAGE_KEY = 'aimprove.learning.state.v2';
 
@@ -49,6 +49,8 @@ export interface ForecastHourBucket {
 
 interface LearningState {
   isHydrated: boolean;
+  // True once we know whether a signed-in Supabase session exists.
+  authReady: boolean;
   syncError: string | null;
   lastSyncedAt: string | null;
   userEmail: string | null;
@@ -100,13 +102,16 @@ interface LearningState {
     email: string,
     password: string,
     isSignUp: boolean
-  ) => Promise<{ ok: boolean; message: string }>;
+  ) => Promise<{ ok: boolean; message: string; needsConfirmation?: boolean }>;
   signOutSupabase: () => Promise<void>;
   resetDemoProgress: () => Promise<void>;
 }
 
+let authListenerAttached = false;
+
 export const useLearningStore = create<LearningState>((set, get) => ({
   isHydrated: false,
+  authReady: false,
   syncError: null,
   lastSyncedAt: null,
   userEmail: null,
@@ -127,7 +132,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.supabaseUrl && parsed.supabaseKey) {
+        if (parsed.supabaseUrl && parsed.supabaseKey && !getSupabaseClient()) {
           configureRuntimeSupabase(parsed.supabaseUrl, parsed.supabaseKey);
         }
         set({
@@ -147,19 +152,28 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         set({ isHydrated: true });
       }
 
+      await loadSavedSupabaseConfig();
       const sb = getSupabaseClient();
       if (sb) {
         const { data } = await sb.auth.getSession();
-        if (data?.session?.user) {
-          set({
-            userId: data.session.user.id,
-            userEmail: data.session.user.email || null,
-            lastSyncedAt: new Date().toISOString(),
+        const user = data?.session?.user;
+        set({
+          userId: user?.id ?? null,
+          userEmail: user?.email ?? null,
+          lastSyncedAt: user ? new Date().toISOString() : get().lastSyncedAt,
+        });
+        if (!authListenerAttached) {
+          authListenerAttached = true;
+          sb.auth.onAuthStateChange((_event, session) => {
+            set({ userId: session?.user?.id ?? null, userEmail: session?.user?.email ?? null });
           });
         }
+      } else {
+        set({ userId: null, userEmail: null });
       }
+      set({ authReady: true });
     } catch (err: any) {
-      set({ isHydrated: true, syncError: err?.message || 'Failed to load state' });
+      set({ isHydrated: true, authReady: true, syncError: err?.message || 'Failed to load state' });
     }
   },
 
@@ -502,10 +516,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   signInWithSupabase: async (email: string, password: string, isSignUp: boolean) => {
     const sb = getSupabaseClient();
     if (!sb) {
-      return {
-        ok: false,
-        message: 'Configure your Supabase URL and Anon Key first in Settings.',
-      };
+      return { ok: false, message: "Sign-in isn't set up yet. Add the Supabase connection first." };
     }
 
     const res = isSignUp
@@ -516,23 +527,24 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       return { ok: false, message: res.error.message };
     }
 
-    const user = res.data.user;
-    if (user) {
-      set({
-        userId: user.id,
-        userEmail: user.email || email,
-        lastSyncedAt: new Date().toISOString(),
-        syncError: null,
-      });
-      await persistState(get());
+    const session = res.data.session;
+    if (!session) {
+      // Sign-up with email confirmation turned on: no session until confirmed.
+      return {
+        ok: true,
+        needsConfirmation: true,
+        message: `We sent a confirmation link to ${email}. Open it, then sign in.`,
+      };
     }
 
-    return {
-      ok: true,
-      message: isSignUp
-        ? 'Account created and connected to Supabase.'
-        : 'Signed in to Supabase cloud.',
-    };
+    set({
+      userId: session.user.id,
+      userEmail: session.user.email || email,
+      lastSyncedAt: new Date().toISOString(),
+      syncError: null,
+    });
+    await persistState(get());
+    return { ok: true, message: isSignUp ? 'Account created.' : 'Signed in.' };
   },
 
   signOutSupabase: async () => {
