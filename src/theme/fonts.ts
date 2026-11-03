@@ -1,56 +1,33 @@
 import { Platform, Text, TextInput, StyleSheet } from 'react-native';
 import { useFonts } from 'expo-font';
-import { NotoSans_400Regular } from '@expo-google-fonts/noto-sans/400Regular';
-import { NotoSans_600SemiBold } from '@expo-google-fonts/noto-sans/600SemiBold';
-import { NotoSans_700Bold } from '@expo-google-fonts/noto-sans/700Bold';
-import { NotoSans_800ExtraBold } from '@expo-google-fonts/noto-sans/800ExtraBold';
-import { NotoSansJP_400Regular } from '@expo-google-fonts/noto-sans-jp/400Regular';
-import { NotoSansJP_600SemiBold } from '@expo-google-fonts/noto-sans-jp/600SemiBold';
-import { NotoSansJP_700Bold } from '@expo-google-fonts/noto-sans-jp/700Bold';
-import { NotoSansJP_800ExtraBold } from '@expo-google-fonts/noto-sans-jp/800ExtraBold';
+import { ZenKakuGothicNew_400Regular } from '@expo-google-fonts/zen-kaku-gothic-new/400Regular';
+import { ZenKakuGothicNew_500Medium } from '@expo-google-fonts/zen-kaku-gothic-new/500Medium';
+import { ZenKakuGothicNew_700Bold } from '@expo-google-fonts/zen-kaku-gothic-new/700Bold';
+import { ZenKakuGothicNew_900Black } from '@expo-google-fonts/zen-kaku-gothic-new/900Black';
 
-type Tier = '400' | '600' | '700' | '800';
+type Tier = '400' | '500' | '700' | '900';
 
-const LATIN: Record<Tier, string> = {
-  '400': 'NotoSans_400Regular',
-  '600': 'NotoSans_600SemiBold',
-  '700': 'NotoSans_700Bold',
-  '800': 'NotoSans_800ExtraBold',
+// Zen Kaku Gothic New covers Latin, kana and kanji in one family,
+// so the same face carries English labels and Japanese glyphs.
+const FAMILY: Record<Tier, string> = {
+  '400': 'ZenKakuGothicNew_400Regular',
+  '500': 'ZenKakuGothicNew_500Medium',
+  '700': 'ZenKakuGothicNew_700Bold',
+  '900': 'ZenKakuGothicNew_900Black',
 };
-
-const JAPANESE: Record<Tier, string> = {
-  '400': 'NotoSansJP_400Regular',
-  '600': 'NotoSansJP_600SemiBold',
-  '700': 'NotoSansJP_700Bold',
-  '800': 'NotoSansJP_800ExtraBold',
-};
-
-const JP_CHARS = /[\u3000-\u30ff\u3400-\u9fff\uff00-\uffef]/;
 
 function tierFor(weight: unknown): Tier {
   const w = weight === 'bold' ? 700 : parseInt(String(weight ?? '400'), 10) || 400;
-  if (w >= 800) return '800';
+  if (w >= 900) return '900';
   if (w >= 700) return '700';
-  if (w >= 500) return '600';
+  if (w >= 500) return '500';
   return '400';
 }
 
-function textOf(children: unknown): string {
-  if (typeof children === 'string') return children;
-  if (typeof children === 'number') return String(children);
-  if (Array.isArray(children)) return children.map(textOf).join('');
-  return '';
-}
-
-/**
- * Latin text uses Noto Sans, Japanese glyphs use Noto Sans JP.
- * Web gets a per-glyph font stack; native picks the Japanese family
- * when the string contains kana or kanji.
- */
-function resolveFamily(style: any, children: unknown): string {
+function resolveFamily(style: any): string {
   const tier = tierFor(StyleSheet.flatten(style)?.fontWeight);
-  if (Platform.OS === 'web') return `${LATIN[tier]}, ${JAPANESE[tier]}, sans-serif`;
-  return JP_CHARS.test(textOf(children)) ? JAPANESE[tier] : LATIN[tier];
+  if (Platform.OS === 'web') return `${FAMILY[tier]}, sans-serif`;
+  return FAMILY[tier];
 }
 
 let patched = false;
@@ -64,10 +41,7 @@ function patch(Component: any) {
       ? props
       : {
           ...props,
-          style: [
-            props.style,
-            { fontFamily: resolveFamily(props.style, props.children), fontWeight: 'normal' },
-          ],
+          style: [props.style, { fontFamily: resolveFamily(props.style), fontWeight: 'normal' }],
         };
     return original.call(this, next, ref);
   };
@@ -82,18 +56,16 @@ export function applyGlobalFonts() {
 
 export function useAppFonts(): boolean {
   const [loaded, error] = useFonts({
-    NotoSans_400Regular,
-    NotoSans_600SemiBold,
-    NotoSans_700Bold,
-    NotoSans_800ExtraBold,
-    NotoSansJP_400Regular,
-    NotoSansJP_600SemiBold,
-    NotoSansJP_700Bold,
-    NotoSansJP_800ExtraBold,
+    ZenKakuGothicNew_400Regular,
+    ZenKakuGothicNew_500Medium,
+    ZenKakuGothicNew_700Bold,
+    ZenKakuGothicNew_900Black,
   });
   return loaded || Boolean(error);
 }
 
-export const FONT_LATIN = LATIN;
-export const FONT_JAPANESE = JAPANESE;
+export const FONT = FAMILY;
+// Older imports
+export const FONT_LATIN = FAMILY;
+export const FONT_JAPANESE = FAMILY;
 export type { Tier };

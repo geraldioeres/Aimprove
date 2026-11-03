@@ -36,11 +36,11 @@ export default function QuranMasteryHeatmapScreen() {
       <View
         style={[
           styles.headerCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.title, { color: colors.textPrimary }]}>
-          Mushaf map
+          Your progress
         </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {totalStarted} of 604 pages started. Tap a page to open it.
@@ -85,7 +85,7 @@ export default function QuranMasteryHeatmapScreen() {
             <View
               style={[
                 styles.legendSwatch,
-                { backgroundColor: colors.bgMuted, borderColor: colors.borderStrong, borderWidth: 1 },
+                { backgroundColor: colors.bgMuted, borderColor: colors.ink, borderWidth: 1 },
               ]}
             />
             <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>
@@ -99,7 +99,7 @@ export default function QuranMasteryHeatmapScreen() {
       <View
         style={[
           styles.filterCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.filterHeading, { color: colors.textPrimary }]}>
@@ -117,9 +117,9 @@ export default function QuranMasteryHeatmapScreen() {
               styles.juzPill,
               {
                 backgroundColor:
-                  selectedJuz === 'all' ? colors.textPrimary : colors.bgSurface,
+                  selectedJuz === 'all' ? colors.indigo : colors.bgSurface,
                 borderColor:
-                  selectedJuz === 'all' ? colors.textPrimary : colors.border,
+                  selectedJuz === 'all' ? colors.indigo : colors.ink,
               },
             ]}
           >
@@ -146,8 +146,8 @@ export default function QuranMasteryHeatmapScreen() {
                 style={[
                   styles.juzPill,
                   {
-                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
-                    borderColor: active ? colors.textPrimary : colors.border,
+                    backgroundColor: active ? colors.indigo : colors.bgSurface,
+                    borderColor: active ? colors.indigo : colors.ink,
                   },
                 ]}
               >
@@ -169,7 +169,7 @@ export default function QuranMasteryHeatmapScreen() {
       <View
         style={[
           styles.gridCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.filterHeading, { color: colors.textPrimary }]}>
@@ -208,8 +208,7 @@ export default function QuranMasteryHeatmapScreen() {
                 accessibilityRole="button"
                 style={[
                   styles.pageCell,
-                  { backgroundColor: bg, borderColor: border },
-                  stage !== 'unstarted' && TILE_LIP,
+                  { backgroundColor: bg, borderWidth: 1.5, borderColor: stage !== 'unstarted' ? colors.ink : colors.border },
                 ]}
               >
                 <Text style={[styles.pageCellNumber, stage !== 'unstarted' && GLYPH_SHADOW, { color: textColor }]}>
@@ -227,7 +226,7 @@ export default function QuranMasteryHeatmapScreen() {
                     },
                   ]}
                 >
-                  {stage === 'unstarted' ? `Juz ${item.juz}` : stage.charAt(0).toUpperCase() + stage.slice(1)}
+                  {stage === 'unstarted' ? ' ' : stage.charAt(0).toUpperCase() + stage.slice(1)}
                 </Text>
               </Pressable>
             );
@@ -247,7 +246,7 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
@@ -273,7 +272,7 @@ const styles = StyleSheet.create({
   legendSwatch: {
     width: 14,
     height: 14,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   legendLabel: {
     fontSize: 12,
@@ -281,7 +280,7 @@ const styles = StyleSheet.create({
   },
   filterCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
@@ -296,8 +295,8 @@ const styles = StyleSheet.create({
   juzPill: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -307,7 +306,7 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -320,7 +319,7 @@ const styles = StyleSheet.create({
     width: 60,
     minHeight: 56,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 4,

@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#fff;color:#3C3C3C;font-family:'Nunito',sans-serif}
+.hud{display:flex;justify-content:space-around;padding:52px 16px 14px;border-bottom:2px solid #E5E5E5;font-weight:900;font-size:17px}
+.hud span:nth-child(1){color:#FF9600}.hud span:nth-child(2){color:#1CB0F6}.hud span:nth-child(3){color:#58CC02}
+.unit{margin:16px;background:#58CC02;color:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 0 #46A302}
+.unit .k{font-size:13px;font-weight:800;opacity:.9}
+.unit h2{font-size:22px;font-weight:900}
+.path{position:relative;height:420px}
+.node{position:absolute;width:70px;height:64px;border-radius:50%;background:#58CC02;box-shadow:0 6px 0 #46A302;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px}
+.node.off{background:#E5E5E5;box-shadow:0 6px 0 #CECECE;color:#AFAFAF}
+.start{position:absolute;left:110px;top:6px;background:#fff;border:2px solid #E5E5E5;border-radius:12px;padding:8px 14px;font-weight:900;color:#58CC02}
+.mascot{position:absolute;right:40px;top:150px;width:96px;height:96px;border-radius:50%;background:#FF9600;box-shadow:0 6px 0 #D97F00}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:82px;border-top:2px solid #E5E5E5;display:flex;justify-content:space-around;padding-top:14px}
+.tabs span{width:34px;height:34px;border-radius:10px;background:#E5E5E5}
+.tabs span:first-child{background:#DDF4FF;border:2px solid #84D8FF}
+</style></head><body>
+<div class="hud"><span>12 day streak</span><span>230 XP</span><span>Level 4</span></div>
+<div class="unit"><div class="k">UNIT 4 · SECTION 1</div><h2>Radicals: nature</h2></div>
+<div class="path">
+  <div class="start">START</div>
+  <div class="node" style="left:160px;top:50px">★</div>
+  <div class="node" style="left:110px;top:140px">★</div>
+  <div class="node off" style="left:150px;top:230px">★</div>
+  <div class="node off" style="left:200px;top:320px">★</div>
+  <div class="mascot"></div>
+</div>
+<div class="tabs"><span></span><span></span><span></span><span></span></div>
+</body></html>

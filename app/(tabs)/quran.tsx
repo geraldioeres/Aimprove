@@ -8,8 +8,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
+import { CARD_EDGE, GLYPH_SHADOW, PRESSED_BASE, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectDueQuranPages,
   useLearningStore,
@@ -58,8 +59,8 @@ export default function QuranHafalanHubScreen() {
         <View
           style={[
             styles.summaryBox,
-            TILE_LIP,
-            { backgroundColor: colors.quranSabaq, borderColor: colors.quranSabaq },
+            CARD_EDGE,
+            { backgroundColor: colors.quranSabaq },
           ]}
         >
           <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
@@ -76,8 +77,8 @@ export default function QuranHafalanHubScreen() {
         <View
           style={[
             styles.summaryBox,
-            TILE_LIP,
-            { backgroundColor: colors.quranSabqi, borderColor: colors.quranSabqi },
+            CARD_EDGE,
+            { backgroundColor: colors.quranSabqi },
           ]}
         >
           <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
@@ -94,8 +95,8 @@ export default function QuranHafalanHubScreen() {
         <View
           style={[
             styles.summaryBox,
-            TILE_LIP,
-            { backgroundColor: colors.quranManzil, borderColor: colors.quranManzil },
+            CARD_EDGE,
+            { backgroundColor: colors.quranManzil },
           ]}
         >
           <Text style={[styles.summaryCount, GLYPH_SHADOW]}>
@@ -116,10 +117,9 @@ export default function QuranHafalanHubScreen() {
         accessibilityRole="button"
         style={({ pressed }) => [
           styles.heatmapBanner,
-          {
-            backgroundColor: pressed ? colors.bgMuted : colors.bgSurface,
-            borderColor: colors.border,
-          },
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
         ]}
       >
         <View style={styles.heatmapLeft}>
@@ -133,7 +133,7 @@ export default function QuranHafalanHubScreen() {
         <View
           style={styles.heatmapBtn}
         >
-          <Text style={[styles.heatmapBtnText, { color: colors.quranSabaq }]}>Open ›</Text>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
         </View>
       </Pressable>
 
@@ -141,7 +141,7 @@ export default function QuranHafalanHubScreen() {
       <View
         style={[
           styles.sectionCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -294,7 +294,7 @@ export default function QuranHafalanHubScreen() {
       <View
         style={[
           styles.sectionCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -318,7 +318,7 @@ export default function QuranHafalanHubScreen() {
               styles.pageInput,
               {
                 backgroundColor: colors.bgSurface,
-                borderColor: colors.borderStrong,
+                borderColor: colors.ink,
                 color: colors.textPrimary,
               },
             ]}
@@ -328,7 +328,7 @@ export default function QuranHafalanHubScreen() {
             accessibilityRole="button"
             style={[
               styles.openBtn,
-              { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
+              { backgroundColor: colors.bgSurface, borderColor: colors.ink },
             ]}
           >
             <Text style={[styles.openBtnText, { color: colors.textPrimary }]}>
@@ -371,7 +371,7 @@ export default function QuranHafalanHubScreen() {
               accessibilityRole="button"
               style={[
                 styles.bookmarkChip,
-                { backgroundColor: colors.bgSurface, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
               ]}
             >
               <Text style={[styles.bookmarkChipText, { color: colors.textPrimary }]}>
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 3,
   },
   summaryCount: {
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.md,
     borderRadius: RADII.lg,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: SPACING.sm,
   },
   heatmapLeft: {
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   },
   heatmapTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   heatmapSub: {
     fontSize: 12,
@@ -453,13 +453,13 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     borderRadius: RADII.lg,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.md,
     gap: SPACING.md,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   sectionSub: {
     fontSize: 12,
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   },
   pageCardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   pageCardSub: {
     fontSize: 12,
@@ -515,14 +515,14 @@ const styles = StyleSheet.create({
     width: 120,
     minHeight: 46,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     paddingHorizontal: 16,
     fontSize: 16,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   openBtn: {
-    borderWidth: 1,
+    borderWidth: 2,
     paddingHorizontal: 18,
     minHeight: 46,
     borderRadius: RADII.pill,
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 38,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
   },
   bookmarkChipText: {

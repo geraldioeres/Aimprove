@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   View,
   Text,
   TextInput,
@@ -10,11 +12,13 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { Feather } from '@expo/vector-icons';
-import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
+import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING } from '../../src/theme/tokens';
 import {
   selectDueJapaneseReviews,
+  selectStreak,
   useLearningStore,
 } from '../../src/store/useLearningStore';
+import { PressBlock, StampCard, StampSeal, useReduceMotion } from '../../src/components/Stamp';
 import {
   checkEnglishMeaning,
   checkJapaneseReading,
@@ -115,7 +119,7 @@ export default function JapaneseTypedReviewScreen() {
         characters: mined.characters,
         meanings: [mined.meaning],
         readings: [mined.reading],
-        mnemonic: `Mined from reading passage: ${mined.contextSentenceJa}`,
+        mnemonic: `From your reading: ${mined.contextSentenceJa}`,
         contextSentence: {
           ja: mined.contextSentenceJa,
           en: mined.contextSentenceEn,
@@ -130,7 +134,7 @@ export default function JapaneseTypedReviewScreen() {
         characters: mined.characters,
         meanings: [mined.meaning],
         readings: [mined.reading],
-        mnemonic: `Mined from reading passage: ${mined.contextSentenceJa}`,
+        mnemonic: `From your reading: ${mined.contextSentenceJa}`,
         contextSentence: {
           ja: mined.contextSentenceJa,
           en: mined.contextSentenceEn,
@@ -154,56 +158,96 @@ export default function JapaneseTypedReviewScreen() {
     unlockedItems?: string[];
   } | null>(null);
   const [showItemInfo, setShowItemInfo] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [bestCombo, setBestCombo] = useState(0);
+
+  // Was today already stamped when the session began? The summary slams the
+  // seal only when this session earned it.
+  const goalMetAtStart = useMemo(() => selectStreak(state).goalMet, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reduceMotion = useReduceMotion();
+  const shake = useRef(new Animated.Value(0)).current;
+  const inputRef = useRef<TextInput>(null);
+  const resultIn = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!feedback || reduceMotion) return;
+    resultIn.setValue(0);
+    Animated.timing(resultIn, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.exp),
+      useNativeDriver: true,
+    }).start();
+    if (feedback.status === 'incorrect') {
+      shake.setValue(0);
+      Animated.sequence(
+        [10, -8, 6, -4, 0].map((x) =>
+          Animated.timing(shake, { toValue: x, duration: 55, useNativeDriver: true })
+        )
+      ).start();
+    }
+  }, [feedback, reduceMotion, resultIn, shake]);
 
   const currentTask = queue[0];
   const totalInitialCount = initialTasks.length;
   const completedCount = completedTaskKeys.size;
 
   if (!currentTask) {
+    const streak = selectStreak(state);
+    const itemsTotal = new Set(initialTasks.map((t) => t.subjectId)).size;
+    const firstTry = Math.max(0, itemsTotal - Object.keys(subjectMistakeMap).length);
+    const earnedStamp = streak.goalMet && !goalMetAtStart;
+    const body =
+      totalInitialCount === 0
+        ? "Nothing is due right now. Check what's coming up on Today, or learn something new."
+        : earnedStamp
+          ? `That's today's stamp. ${streak.current}-day streak and counting.`
+          : streak.goalMet
+            ? 'Today was already stamped. Extra reps still count.'
+            : `${streak.goal - streak.todayCount} more items to earn today's stamp.`;
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.bgPrimary }]}>
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: colors.bgSurface, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.summaryHeadline, { color: colors.textPrimary }]}>
-            Reviews complete
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.bgPrimary }}
+        contentContainerStyle={styles.emptyContainer}
+      >
+        <View style={styles.summaryWrap}>
+          {earnedStamp ? (
+            <View style={styles.heroSeal}>
+              <StampSeal size={148} slam seed={streak.week.find((d) => d.isToday)?.key} />
+            </View>
+          ) : null}
+          <Text style={[styles.summaryHeadline, { color: colors.ink }]} accessibilityRole="header">
+            {totalInitialCount === 0 ? 'All caught up' : earnedStamp ? 'Stamped!' : 'Session done'}
           </Text>
-          <Text style={[styles.summaryBody, { color: colors.textSecondary }]}>
-            {totalInitialCount > 0
-              ? `You answered all ${totalInitialCount} prompts in this session.`
-              : 'Nothing is due right now. Check the forecast on Today, or start some lessons.'}
-          </Text>
+          <Text style={[styles.summaryBody, { color: colors.textSecondary }]}>{body}</Text>
+
+          {totalInitialCount > 0 ? (
+            <Text style={[styles.statsLine, { color: colors.ink }]}>
+              {itemsTotal} {itemsTotal === 1 ? 'item' : 'items'} · {firstTry} right first try
+              {bestCombo >= 3 ? ` · best combo ×${bestCombo}` : ''}
+            </Text>
+          ) : null}
+
+          <StampCard streak={streak} />
 
           <View style={styles.summaryBtnRow}>
-            <Pressable
+            <PressBlock
               onPress={() => router.replace('/(tabs)')}
               accessibilityRole="button"
-              style={[
-                styles.primaryBtn,
-                { backgroundColor: colors.jpRadical },
-                TILE_LIP,
-              ]}
+              style={[styles.primaryBtn, { backgroundColor: colors.indigo }]}
             >
               <Text style={styles.primaryBtnText}>Back to Today</Text>
-            </Pressable>
-            <Pressable
+            </PressBlock>
+            <PressBlock
               onPress={() => router.replace('/jp/lessons')}
               accessibilityRole="button"
-              style={[
-                styles.secondaryBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
-              ]}
+              style={[styles.primaryBtn, { backgroundColor: colors.bgSurface }]}
             >
-              <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
-                Open lessons
-              </Text>
-            </Pressable>
+              <Text style={[styles.primaryBtnText, { color: colors.ink }]}>Learn new items</Text>
+            </PressBlock>
           </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -231,6 +275,7 @@ export default function JapaneseTypedReviewScreen() {
         // Re-append incorrect prompt to the end of the active queue (WaniKani style)
         setQueue((prev) => [...prev.slice(1), prev[0]]);
       }
+      setTimeout(() => inputRef.current?.focus(), 0);
       return;
     }
 
@@ -246,6 +291,9 @@ export default function JapaneseTypedReviewScreen() {
     }
 
     if (check.isCorrect) {
+      const nextCombo = combo + 1;
+      setCombo(nextCombo);
+      setBestCombo((b) => Math.max(b, nextCombo));
       const nextCompleted = new Set(completedTaskKeys);
       nextCompleted.add(currentTask.key);
       setCompletedTaskKeys(nextCompleted);
@@ -277,14 +325,15 @@ export default function JapaneseTypedReviewScreen() {
       setFeedback({
         status: 'correct',
         message: check.isSlightlyOff
-          ? `Accepted (minor typo). Exact answer: ${currentTask.meanings.join(', ')}`
+          ? `Close enough. Exact answer: ${currentTask.meanings.join(', ')}`
           : isKanaPrompt
-          ? `Correct reading: ${currentTask.readings.join(' • ')}`
-          : `Correct meaning: ${currentTask.meanings.join(', ')}`,
+          ? `Reading: ${currentTask.readings.join(' · ')}`
+          : `Meaning: ${currentTask.meanings.join(', ')}`,
         stageChange: stageSummary,
         unlockedItems: unlockedNames,
       });
     } else {
+      setCombo(0);
       const prevMistakes = subjectMistakeMap[currentTask.subjectId] || 0;
       setSubjectMistakeMap({
         ...subjectMistakeMap,
@@ -294,8 +343,8 @@ export default function JapaneseTypedReviewScreen() {
       setFeedback({
         status: 'incorrect',
         message: isKanaPrompt
-          ? `Expected reading: ${currentTask.readings.join(' • ')}`
-          : `Expected meaning: ${currentTask.meanings.join(', ')}`,
+          ? `The reading is ${currentTask.readings.join(' · ')}.`
+          : `It means ${currentTask.meanings.join(', ')}.`,
       });
     }
   };
@@ -324,9 +373,8 @@ export default function JapaneseTypedReviewScreen() {
   const pct =
     totalInitialCount > 0 ? Math.round((completedCount / totalInitialCount) * 100) : 0;
   const graded = feedback?.status;
-  const inputBg =
-    graded === 'correct' ? colors.success : graded === 'incorrect' ? colors.danger : colors.bgSurface;
-  const inputFg = graded ? '#FFFFFF' : colors.textPrimary;
+  const inputBg = colors.bgSurface;
+  const inputFg = colors.ink;
 
   return (
     <ScrollView
@@ -334,57 +382,62 @@ export default function JapaneseTypedReviewScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Character band */}
-      <View style={[styles.band, { backgroundColor: getBannerColor() }]}>
-        <View style={styles.bandStats}>
-          <Text style={styles.bandStat}>{pct}%</Text>
-          <Text style={styles.bandStat}>
-            {completedCount} done · {queue.length} left
+      <View style={styles.stage}>
+        <View style={styles.stageTop}>
+          <Text style={[styles.stageStat, { color: colors.textSecondary }]}>
+            {completedCount} done · {queue.length - (feedback?.status === 'correct' ? 1 : 0)} left
           </Text>
+          {combo >= 3 ? (
+            <View style={[styles.comboChip, { borderColor: colors.ink }]} accessibilityLabel={`Combo of ${combo}`}>
+              <Text style={[styles.comboText, { color: colors.ink }]}>Combo ×{combo}</Text>
+            </View>
+          ) : null}
         </View>
-        <View style={[styles.bandProgress]}>
-          <View style={[styles.bandProgressFill, { width: `${Math.min(100, pct)}%` }]} />
+        <View style={[styles.track, { borderColor: colors.ink }]}>
+          <View style={[styles.trackFill, { width: `${Math.min(100, pct)}%`, backgroundColor: colors.indigo }]} />
         </View>
 
-        {currentTask.promptType === 'cloze' && currentTask.clozePrompt ? (
-          <View style={styles.clozePromptWrap}>
-            <Text style={[styles.clozeSentenceText, GLYPH_SHADOW]}>
-              {currentTask.clozePrompt.sentenceBefore}
-              <Text style={styles.clozeBlankHighlight}> ＿＿＿ </Text>
-              {currentTask.clozePrompt.sentenceAfter}
-            </Text>
-            <Text style={styles.clozeNuanceText}>Hint: {currentTask.clozePrompt.nuanceHint}</Text>
-            <Text style={styles.clozeTranslationText}>“{currentTask.clozePrompt.fullTranslation}”</Text>
-          </View>
-        ) : (
-          <Text
-            style={[styles.mainCharacters, GLYPH_SHADOW]}
-            adjustsFontSizeToFit
-            numberOfLines={1}
+        <View style={[styles.itemCard, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
+          <View
+            style={[
+              styles.itemHead,
+              { borderBottomColor: colors.ink, backgroundColor: isKanaPrompt ? colors.ink : colors.bgSurface },
+            ]}
           >
-            {currentTask.characters}
-          </Text>
-        )}
-        {currentTask.isMined ? <Text style={styles.minedNote}>Mined from your reading</Text> : null}
-      </View>
-
-      {/* Question type bar: dark for reading, light for meaning */}
-      <View
-        style={[
-          styles.questionBar,
-          isKanaPrompt
-            ? { backgroundColor: '#2B2B2B', borderColor: '#2B2B2B' }
-            : { backgroundColor: '#E9E9E9', borderColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.questionText, { color: isKanaPrompt ? '#FFFFFF' : colors.textPrimary }]}>
-          {questionLabel} <Text style={styles.questionStrong}>{questionKind}</Text>
-        </Text>
+            <Text style={[styles.itemHeadText, { color: isKanaPrompt ? '#FFFFFF' : colors.ink }]}>
+              {questionLabel} <Text style={styles.itemHeadStrong}>{questionKind.toLowerCase()}</Text>
+            </Text>
+            <View style={[styles.kindDot, { backgroundColor: getBannerColor() }]} />
+          </View>
+          <View style={[styles.itemFace, { backgroundColor: getBannerColor() }]}>
+            {currentTask.promptType === 'cloze' && currentTask.clozePrompt ? (
+              <View style={styles.clozePromptWrap}>
+                <Text style={styles.clozeSentenceText}>
+                  {currentTask.clozePrompt.sentenceBefore}
+                  <Text style={styles.clozeBlankHighlight}> ＿＿＿ </Text>
+                  {currentTask.clozePrompt.sentenceAfter}
+                </Text>
+                <Text style={styles.clozeNuanceText}>Hint: {currentTask.clozePrompt.nuanceHint}</Text>
+                <Text style={styles.clozeTranslationText}>“{currentTask.clozePrompt.fullTranslation}”</Text>
+              </View>
+            ) : (
+              <Text style={styles.mainCharacters} adjustsFontSizeToFit numberOfLines={1}>
+                {currentTask.characters}
+              </Text>
+            )}
+            {currentTask.isMined ? <Text style={styles.minedNote}>From your reading</Text> : null}
+          </View>
+        </View>
       </View>
 
       <View style={styles.body}>
         {/* Answer field */}
-        <View style={[styles.inputWrap, { backgroundColor: inputBg, borderColor: graded ? inputBg : colors.borderStrong }]}>
+        <Animated.View
+          style={[
+            styles.inputWrap,
+            { backgroundColor: inputBg, borderColor: colors.ink, transform: [{ translateX: shake }] },
+          ]}
+        >
           <TextInput
             value={inputValue}
             onChangeText={handleTextChange}
@@ -394,6 +447,7 @@ export default function JapaneseTypedReviewScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
+            ref={inputRef}
             accessibilityLabel={`${questionLabel} ${questionKind}`}
             style={[styles.answerInput, { color: inputFg }]}
           />
@@ -403,27 +457,44 @@ export default function JapaneseTypedReviewScreen() {
             accessibilityLabel={feedback ? 'Next item' : 'Submit answer'}
             style={({ pressed }) => [
               styles.submitBtn,
-              { backgroundColor: graded ? 'rgba(0,0,0,0.18)' : colors.bgMuted, opacity: pressed ? 0.8 : 1 },
+              { backgroundColor: colors.bgMuted, opacity: pressed ? 0.8 : 1 },
             ]}
           >
-            <Feather name="arrow-right" size={20} color={graded ? '#FFFFFF' : colors.textSecondary} />
+            <Feather name="arrow-right" size={20} color={colors.ink} />
           </Pressable>
-        </View>
+        </Animated.View>
         <Text style={[styles.inputHint, { color: colors.textMuted }]}>
           {isKanaPrompt ? 'Type in romaji. It turns into kana as you type.' : 'Type the English meaning.'}
         </Text>
 
         {/* Result */}
         {feedback ? (
-          <View style={[styles.result, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+          <Animated.View
+            style={[
+              styles.result,
+              CARD_EDGE,
+              {
+                backgroundColor: colors.bgSurface,
+                opacity: resultIn,
+                transform: [{ translateY: resultIn.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+              },
+            ]}
+          >
             <View style={styles.resultTop}>
-              <Text
-                style={[styles.resultStatus, { color: graded === 'correct' ? colors.success : colors.danger }]}
-              >
-                {graded === 'correct' ? 'Correct' : 'Incorrect'}
-              </Text>
+              <View style={styles.resultLead}>
+                {graded === 'correct' ? (
+                  <StampSeal key={currentTask.key} size={44} slam glyph="sei" seed={currentTask.key} />
+                ) : (
+                  <View style={[styles.xMark, { borderColor: colors.ink }]}>
+                    <Feather name="x" size={22} color={colors.ink} />
+                  </View>
+                )}
+                <Text style={[styles.resultStatus, { color: colors.ink }]}>
+                  {graded === 'correct' ? (combo >= 3 ? `Correct · ${combo} in a row` : 'Correct') : 'Not quite'}
+                </Text>
+              </View>
               {feedback.stageChange ? (
-                <View style={[styles.stageChip, { backgroundColor: colors.srsGuru }]}>
+                <View style={[styles.stageChip, { backgroundColor: colors.indigo }]}>
                   <Text style={styles.stageChipText}>{feedback.stageChange.replace('->', '→')}</Text>
                 </View>
               ) : null}
@@ -445,7 +516,7 @@ export default function JapaneseTypedReviewScreen() {
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.ghostBtn,
-                  { borderColor: colors.borderStrong, opacity: pressed ? 0.8 : 1 },
+                  { borderColor: colors.ink, backgroundColor: pressed ? colors.bgMuted : colors.bgSurface },
                 ]}
               >
                 <Feather name={showItemInfo ? 'chevron-up' : 'info'} size={15} color={colors.textPrimary} />
@@ -453,24 +524,20 @@ export default function JapaneseTypedReviewScreen() {
                   {showItemInfo ? 'Hide item info' : 'Item info'}
                 </Text>
               </Pressable>
-              <Pressable
+              <PressBlock
                 onPress={handleSubmitOrNext}
                 accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.solidBtn,
-                  TILE_LIP,
-                  { backgroundColor: colors.textPrimary, opacity: pressed ? 0.85 : 1 },
-                ]}
+                style={[styles.solidBtn, { backgroundColor: colors.indigo }]}
               >
                 <Text style={styles.solidBtnText}>Next</Text>
-              </Pressable>
+              </PressBlock>
             </View>
-          </View>
+          </Animated.View>
         ) : null}
 
         {/* Item info */}
         {showItemInfo && feedback ? (
-          <View style={[styles.infoDrawer, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
+          <View style={[styles.infoDrawer, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
             <View style={styles.infoSection}>
               <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Meaning</Text>
               <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{currentTask.meanings.join(', ')}</Text>
@@ -490,7 +557,9 @@ export default function JapaneseTypedReviewScreen() {
               <Text style={[styles.infoSub, { color: colors.jpGrammar }]}>Structure: {currentTask.grammarStructure}</Text>
             ) : null}
             <View style={[styles.rule, { backgroundColor: colors.border }]} />
-            <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>{currentTask.mnemonic}</Text>
+            <Text style={[styles.infoMnemonic, { color: currentTask.mnemonic ? colors.textSecondary : colors.textMuted }]}>
+              {currentTask.mnemonic || 'No mnemonic for this item yet.'}
+            </Text>
             {currentTask.readingMnemonic ? (
               <Text style={[styles.infoMnemonic, { color: colors.textSecondary }]}>
                 Reading hint: {currentTask.readingMnemonic}
@@ -513,85 +582,66 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: SPACING.xxl },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: SPACING.lg,
+    flexGrow: 1,
+    padding: 16,
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xxl,
   },
-  summaryCard: {
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    padding: SPACING.lg,
-    gap: SPACING.md,
-  },
-  summaryHeadline: { fontSize: 20, fontWeight: '700' },
-  summaryBody: { fontSize: 14, lineHeight: 21 },
-  summaryBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  heroSeal: { alignItems: 'center', paddingVertical: 8 },
+  statsLine: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  summaryWrap: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 16 },
+  summaryHeadline: { fontSize: 34, lineHeight: 40, fontWeight: '900' },
+  summaryBody: { fontSize: 15, lineHeight: 22, marginTop: -8 },
+  summaryBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   primaryBtn: {
+    flex: 1,
+    minWidth: 140,
     paddingHorizontal: 18,
-    minHeight: 44,
-    borderRadius: RADII.sm,
+    minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  secondaryBtn: {
-    paddingHorizontal: 18,
-    minHeight: 44,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryBtnText: { fontSize: 14, fontWeight: '700' },
+  primaryBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
 
-  band: {
-    minHeight: 240,
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+  stage: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: 16, paddingBottom: 0, gap: 10 },
+  stageTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 26 },
+  stageStat: { fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  track: { height: 10, borderWidth: 1.5, borderRadius: 3, overflow: 'hidden' },
+  trackFill: { height: '100%' },
+  comboChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderRadius: RADII.xs,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    transform: [{ rotate: '-3deg' }],
   },
-  bandStats: {
-    position: 'absolute',
-    top: 10,
-    left: SPACING.md,
-    right: SPACING.md,
+  comboText: { fontSize: 13, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  itemCard: { borderRadius: RADII.sm, overflow: 'hidden' },
+  itemHead: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    minHeight: 46,
+    borderBottomWidth: 2,
   },
-  bandStat: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  bandProgress: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 4,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  bandProgressFill: { height: '100%', backgroundColor: 'rgba(255,255,255,0.85)' },
+  itemHeadText: { fontSize: 16, fontWeight: '500' },
+  itemHeadStrong: { fontWeight: '900' },
+  kindDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#FFFFFF' },
+  itemFace: { minHeight: 200, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 20 },
   mainCharacters: {
     color: '#FFFFFF',
     fontSize: 96,
     lineHeight: 120,
-    fontWeight: '400',
+    fontWeight: '700',
     textAlign: 'center',
-    marginTop: SPACING.lg,
   },
-  minedNote: { color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginTop: 4 },
+  minedNote: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', marginTop: 4 },
   clozePromptWrap: {
     width: '100%',
     maxWidth: 640,
     gap: 8,
-    marginTop: SPACING.xl,
     alignItems: 'center',
   },
   clozeSentenceText: {
@@ -604,16 +654,6 @@ const styles = StyleSheet.create({
   clozeNuanceText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
   clozeTranslationText: { color: '#FFFFFF', fontSize: 13, fontStyle: 'italic', textAlign: 'center' },
 
-  questionBar: {
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    paddingHorizontal: SPACING.md,
-  },
-  questionText: { fontSize: 16 },
-  questionStrong: { fontWeight: '700' },
-
   body: {
     width: '100%',
     maxWidth: 720,
@@ -624,7 +664,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: RADII.sm,
     overflow: 'hidden',
   },
@@ -648,7 +688,6 @@ const styles = StyleSheet.create({
   inputHint: { fontSize: 12, textAlign: 'center', marginTop: -6 },
 
   result: {
-    borderWidth: 1,
     borderRadius: RADII.sm,
     padding: SPACING.md,
     gap: 10,
@@ -659,7 +698,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  resultStatus: { fontSize: 16, fontWeight: '700' },
+  resultLead: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
+  xMark: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  resultStatus: { fontSize: 18, fontWeight: '900', flexShrink: 1 },
   stageChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADII.xs },
   stageChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   resultMessage: { fontSize: 14, lineHeight: 20 },
@@ -673,10 +714,10 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 44,
     paddingHorizontal: 14,
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: RADII.sm,
   },
-  ghostBtnText: { fontSize: 14, fontWeight: '600' },
+  ghostBtnText: { fontSize: 14, fontWeight: '700' },
   solidBtn: {
     flex: 1,
     minWidth: 120,
@@ -685,10 +726,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  solidBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  solidBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
 
   infoDrawer: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: RADII.sm,
     padding: SPACING.md,
     gap: 10,

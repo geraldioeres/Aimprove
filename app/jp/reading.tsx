@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import { useLearningStore } from '../../src/store/useLearningStore';
@@ -71,9 +72,9 @@ export default function JapaneseReadingMiningScreen() {
                 styles.passageTab,
                 {
                   backgroundColor: isSelected
-                    ? colors.textPrimary
+                    ? colors.indigo
                     : colors.bgSurface,
-                  borderColor: isSelected ? colors.textPrimary : colors.border,
+                  borderColor: isSelected ? colors.indigo : colors.ink,
                 },
               ]}
             >
@@ -104,58 +105,34 @@ export default function JapaneseReadingMiningScreen() {
 
       {/* Reader Display Toggles */}
       <View style={styles.toggleRow}>
-        <Pressable
-          onPress={() => setShowFurigana((v) => !v)}
-          accessibilityRole="button"
-          style={[
-            styles.toggleBtn,
-            {
-              backgroundColor: showFurigana ? colors.textPrimary : colors.bgSurface,
-              borderColor: showFurigana ? colors.textPrimary : colors.border,
-            },
-          ]}
-        >
-          <Text
+        {([
+          ['Furigana', showFurigana, setShowFurigana],
+          ['English', showTranslation, setShowTranslation],
+        ] as const).map(([label, on, setOn]) => (
+          <Pressable
+            key={label}
+            onPress={() => setOn((v: boolean) => !v)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: on }}
             style={[
-              styles.toggleBtnText,
-              { color: showFurigana ? '#FFFFFF' : colors.textSecondary },
+              styles.toggleBtn,
+              styles.toggleInner,
+              { backgroundColor: on ? colors.indigo : colors.bgSurface, borderColor: colors.ink },
             ]}
           >
-            Furigana
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setShowTranslation((v) => !v)}
-          accessibilityRole="button"
-          style={[
-            styles.toggleBtn,
-            {
-              backgroundColor: showTranslation ? colors.textPrimary : colors.bgSurface,
-              borderColor: showTranslation ? colors.textPrimary : colors.border,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.toggleBtnText,
-              {
-                color: showTranslation
-                  ? '#FFFFFF'
-                  : colors.textSecondary,
-              },
-            ]}
-          >
-            English
-          </Text>
-        </Pressable>
+            <Feather name={on ? 'check-square' : 'square'} size={18} color={on ? '#FFFFFF' : colors.ink} />
+            <Text style={[styles.toggleBtnText, { color: on ? '#FFFFFF' : colors.ink }]}>
+              {label} {on ? 'on' : 'off'}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
       {/* Reading Passage Surface */}
       <View
         style={[
           styles.readerCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.passageHeadline, { color: colors.textPrimary }]}>
@@ -280,7 +257,7 @@ export default function JapaneseReadingMiningScreen() {
                 style={[
                   styles.mineBtn,
                   TILE_LIP,
-                  { backgroundColor: colors.textPrimary },
+                  { backgroundColor: colors.indigo },
                 ]}
               >
                 <Text style={styles.mineBtnText}>Add to reviews</Text>
@@ -318,6 +295,7 @@ export default function JapaneseReadingMiningScreen() {
 }
 
 const styles = StyleSheet.create({
+  toggleInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   container: { flex: 1 },
   content: {
     padding: SPACING.md,
@@ -334,12 +312,12 @@ const styles = StyleSheet.create({
     minWidth: 150,
     padding: SPACING.md,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 2,
   },
   passageTabTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   passageTabSub: {
     fontSize: 12,
@@ -351,8 +329,8 @@ const styles = StyleSheet.create({
   toggleBtn: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 12,
@@ -363,7 +341,7 @@ const styles = StyleSheet.create({
   },
   readerCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -404,7 +382,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 6,
     borderBottomWidth: 2,
     marginHorizontal: 1,
   },
@@ -424,7 +402,7 @@ const styles = StyleSheet.create({
   },
   dictionarySheet: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: 10,
   },
@@ -452,7 +430,7 @@ const styles = StyleSheet.create({
   mineBtn: {
     paddingHorizontal: 22,
     minHeight: 46,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -471,7 +449,7 @@ const styles = StyleSheet.create({
   mineSuccessBanner: {
     padding: 12,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     marginTop: 4,
   },
   mineSuccessText: {

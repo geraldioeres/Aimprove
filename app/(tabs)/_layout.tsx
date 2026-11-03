@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeContext';
+import { FONT } from '../../src/theme/fonts';
 import {
   selectDueJapaneseReviews,
   selectDueQuranPages,
@@ -20,38 +21,39 @@ export default function TabsLayout() {
 
   // Respect Android 3-button / gesture navigation bar, iOS Home Indicator, and mobile web safe area
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'web' ? 14 : 12);
-  const tabBarHeight = 56 + bottomInset;
+  const tabBarHeight = 60 + bottomInset;
 
   return (
     <Tabs
       screenOptions={{
         headerTintColor: colors.textPrimary,
         headerTitleStyle: {
-          fontWeight: '700',
-          fontSize: 17,
+          fontFamily: FONT['900'],
+          fontSize: 18,
         },
         headerShadowVisible: false,
         headerStyle: {
           backgroundColor: colors.bgSurface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderBottomWidth: 2,
+          borderBottomColor: colors.ink,
         } as any,
         tabBarStyle: {
           backgroundColor: colors.bgSurface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
+          borderTopColor: colors.ink,
+          borderTopWidth: 2,
           height: tabBarHeight,
           paddingBottom: bottomInset,
           paddingTop: 6,
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarActiveTintColor: colors.textPrimary,
+        tabBarActiveTintColor: colors.indigo,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarActiveBackgroundColor: colors.bgSurface,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '700',
+          lineHeight: 14,
+          fontFamily: FONT['700'],
           marginBottom: 2,
         },
       }}
@@ -60,13 +62,14 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Today',
+          headerShown: false,
           tabBarBadge: totalDue > 0 ? totalDue : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: colors.jpRadical,
+            backgroundColor: colors.ink,
             color: '#FFFFFF',
             fontSize: 11,
-            fontWeight: '700',
-            borderRadius: 3,
+            fontFamily: FONT['700'],
+            borderRadius: 9,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="layers-outline" size={size} color={color} />
@@ -79,11 +82,11 @@ export default function TabsLayout() {
           title: 'Japanese',
           tabBarBadge: dueJP > 0 ? dueJP : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: colors.jpRadical,
+            backgroundColor: colors.indigo,
             color: '#FFFFFF',
             fontSize: 11,
-            fontWeight: '700',
-            borderRadius: 3,
+            fontFamily: FONT['700'],
+            borderRadius: 9,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="language-outline" size={size} color={color} />
@@ -99,8 +102,8 @@ export default function TabsLayout() {
             backgroundColor: colors.quranSabaq,
             color: '#FFFFFF',
             fontSize: 11,
-            fontWeight: '700',
-            borderRadius: 3,
+            fontFamily: FONT['700'],
+            borderRadius: 9,
           },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />

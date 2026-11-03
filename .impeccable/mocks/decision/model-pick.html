@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#FAFAF6;color:#16161A;font-family:'Zen Kaku Gothic New',sans-serif}
+.top{padding:52px 20px 14px;display:flex;justify-content:space-between;align-items:baseline}
+.top h1{font-size:28px;font-weight:900}
+.top span{font-size:14px;font-weight:700;color:#25348C}
+.cardstock{margin:0 16px;border:2px solid #16161A;border-radius:6px;padding:16px;background:#fff}
+.cs-h{display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-bottom:12px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{aspect-ratio:1;border:1.5px solid #16161A;border-radius:4px;position:relative;display:grid;place-items:center;font-size:11px;font-weight:700}
+.day small{position:absolute;top:3px;left:4px;font-size:9px}
+.st{width:34px;height:34px;border-radius:50%;border:3px solid #E5402A;color:#E5402A;display:grid;place-items:center;font-weight:900;font-size:12px;transform:rotate(-12deg)}
+.today{border-style:dashed;border-color:#25348C}
+.note{margin-top:12px;font-size:13px;font-weight:500}
+.btns{display:flex;gap:10px;margin:16px 16px 0}
+.b{flex:1;border:2px solid #16161A;border-radius:6px;padding:14px;background:#25348C;color:#fff}
+.b.alt{background:#F2C230;color:#16161A}
+.b .n{font-size:44px;font-weight:900;line-height:1}
+.b .k{font-size:14px;font-weight:700}
+.list{margin:16px 16px 0;border:2px solid #16161A;border-radius:6px;background:#fff}
+.list h2{font-size:15px;font-weight:900;padding:12px 14px;border-bottom:1.5px solid #16161A}
+.li{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px dashed #9A9A92;font-size:15px}
+.li:last-child{border-bottom:0}
+.box{width:26px;height:26px;border:1.5px solid #16161A;border-radius:4px}
+.box.done{border-color:#E5402A;background:radial-gradient(circle,#E5402A 0 45%,transparent 46%)}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:82px;border-top:2px solid #16161A;background:#FAFAF6;display:flex;justify-content:space-around;padding-top:12px;font-size:12px;font-weight:700}
+.dot{display:block;width:22px;height:22px;border:2px solid #16161A;border-radius:4px;margin:0 auto 4px}
+</style></head><body>
+<div class="top"><h1>Today</h1><span>Week 18</span></div>
+<div class="cardstock">
+  <div class="cs-h"><span>This week's card</span><span style="color:#E5402A">12 days</span></div>
+  <div class="days">
+    <div class="day"><small>M</small><div class="st">済</div></div>
+    <div class="day"><small>T</small><div class="st">済</div></div>
+    <div class="day"><small>W</small><div class="st">済</div></div>
+    <div class="day"><small>T</small><div class="st">済</div></div>
+    <div class="day today"><small>F</small></div>
+    <div class="day"><small>S</small></div>
+    <div class="day"><small>S</small></div>
+  </div>
+  <div class="note">Finish today's reviews to earn Friday's stamp.</div>
+</div>
+<div class="btns">
+  <div class="b"><div class="n">23</div><div class="k">Reviews</div></div>
+  <div class="b alt"><div class="n">5</div><div class="k">Lessons</div></div>
+</div>
+<div class="list">
+  <h2>Setoran today</h2>
+  <div class="li"><span>Page 582 · Sabaq</span><span class="box"></span></div>
+  <div class="li"><span>Pages 578–581 · Sabqi</span><span class="box done"></span></div>
+  <div class="li"><span>Page 3 · Manzil</span><span class="box"></span></div>
+</div>
+<div class="tabs"><div><span class="dot"></span>Today</div><div><span class="dot"></span>Japanese</div><div><span class="dot"></span>Quran</div><div><span class="dot"></span>Settings</div></div>
+</body></html>

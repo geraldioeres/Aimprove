@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#0D1633;color:#F2F4FA;font-family:'Hanken Grotesk',sans-serif}
+.top{padding:52px 20px 10px;display:flex;justify-content:space-between;align-items:baseline}
+.top h1{font-size:28px;font-weight:800}
+.top span{color:#FF4B3E;font-weight:700;font-size:13px}
+.sky{margin:0 16px;height:220px;border:1px solid #26336A;border-radius:12px;position:relative;overflow:hidden;background:
+radial-gradient(circle at 12% 30%,#F2F4FA 0 3px,transparent 4px),radial-gradient(circle at 22% 62%,#F2F4FA 0 2px,transparent 3px),
+radial-gradient(circle at 35% 40%,#F2F4FA 0 4px,transparent 5px),radial-gradient(circle at 48% 70%,#7C8BC4 0 1.5px,transparent 2.5px),
+radial-gradient(circle at 58% 28%,#F2F4FA 0 2.5px,transparent 3.5px),radial-gradient(circle at 70% 55%,#F2F4FA 0 5px,transparent 6px),
+radial-gradient(circle at 82% 35%,#7C8BC4 0 1.5px,transparent 2.5px),radial-gradient(circle at 90% 72%,#F2F4FA 0 3px,transparent 4px),
+radial-gradient(circle at 63% 84%,#7C8BC4 0 1.5px,transparent 2.5px),radial-gradient(circle at 28% 84%,#7C8BC4 0 1.5px,transparent 2.5px)}
+.ring{position:absolute;left:calc(70% - 14px);top:calc(55% - 14px);width:28px;height:28px;border:1.5px solid #FF4B3E;border-radius:50%}
+.lab{position:absolute;left:calc(70% + 18px);top:calc(55% - 8px);font-size:12px;color:#FF4B3E;font-weight:700}
+.cap{position:absolute;left:12px;bottom:10px;font-size:12px;color:#7C8BC4}
+.row{display:flex;gap:10px;margin:14px 16px 0}
+.c{flex:1;border:1px solid #26336A;border-radius:12px;padding:16px;background:#111D42}
+.c .k{font-size:13px;font-weight:700;color:#A9B3D9}
+.c .n{font-size:58px;font-weight:800;line-height:1;margin-top:6px}
+.c.p{background:#F2F4FA;color:#0D1633}
+.c.p .k{color:#3A4677}
+.list{margin:14px 16px 0;border:1px solid #26336A;border-radius:12px}
+.li{display:flex;justify-content:space-between;padding:13px 16px;border-top:1px solid #26336A;font-size:15px}
+.li:first-child{border-top:0}
+.li span:last-child{color:#A9B3D9;font-size:13px;font-weight:700}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:82px;border-top:1px solid #26336A;background:#0B1229;display:flex;justify-content:space-around;padding-top:12px;font-size:12px;font-weight:700;color:#7C8BC4}
+.dot{display:block;width:22px;height:22px;border-radius:50%;border:2px solid currentColor;margin:0 auto 4px}
+</style></head><body>
+<div class="top"><h1>Today</h1><span>Fajr 04:41</span></div>
+<div class="sky"><div class="ring"></div><div class="lab">p.582 due</div><div class="cap">Mushaf · 46 of 604 pages lit</div></div>
+<div class="row">
+  <div class="c p"><div class="k">Reviews</div><div class="n">23</div></div>
+  <div class="c"><div class="k">Lessons</div><div class="n">5</div></div>
+</div>
+<div class="list">
+  <div class="li"><span>Page 582 · An-Naba</span><span>Sabaq</span></div>
+  <div class="li"><span>Pages 578–581</span><span>Sabqi</span></div>
+  <div class="li"><span>Page 3 · Al-Baqarah</span><span>Manzil</span></div>
+</div>
+<div class="tabs"><div style="color:#F2F4FA"><span class="dot"></span>Today</div><div><span class="dot"></span>Japanese</div><div><span class="dot"></span>Quran</div><div><span class="dot"></span>Settings</div></div>
+</body></html>

@@ -63,10 +63,15 @@ interface LearningState {
   jpMinedCards: UserJPMinedCard[];
   quranProgress: Record<number, QuranPageProgress>;
   reviewLogs: ReviewLogEntry[];
+  // Items finished per local day ("YYYY-MM-DD" -> count). Kept in full,
+  // unlike reviewLogs, so streaks stay accurate.
+  studyDays: Record<string, number>;
+  dailyGoal: number;
 
   // Actions
   hydrate: () => Promise<void>;
   setSabqiWindowDays: (days: number) => Promise<void>;
+  setDailyGoal: (goal: number) => Promise<void>;
   completeJPLessonBatch: (subjectIds: string[]) => Promise<string[]>;
   submitJPReviewOutcome: (
     subjectId: string,
@@ -114,6 +119,8 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   jpMinedCards: [],
   quranProgress: buildInitialQuranProgress(),
   reviewLogs: [],
+  studyDays: {},
+  dailyGoal: 10,
 
   hydrate: async () => {
     try {
@@ -128,6 +135,8 @@ export const useLearningStore = create<LearningState>((set, get) => ({
           jpMinedCards: parsed.jpMinedCards || [],
           quranProgress: parsed.quranProgress || buildInitialQuranProgress(),
           reviewLogs: parsed.reviewLogs || [],
+          studyDays: parsed.studyDays || studyDaysFromLogs(parsed.reviewLogs || []),
+          dailyGoal: parsed.dailyGoal || 10,
           sabqiWindowDays: parsed.sabqiWindowDays || 7,
           currentJPLevel: parsed.currentJPLevel || 1,
           userEmail: parsed.userEmail || null,
@@ -157,6 +166,11 @@ export const useLearningStore = create<LearningState>((set, get) => ({
   setSabqiWindowDays: async (days: number) => {
     const clamped = Math.min(20, Math.max(3, days));
     set({ sabqiWindowDays: clamped });
+    await persistState(get());
+  },
+
+  setDailyGoal: async (goal: number) => {
+    set({ dailyGoal: Math.min(100, Math.max(1, Math.round(goal))) });
     await persistState(get());
   },
 
@@ -192,7 +206,11 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       });
     }
 
-    set({ jpAssignments: assignments, reviewLogs: logs.slice(0, 100) });
+    set({
+      jpAssignments: assignments,
+      reviewLogs: logs.slice(0, 100),
+      studyDays: addStudy(get().studyDays, now, subjectIds.length),
+    });
     await persistState(get());
     await syncAssignmentBatchToSupabase(
       subjectIds.map((id) => assignments[id]),
@@ -356,6 +374,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       jpAssignments: assignments,
       currentJPLevel: currentLevel,
       reviewLogs: logs,
+      studyDays: addStudy(get().studyDays, now, 1),
     });
 
     await persistState(get());
@@ -453,7 +472,11 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       ...get().reviewLogs,
     ].slice(0, 100);
 
-    set({ quranProgress: map, reviewLogs: logs });
+    set({
+      quranProgress: map,
+      reviewLogs: logs,
+      studyDays: addStudy(get().studyDays, now, 1),
+    });
     await persistState(get());
     await syncQuranPageToSupabase(nextProgress, get().userId);
 
@@ -529,6 +552,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       jpMinedCards: [],
       quranProgress: freshQuran,
       reviewLogs: [],
+      studyDays: {},
       currentJPLevel: 1,
     });
     await persistState(get());
@@ -546,6 +570,8 @@ async function persistState(
       jpMinedCards: state.jpMinedCards,
       quranProgress: state.quranProgress,
       reviewLogs: state.reviewLogs,
+      studyDays: state.studyDays,
+      dailyGoal: state.dailyGoal,
       sabqiWindowDays: state.sabqiWindowDays,
       currentJPLevel: state.currentJPLevel,
       userEmail: state.userEmail,
@@ -747,4 +773,127 @@ export function build24HourForecast(
   }
 
   return buckets;
+}
+
+// ---------------------------------------------------------------------------
+// Study days, daily goal and streak
+
+/** Local calendar day key, e.g. "2026-11-03". */
+export function localDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function addStudy(days: Record<string, number>, when: Date, n: number) {
+  const key = localDayKey(when);
+  return { ...days, [key]: (days[key] || 0) + n };
+}
+
+function studyDaysFromLogs(logs: ReviewLogEntry[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const log of logs) {
+    if (!log.reviewedAt) continue;
+    const key = localDayKey(new Date(log.reviewedAt));
+    out[key] = (out[key] || 0) + 1;
+  }
+  return out;
+}
+
+export interface StampDay {
+  key: string;
+  weekday: string; // M T W T F S S
+  date: number;
+  count: number;
+  stamped: boolean;
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+export interface StreakSummary {
+  current: number;
+  best: number;
+  todayCount: number;
+  goal: number;
+  goalMet: boolean;
+  week: StampDay[]; // Monday to Sunday of this week
+  weekNumber: number;
+}
+
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+function isoWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/**
+ * A day is stamped once the daily goal is reached. The streak counts stamped
+ * days in a row up to today; an unstamped today doesn't break it yet.
+ */
+export function selectStreak(
+  state: Pick<LearningState, 'studyDays' | 'dailyGoal'>,
+  now: Date = new Date()
+): StreakSummary {
+  const goal = state.dailyGoal || 10;
+  const days = state.studyDays || {};
+  const stampedOn = (d: Date) => (days[localDayKey(d)] || 0) >= goal;
+
+  const todayKey = localDayKey(now);
+  const todayCount = days[todayKey] || 0;
+
+  let current = 0;
+  const cursor = new Date(now);
+  if (!stampedOn(cursor)) cursor.setDate(cursor.getDate() - 1);
+  while (stampedOn(cursor)) {
+    current++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let best = 0;
+  let run = 0;
+  let prev: Date | null = null;
+  for (const key of Object.keys(days).sort()) {
+    if ((days[key] || 0) < goal) continue;
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    if (prev && Math.round((date.getTime() - prev.getTime()) / 86400000) === 1) run++;
+    else run = 1;
+    best = Math.max(best, run);
+    prev = date;
+  }
+  best = Math.max(best, current);
+
+  const monday = new Date(now);
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const week: StampDay[] = WEEKDAYS.map((weekday, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const key = localDayKey(d);
+    const count = days[key] || 0;
+    return {
+      key,
+      weekday,
+      date: d.getDate(),
+      count,
+      stamped: count >= goal,
+      isToday: key === todayKey,
+      isFuture: key > todayKey,
+    };
+  });
+
+  return {
+    current,
+    best,
+    todayCount,
+    goal,
+    goalMet: todayCount >= goal,
+    week,
+    weekNumber: isoWeekNumber(now),
+  };
 }

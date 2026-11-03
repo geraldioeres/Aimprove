@@ -24,8 +24,8 @@ function RootNavigator() {
           },
           headerTintColor: colors.textPrimary,
           headerTitleStyle: {
-            fontFamily: FONT_LATIN['700'],
-            fontSize: 17,
+            fontFamily: FONT_LATIN['900'],
+            fontSize: 18,
           },
           headerShadowVisible: false,
           headerTitleAlign: 'left',
