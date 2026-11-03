@@ -19,10 +19,15 @@ async function loadEnv() {
 async function main() {
   const env = await loadEnv();
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL || env.EXPO_PUBLIC_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  // Curriculum tables are read-only for app users (RLS), so seeding needs the
+  // service role key. Keep it out of anything prefixed EXPO_PUBLIC_.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    console.error('Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY in .env');
+    console.error(
+      'Missing EXPO_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env ' +
+        '(Supabase dashboard -> Project Settings -> API -> service_role).'
+    );
     process.exit(1);
   }
 

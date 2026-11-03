@@ -129,19 +129,11 @@ alter table public.user_review_logs enable row level security;
 drop policy if exists "Public read jp_subjects" on public.jp_subjects;
 create policy "Public read jp_subjects" on public.jp_subjects for select using (true);
 
-drop policy if exists "Allow curriculum seed upsert jp_subjects" on public.jp_subjects;
-create policy "Allow curriculum seed upsert jp_subjects" on public.jp_subjects
-  for all using (true) with check (true);
-
 drop policy if exists "Public read jp_reading_passages" on public.jp_reading_passages;
 create policy "Public read jp_reading_passages" on public.jp_reading_passages for select using (true);
 
 drop policy if exists "Public read quran_pages" on public.quran_pages;
 create policy "Public read quran_pages" on public.quran_pages for select using (true);
-
-drop policy if exists "Allow curriculum seed upsert quran_pages" on public.quran_pages;
-create policy "Allow curriculum seed upsert quran_pages" on public.quran_pages
-  for all using (true) with check (true);
 
 -- Per-User Tables: Strictly isolated to auth.uid()
 drop policy if exists "Users manage own jp_assignments" on public.user_jp_assignments;

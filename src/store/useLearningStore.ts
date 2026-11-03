@@ -12,9 +12,20 @@ import {
 import { buildInitialQuranProgress } from '../data/quran-seed';
 import { calculateNextWaniKaniStage, WANIKANI_STAGES, WaniKaniStage } from '../lib/srs-wanikani';
 import { evaluateQuranPageSession, QuranPageProgress } from '../lib/srs-fsrs';
+import { isAuthRetryableFetchError, SupabaseClient } from '@supabase/supabase-js';
 import { configureRuntimeSupabase, getSupabaseClient, loadSavedSupabaseConfig } from '../lib/supabase';
 
-const STORAGE_KEY = 'aimprove.learning.state.v2';
+// Before accounts, progress lived under one key for the whole phone. It is
+// moved to the matching account's key the first time that account opens.
+const LEGACY_STORAGE_KEY = 'aimprove.learning.state.v2';
+// The account that was open last, so the app still opens offline when the
+// access token has expired and can't be refreshed.
+const LAST_USER_KEY = 'aimprove.learning.lastUser.v1';
+const userStorageKey = (userId: string) => `aimprove.learning.user.${userId}.v1`;
+
+const UPLOAD_BATCH = 500;
+const DOWNLOAD_PAGE = 1000; // PostgREST's default max rows per request
+const RESTORE_WAIT_MS = 15000;
 
 // Pre-computed O(1) lookup indices for all 8,855 WaniKani Level 1-60 subjects
 export const JP_SUBJECT_BY_ID: Record<string, JPSubject> = {};
@@ -51,6 +62,8 @@ interface LearningState {
   isHydrated: boolean;
   // True once we know whether a signed-in Supabase session exists.
   authReady: boolean;
+  // True while sign-in downloads the account's saved progress.
+  isRestoring: boolean;
   syncError: string | null;
   lastSyncedAt: string | null;
   userEmail: string | null;
@@ -69,6 +82,9 @@ interface LearningState {
   // unlike reviewLogs, so streaks stay accurate.
   studyDays: Record<string, number>;
   dailyGoal: number;
+  // When dailyGoal / sabqiWindowDays last changed on this phone; the newer
+  // change wins when syncing with the account.
+  settingsUpdatedAt: string | null;
 
   // Actions
   hydrate: () => Promise<void>;
@@ -108,70 +124,60 @@ interface LearningState {
 }
 
 let authListenerAttached = false;
+// Set while signInWithSupabase runs, so the auth listener leaves it alone.
+let signingIn = false;
+// The account whose cloud progress has been merged in during this launch.
+let pulledForUser: string | null = null;
 
 export const useLearningStore = create<LearningState>((set, get) => ({
   isHydrated: false,
   authReady: false,
+  isRestoring: false,
   syncError: null,
   lastSyncedAt: null,
   userEmail: null,
   userId: null,
-  sabqiWindowDays: 7,
-  currentJPLevel: 1,
   jpSubjects: INITIAL_JP_SUBJECTS,
   jpPassages: INITIAL_JP_READING_PASSAGES,
-  jpAssignments: buildInitialJPAssignments(),
-  jpMinedCards: [],
-  quranProgress: buildInitialQuranProgress(),
-  reviewLogs: [],
-  studyDays: {},
-  dailyGoal: 10,
+  ...emptyProgress(),
 
   hydrate: async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.supabaseUrl && parsed.supabaseKey && !getSupabaseClient()) {
-          configureRuntimeSupabase(parsed.supabaseUrl, parsed.supabaseKey);
-        }
-        set({
-          jpAssignments: parsed.jpAssignments || buildInitialJPAssignments(),
-          jpMinedCards: parsed.jpMinedCards || [],
-          quranProgress: parsed.quranProgress || buildInitialQuranProgress(),
-          reviewLogs: parsed.reviewLogs || [],
-          studyDays: parsed.studyDays || studyDaysFromLogs(parsed.reviewLogs || []),
-          dailyGoal: parsed.dailyGoal || 10,
-          sabqiWindowDays: parsed.sabqiWindowDays || 7,
-          currentJPLevel: parsed.currentJPLevel || 1,
-          userEmail: parsed.userEmail || null,
-          userId: parsed.userId || null,
-          isHydrated: true,
-        });
-      } else {
-        set({ isHydrated: true });
+      // Older builds kept a typed-in connection inside the progress blob.
+      const legacy = await readJSON(LEGACY_STORAGE_KEY);
+      if (legacy?.supabaseUrl && legacy?.supabaseKey && !getSupabaseClient()) {
+        configureRuntimeSupabase(legacy.supabaseUrl, legacy.supabaseKey);
       }
 
       await loadSavedSupabaseConfig();
       const sb = getSupabaseClient();
+      let user: AccountUser | null = null;
+      let online = false;
       if (sb) {
-        const { data } = await sb.auth.getSession();
-        const user = data?.session?.user;
-        set({
-          userId: user?.id ?? null,
-          userEmail: user?.email ?? null,
-          lastSyncedAt: user ? new Date().toISOString() : get().lastSyncedAt,
-        });
-        if (!authListenerAttached) {
-          authListenerAttached = true;
-          sb.auth.onAuthStateChange((_event, session) => {
-            set({ userId: session?.user?.id ?? null, userEmail: session?.user?.email ?? null });
-          });
+        const { data, error } = await sb.auth.getSession();
+        const sessionUser = data?.session?.user;
+        if (sessionUser) {
+          user = { id: sessionUser.id, email: sessionUser.email ?? null };
+          online = true;
+        } else if (error && isAuthRetryableFetchError(error)) {
+          // Offline and the token needs a refresh. The session is still stored,
+          // so keep the last account open; it refreshes once back online.
+          const last = await readJSON(LAST_USER_KEY);
+          if (last?.id) user = { id: last.id, email: last.email ?? null };
         }
-      } else {
-        set({ userId: null, userEmail: null });
       }
-      set({ authReady: true });
+
+      if (user) {
+        set(await loadAccount(user));
+        await rememberLastUser(user);
+      } else {
+        set({ ...emptyProgress(), userId: null, userEmail: null });
+      }
+      set({ isHydrated: true, authReady: true });
+      if (sb) attachAuthListener(sb);
+
+      // Show local progress right away; cloud changes merge in when they arrive.
+      if (user && online) void pullAndMerge(user.id);
     } catch (err: any) {
       set({ isHydrated: true, authReady: true, syncError: err?.message || 'Failed to load state' });
     }
@@ -179,13 +185,18 @@ export const useLearningStore = create<LearningState>((set, get) => ({
 
   setSabqiWindowDays: async (days: number) => {
     const clamped = Math.min(20, Math.max(3, days));
-    set({ sabqiWindowDays: clamped });
+    set({ sabqiWindowDays: clamped, settingsUpdatedAt: new Date().toISOString() });
     await persistState(get());
+    await syncProfileToSupabase(get());
   },
 
   setDailyGoal: async (goal: number) => {
-    set({ dailyGoal: Math.min(100, Math.max(1, Math.round(goal))) });
+    set({
+      dailyGoal: Math.min(100, Math.max(1, Math.round(goal))),
+      settingsUpdatedAt: new Date().toISOString(),
+    });
     await persistState(get());
+    await syncProfileToSupabase(get());
   },
 
   completeJPLessonBatch: async (subjectIds: string[]) => {
@@ -226,10 +237,13 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       studyDays: addStudy(get().studyDays, now, subjectIds.length),
     });
     await persistState(get());
-    await syncAssignmentBatchToSupabase(
-      subjectIds.map((id) => assignments[id]),
-      get().userId
-    );
+    await Promise.all([
+      syncAssignmentBatchToSupabase(
+        subjectIds.map((id) => assignments[id]),
+        get().userId
+      ),
+      syncProfileToSupabase(get()),
+    ]);
     return subjectIds;
   },
 
@@ -392,7 +406,14 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     });
 
     await persistState(get());
-    await syncAssignmentBatchToSupabase([updatedAssignment], get().userId);
+    // Newly unlocked lessons are uploaded too, so another phone sees them.
+    await Promise.all([
+      syncAssignmentBatchToSupabase(
+        [updatedAssignment, ...newlyUnlockedIds.map((id) => assignments[id])],
+        get().userId
+      ),
+      syncProfileToSupabase(get()),
+    ]);
 
     return {
       previousStageName: WANIKANI_STAGES[outcome.previousStage].name,
@@ -437,7 +458,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
     };
     set({ quranProgress: map });
     await persistState(get());
-    await syncQuranPageToSupabase(map[pageNumber], get().userId);
+    await syncQuranPagesToSupabase([map[pageNumber]], get().userId);
   },
 
   submitQuranPageRecitation: async (
@@ -492,12 +513,16 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       studyDays: addStudy(get().studyDays, now, 1),
     });
     await persistState(get());
-    await syncQuranPageToSupabase(nextProgress, get().userId);
+    await Promise.all([
+      syncQuranPagesToSupabase([nextProgress], get().userId),
+      syncProfileToSupabase(get()),
+    ]);
 
     return nextProgress;
   },
 
   connectSupabaseRuntime: async (url: string, anonKey: string) => {
+    // configureRuntimeSupabase saves the connection for the next launch.
     const client = configureRuntimeSupabase(url, anonKey);
     if (!client) {
       return {
@@ -505,7 +530,7 @@ export const useLearningStore = create<LearningState>((set, get) => ({
         message: 'Enter a valid https:// Supabase URL and Anon Key.',
       };
     }
-    await persistState(get(), url, anonKey);
+    attachAuthListener(client);
     return {
       ok: true,
       message:
@@ -519,65 +544,229 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       return { ok: false, message: "Sign-in isn't set up yet. Add the Supabase connection first." };
     }
 
-    const res = isSignUp
-      ? await sb.auth.signUp({ email, password })
-      : await sb.auth.signInWithPassword({ email, password });
+    signingIn = true;
+    try {
+      const res = isSignUp
+        ? await sb.auth.signUp({ email, password })
+        : await sb.auth.signInWithPassword({ email, password });
 
-    if (res.error) {
-      return { ok: false, message: res.error.message };
+      if (res.error) {
+        return { ok: false, message: res.error.message };
+      }
+
+      const session = res.data.session;
+      if (!session) {
+        // Sign-up with email confirmation turned on: no session until confirmed.
+        return {
+          ok: true,
+          needsConfirmation: true,
+          message: `We sent a confirmation link to ${email}. Open it, then sign in.`,
+        };
+      }
+
+      const user: AccountUser = { id: session.user.id, email: session.user.email || email };
+      // Hold the app on a spinner while the account's progress downloads, so a
+      // new phone opens straight onto the full card. Give up waiting after a
+      // while; the download keeps going and merges in when it lands.
+      set({ ...(await loadAccount(user)), isRestoring: true, syncError: null });
+      await rememberLastUser(user);
+      await persistState(get());
+      await Promise.race([
+        pullAndMerge(user.id),
+        new Promise((resolve) => setTimeout(resolve, RESTORE_WAIT_MS)),
+      ]);
+      set({ isRestoring: false });
+      return { ok: true, message: isSignUp ? 'Account created.' : 'Signed in.' };
+    } finally {
+      signingIn = false;
     }
-
-    const session = res.data.session;
-    if (!session) {
-      // Sign-up with email confirmation turned on: no session until confirmed.
-      return {
-        ok: true,
-        needsConfirmation: true,
-        message: `We sent a confirmation link to ${email}. Open it, then sign in.`,
-      };
-    }
-
-    set({
-      userId: session.user.id,
-      userEmail: session.user.email || email,
-      lastSyncedAt: new Date().toISOString(),
-      syncError: null,
-    });
-    await persistState(get());
-    return { ok: true, message: isSignUp ? 'Account created.' : 'Signed in.' };
   },
 
   signOutSupabase: async () => {
     const sb = getSupabaseClient();
     if (sb) {
-      await sb.auth.signOut();
+      try {
+        await sb.auth.signOut();
+      } catch {
+        // The local session is cleared even if the server can't be reached.
+      }
     }
-    set({ userId: null, userEmail: null });
-    await persistState(get());
+    closeAccount();
   },
 
   resetDemoProgress: async () => {
-    const freshJP = buildInitialJPAssignments();
-    const freshQuran = buildInitialQuranProgress();
+    const userId = get().userId;
+    // Progress comes back from the account on the next sign-in, so erasing
+    // has to clear the cloud copy too.
+    const sb = getSupabaseClient();
+    if (sb && userId) {
+      const results = await Promise.all([
+        sb.from('user_jp_assignments').delete().eq('user_id', userId),
+        sb.from('user_quran_page_progress').delete().eq('user_id', userId),
+        sb.from('user_profiles').delete().eq('user_id', userId),
+      ]);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        set({ syncError: `progress wasn't erased (${failed.error.message})` });
+        return;
+      }
+    }
+    const fresh = emptyProgress();
     set({
-      jpAssignments: freshJP,
+      jpAssignments: fresh.jpAssignments,
       jpMinedCards: [],
-      quranProgress: freshQuran,
+      quranProgress: fresh.quranProgress,
       reviewLogs: [],
       studyDays: {},
       currentJPLevel: 1,
+      syncError: null,
     });
     await persistState(get());
+    await Promise.all([
+      syncAssignmentBatchToSupabase(Object.values(fresh.jpAssignments), userId),
+      syncProfileToSupabase(get()),
+    ]);
   },
 }));
 
-async function persistState(
-  state: LearningState,
-  supabaseUrl?: string,
-  supabaseKey?: string
-) {
+// ---------------------------------------------------------------------------
+// Accounts and local storage
+
+interface AccountUser {
+  id: string;
+  email: string | null;
+}
+
+type ProgressFields = Pick<
+  LearningState,
+  | 'jpAssignments'
+  | 'jpMinedCards'
+  | 'quranProgress'
+  | 'reviewLogs'
+  | 'studyDays'
+  | 'dailyGoal'
+  | 'sabqiWindowDays'
+  | 'currentJPLevel'
+  | 'settingsUpdatedAt'
+>;
+
+function emptyProgress(): ProgressFields {
+  return {
+    jpAssignments: buildInitialJPAssignments(),
+    jpMinedCards: [],
+    quranProgress: buildInitialQuranProgress(),
+    reviewLogs: [],
+    studyDays: {},
+    dailyGoal: 10,
+    sabqiWindowDays: 7,
+    currentJPLevel: 1,
+    settingsUpdatedAt: null,
+  };
+}
+
+function progressFromSaved(saved: any): ProgressFields {
+  return {
+    jpAssignments: saved.jpAssignments || buildInitialJPAssignments(),
+    jpMinedCards: saved.jpMinedCards || [],
+    quranProgress: saved.quranProgress || buildInitialQuranProgress(),
+    reviewLogs: saved.reviewLogs || [],
+    studyDays: saved.studyDays || studyDaysFromLogs(saved.reviewLogs || []),
+    dailyGoal: saved.dailyGoal || 10,
+    sabqiWindowDays: saved.sabqiWindowDays || 7,
+    currentJPLevel: saved.currentJPLevel || 1,
+    settingsUpdatedAt: saved.settingsUpdatedAt || null,
+  };
+}
+
+async function readJSON(key: string): Promise<any | null> {
   try {
-    const payload: Record<string, any> = {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** This account's progress saved on this phone, or a fresh start. */
+async function loadAccount(user: AccountUser): Promise<Partial<LearningState>> {
+  let saved = await readJSON(userStorageKey(user.id));
+  if (!saved) {
+    // Adopt progress from before accounts were per user. Progress saved while
+    // a different account was signed in stays put for that account.
+    const legacy = await readJSON(LEGACY_STORAGE_KEY);
+    if (legacy && (!legacy.userId || legacy.userId === user.id)) {
+      saved = legacy;
+      try {
+        await AsyncStorage.setItem(userStorageKey(user.id), JSON.stringify(progressFromSaved(legacy)));
+        await AsyncStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        // Try again next launch
+      }
+    }
+  }
+  return {
+    ...(saved ? progressFromSaved(saved) : emptyProgress()),
+    userId: user.id,
+    userEmail: user.email,
+  };
+}
+
+async function rememberLastUser(user: AccountUser) {
+  try {
+    await AsyncStorage.setItem(LAST_USER_KEY, JSON.stringify(user));
+  } catch {
+    // Non-fatal
+  }
+}
+
+/** Clear the open account from memory. Its progress stays saved under its own key. */
+function closeAccount() {
+  pulledForUser = null;
+  AsyncStorage.removeItem(LAST_USER_KEY).catch(() => {});
+  useLearningStore.setState({
+    ...emptyProgress(),
+    userId: null,
+    userEmail: null,
+    lastSyncedAt: null,
+    syncError: null,
+    isRestoring: false,
+  });
+}
+
+function attachAuthListener(sb: SupabaseClient) {
+  if (authListenerAttached) return;
+  authListenerAttached = true;
+  sb.auth.onAuthStateChange((event, session) => {
+    // Supabase asks that auth callbacks don't await its own calls; defer.
+    setTimeout(() => {
+      // hydrate and signInWithSupabase open the account themselves.
+      if (signingIn || event === 'INITIAL_SESSION') return;
+      const state = useLearningStore.getState();
+      if (event === 'SIGNED_OUT') {
+        if (state.userId) closeAccount();
+        return;
+      }
+      const sessionUser = session?.user;
+      if (!sessionUser) return; // e.g. offline token refresh; keep the account open
+      const user: AccountUser = { id: sessionUser.id, email: sessionUser.email ?? null };
+      if (state.userId !== user.id) {
+        void (async () => {
+          useLearningStore.setState(await loadAccount(user));
+          await rememberLastUser(user);
+          await pullAndMerge(user.id);
+        })();
+      } else if (pulledForUser !== user.id) {
+        // Came back online after opening offline.
+        void pullAndMerge(user.id);
+      }
+    }, 0);
+  });
+}
+
+async function persistState(state: LearningState) {
+  if (!state.userId) return; // Nothing is saved outside an account
+  try {
+    const payload: ProgressFields = {
       jpAssignments: state.jpAssignments,
       jpMinedCards: state.jpMinedCards,
       quranProgress: state.quranProgress,
@@ -586,16 +775,226 @@ async function persistState(
       dailyGoal: state.dailyGoal,
       sabqiWindowDays: state.sabqiWindowDays,
       currentJPLevel: state.currentJPLevel,
-      userEmail: state.userEmail,
-      userId: state.userId,
+      settingsUpdatedAt: state.settingsUpdatedAt,
     };
-    if (supabaseUrl && supabaseKey) {
-      payload.supabaseUrl = supabaseUrl;
-      payload.supabaseKey = supabaseKey;
-    }
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    await AsyncStorage.setItem(userStorageKey(state.userId), JSON.stringify(payload));
   } catch {
     // Non-fatal storage write
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cloud sync
+
+interface ProfileRow {
+  daily_goal: number;
+  sabqi_window_days: number;
+  current_jp_level: number;
+  study_days: Record<string, number> | null;
+  settings_updated_at: string | null;
+}
+
+function assignmentToRow(a: UserJPAssignment, userId: string) {
+  return {
+    user_id: userId,
+    subject_id: a.subjectId,
+    srs_stage: a.srsStage,
+    unlocked_at: a.unlockedAt,
+    started_at: a.startedAt,
+    next_review_at: a.nextReviewAt,
+    passed_guru: a.passedGuru,
+    burned_at: a.burnedAt,
+    correct_streak: a.correctStreak,
+    incorrect_count: a.incorrectCount,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function rowToAssignment(row: any): UserJPAssignment {
+  return {
+    subjectId: row.subject_id,
+    srsStage: Number(row.srs_stage) as WaniKaniStage,
+    unlockedAt: row.unlocked_at,
+    startedAt: row.started_at ?? null,
+    nextReviewAt: row.next_review_at ?? null,
+    passedGuru: Boolean(row.passed_guru),
+    burnedAt: row.burned_at ?? null,
+    correctStreak: Number(row.correct_streak) || 0,
+    incorrectCount: Number(row.incorrect_count) || 0,
+  };
+}
+
+function quranPageToRow(p: QuranPageProgress, userId: string) {
+  return {
+    user_id: userId,
+    page_number: p.pageNumber,
+    stage: p.stage,
+    sabqi_days_completed: p.sabqiDaysCompleted,
+    sabqi_target_days: p.sabqiTargetDays,
+    stability: p.stability,
+    difficulty: p.difficulty,
+    reps: p.reps,
+    lapses: p.lapses,
+    last_reviewed_at: p.lastReviewedAt,
+    due_at: p.dueAt,
+    last_mistake_count: p.lastMistakeCount,
+    flagged_ayah_keys: p.flaggedAyahKeys,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function rowToQuranPage(row: any): QuranPageProgress {
+  return {
+    pageNumber: Number(row.page_number),
+    stage: row.stage,
+    sabqiDaysCompleted: Number(row.sabqi_days_completed) || 0,
+    sabqiTargetDays: Number(row.sabqi_target_days) || 7,
+    stability: Number(row.stability) || 0,
+    difficulty: Number(row.difficulty) || 5,
+    reps: Number(row.reps) || 0,
+    lapses: Number(row.lapses) || 0,
+    lastReviewedAt: row.last_reviewed_at ?? null,
+    dueAt: row.due_at ?? null,
+    lastMistakeCount: Number(row.last_mistake_count) || 0,
+    flaggedAyahKeys: Array.isArray(row.flagged_ayah_keys) ? row.flagged_ayah_keys : [],
+  };
+}
+
+const timeMs = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() || 0 : 0);
+
+/**
+ * How far along a record is, compared left to right. Every review moves the
+ * next review time forward, so the record with the later time is the newer
+ * one. A started item always beats an untouched one, so a new phone's empty
+ * lesson queue never overwrites real progress.
+ */
+function assignmentRank(a: UserJPAssignment): number[] {
+  return [
+    a.startedAt ? 1 : 0,
+    Math.max(timeMs(a.burnedAt), timeMs(a.nextReviewAt), timeMs(a.startedAt)),
+    a.srsStage,
+  ];
+}
+
+function quranRank(p: QuranPageProgress): number[] {
+  return [
+    p.stage === 'unstarted' ? 0 : 1,
+    Math.max(timeMs(p.lastReviewedAt), timeMs(p.dueAt)),
+    p.reps,
+  ];
+}
+
+function compareRanks(a: number[], b: number[]): number {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
+/** Keep the newer record per key; return what the cloud is missing or has older. */
+function mergeNewest<T>(
+  local: Record<string | number, T>,
+  remote: Record<string | number, T>,
+  rank: (item: T) => number[]
+): { merged: Record<string | number, T>; toUpload: T[] } {
+  const merged: Record<string | number, T> = { ...remote };
+  const toUpload: T[] = [];
+  for (const [key, mine] of Object.entries(local)) {
+    const theirs = remote[key];
+    if (!theirs || compareRanks(rank(mine), rank(theirs)) > 0) {
+      merged[key] = mine;
+      toUpload.push(mine);
+    }
+  }
+  return { merged, toUpload };
+}
+
+function mergeStudyDays(a: Record<string, number>, b: Record<string, number> | null) {
+  const out = { ...a };
+  for (const [day, count] of Object.entries(b || {})) {
+    out[day] = Math.max(out[day] || 0, Number(count) || 0);
+  }
+  return out;
+}
+
+async function fetchAllRows(
+  sb: SupabaseClient,
+  table: string,
+  userId: string,
+  orderBy: string
+): Promise<any[]> {
+  const rows: any[] = [];
+  for (let from = 0; ; from += DOWNLOAD_PAGE) {
+    const { data, error } = await sb
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order(orderBy)
+      .range(from, from + DOWNLOAD_PAGE - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < DOWNLOAD_PAGE) return rows;
+  }
+}
+
+/**
+ * Download the account's progress, merge it with this phone's (newer record
+ * wins per item), save, and upload anything this phone had that the cloud
+ * didn't, e.g. progress made offline.
+ */
+async function pullAndMerge(userId: string): Promise<void> {
+  const sb = getSupabaseClient();
+  if (!sb) return;
+  pulledForUser = userId;
+  try {
+    const [jpRows, quranRows, profileRes] = await Promise.all([
+      fetchAllRows(sb, 'user_jp_assignments', userId, 'subject_id'),
+      fetchAllRows(sb, 'user_quran_page_progress', userId, 'page_number'),
+      sb.from('user_profiles').select('*').eq('user_id', userId).maybeSingle(),
+    ]);
+    if (profileRes.error) throw profileRes.error;
+
+    // Merge against the latest state: the user may have studied meanwhile.
+    const state = useLearningStore.getState();
+    if (state.userId !== userId) return;
+
+    const remoteJP: Record<string, UserJPAssignment> = {};
+    for (const row of jpRows) remoteJP[row.subject_id] = rowToAssignment(row);
+    const remoteQuran: Record<number, QuranPageProgress> = {};
+    for (const row of quranRows) remoteQuran[Number(row.page_number)] = rowToQuranPage(row);
+
+    const jp = mergeNewest(state.jpAssignments, remoteJP, assignmentRank);
+    const quran = mergeNewest(state.quranProgress, remoteQuran, quranRank);
+
+    const profile = profileRes.data as ProfileRow | null;
+    const patch: Partial<LearningState> = {
+      jpAssignments: jp.merged as Record<string, UserJPAssignment>,
+      quranProgress: quran.merged as Record<number, QuranPageProgress>,
+      lastSyncedAt: new Date().toISOString(),
+      syncError: null,
+    };
+    if (profile) {
+      patch.studyDays = mergeStudyDays(state.studyDays, profile.study_days);
+      patch.currentJPLevel = Math.max(state.currentJPLevel, Number(profile.current_jp_level) || 1);
+      if (timeMs(profile.settings_updated_at) > timeMs(state.settingsUpdatedAt)) {
+        patch.dailyGoal = Number(profile.daily_goal) || state.dailyGoal;
+        patch.sabqiWindowDays = Number(profile.sabqi_window_days) || state.sabqiWindowDays;
+        patch.settingsUpdatedAt = profile.settings_updated_at;
+      }
+    }
+    useLearningStore.setState(patch);
+    await persistState(useLearningStore.getState());
+
+    await Promise.all([
+      syncAssignmentBatchToSupabase(jp.toUpload, userId),
+      syncQuranPagesToSupabase(quran.toUpload, userId),
+      syncProfileToSupabase(useLearningStore.getState()),
+    ]);
+  } catch (err: any) {
+    pulledForUser = null; // try again on the next token refresh or launch
+    if (useLearningStore.getState().userId === userId) {
+      useLearningStore.setState({ syncError: err?.message || "Couldn't download your progress" });
+    }
   }
 }
 
@@ -604,50 +1003,57 @@ async function syncAssignmentBatchToSupabase(
   userId: string | null
 ) {
   const sb = getSupabaseClient();
-  if (!sb || !userId) return;
+  if (!sb || !userId || assignments.length === 0) return;
   try {
-    const rows = assignments.map((a) => ({
-      user_id: userId,
-      subject_id: a.subjectId,
-      srs_stage: a.srsStage,
-      unlocked_at: a.unlockedAt,
-      started_at: a.startedAt,
-      next_review_at: a.nextReviewAt,
-      passed_guru: a.passedGuru,
-      burned_at: a.burnedAt,
-      correct_streak: a.correctStreak,
-      incorrect_count: a.incorrectCount,
-      updated_at: new Date().toISOString(),
-    }));
-    await sb.from('user_jp_assignments').upsert(rows);
+    for (let i = 0; i < assignments.length; i += UPLOAD_BATCH) {
+      const rows = assignments.slice(i, i + UPLOAD_BATCH).map((a) => assignmentToRow(a, userId));
+      await sb.from('user_jp_assignments').upsert(rows);
+    }
   } catch {
-    // Handled gracefully
+    // Handled gracefully; the next pullAndMerge re-uploads it
   }
 }
 
-async function syncQuranPageToSupabase(
-  progress: QuranPageProgress,
-  userId: string | null
-) {
+async function syncQuranPagesToSupabase(pages: QuranPageProgress[], userId: string | null) {
   const sb = getSupabaseClient();
+  if (!sb || !userId || pages.length === 0) return;
+  try {
+    for (let i = 0; i < pages.length; i += UPLOAD_BATCH) {
+      const rows = pages.slice(i, i + UPLOAD_BATCH).map((p) => quranPageToRow(p, userId));
+      await sb.from('user_quran_page_progress').upsert(rows);
+    }
+  } catch {
+    // Handled gracefully; the next pullAndMerge re-uploads it
+  }
+}
+
+/**
+ * Save streak days and settings to the account. The server merges instead of
+ * overwriting (see migration 003), and its merged copy comes back here so
+ * days studied on another phone show up too.
+ */
+async function syncProfileToSupabase(state: LearningState) {
+  const sb = getSupabaseClient();
+  const userId = state.userId;
   if (!sb || !userId) return;
   try {
-    await sb.from('user_quran_page_progress').upsert({
-      user_id: userId,
-      page_number: progress.pageNumber,
-      stage: progress.stage,
-      sabqi_days_completed: progress.sabqiDaysCompleted,
-      sabqi_target_days: progress.sabqiTargetDays,
-      stability: progress.stability,
-      difficulty: progress.difficulty,
-      reps: progress.reps,
-      lapses: progress.lapses,
-      last_reviewed_at: progress.lastReviewedAt,
-      due_at: progress.dueAt,
-      last_mistake_count: progress.lastMistakeCount,
-      flagged_ayah_keys: progress.flaggedAyahKeys,
-      updated_at: new Date().toISOString(),
+    const { data, error } = await sb.rpc('upsert_user_profile', {
+      p_daily_goal: state.dailyGoal,
+      p_sabqi_window_days: state.sabqiWindowDays,
+      p_current_jp_level: state.currentJPLevel,
+      p_study_days: state.studyDays,
+      p_settings_updated_at: state.settingsUpdatedAt ?? new Date(0).toISOString(),
     });
+    if (error || !data) return;
+    const row = data as ProfileRow;
+    const latest = useLearningStore.getState();
+    if (latest.userId !== userId) return;
+    const studyDays = mergeStudyDays(latest.studyDays, row.study_days);
+    const changed = Object.keys(studyDays).some((d) => studyDays[d] !== latest.studyDays[d]);
+    if (changed) {
+      useLearningStore.setState({ studyDays });
+      await persistState(useLearningStore.getState());
+    }
   } catch {
     // Handled gracefully
   }

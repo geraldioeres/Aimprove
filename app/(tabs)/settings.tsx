@@ -5,6 +5,8 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
@@ -12,6 +14,25 @@ import { PressBlock } from '../../src/components/Stamp';
 import { RADII, SPACING } from '../../src/theme/tokens';
 import { useLearningStore } from '../../src/store/useLearningStore';
 import { getCurrentSupabaseConfig } from '../../src/lib/supabase';
+
+const ERASE_MESSAGE =
+  'This deletes all your lessons, Quran pages and streak from this phone and your account. It cannot be undone.';
+
+/** Ask before erasing; the cloud copy goes too, so there is no way back. */
+function confirmErase(onConfirm: () => void) {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.confirm(`Erase all progress?
+
+${ERASE_MESSAGE}`)) {
+      onConfirm();
+    }
+    return;
+  }
+  Alert.alert('Erase all progress?', ERASE_MESSAGE, [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Erase', style: 'destructive', onPress: onConfirm },
+  ]);
+}
 
 export default function SettingsAndCloudScreen() {
   const { colors } = useTheme();
@@ -126,7 +147,7 @@ export default function SettingsAndCloudScreen() {
           Signed in as {state.userEmail ?? 'unknown'}
         </Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-          Your progress saves on this phone and syncs to your account{host ? ` (${host})` : ''}.
+          Your progress saves on this phone and syncs to your account, so it comes back when you sign in on another phone{host ? ` (${host})` : ''}.
         </Text>
         <PressBlock
           onPress={() => state.signOutSupabase()}
@@ -150,7 +171,7 @@ export default function SettingsAndCloudScreen() {
             Review history
           </Text>
           <Pressable
-            onPress={() => state.resetDemoProgress()}
+            onPress={() => confirmErase(() => state.resetDemoProgress())}
             accessibilityRole="button"
             style={[
               styles.resetBtn,
