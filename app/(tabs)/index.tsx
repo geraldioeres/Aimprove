@@ -246,7 +246,7 @@ export default function UnifiedHomeQueueScreen() {
         {/* Tactile Action Grid */}
         <View style={styles.actionGrid}>
           <Pressable
-            onPress={() => router.push('/japanese/review')}
+            onPress={() => router.push('/jp/review')}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.actionSquircle,
@@ -301,7 +301,7 @@ export default function UnifiedHomeQueueScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push('/japanese/lessons')}
+            onPress={() => router.push('/jp/lessons')}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.actionSquircle,
@@ -393,7 +393,7 @@ export default function UnifiedHomeQueueScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.push('/quran/heatmap')}
+            onPress={() => router.push('/mushaf/heatmap')}
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.chunkyPillBtn,
@@ -417,7 +417,7 @@ export default function UnifiedHomeQueueScreen() {
             dueQuran.sabaqPages.map((p) => (
               <Pressable
                 key={`sabaq-${p.pageNumber}`}
-                onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+                onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.quranSquircleRow,
@@ -466,7 +466,7 @@ export default function UnifiedHomeQueueScreen() {
           {dueQuran.sabqiPages.map((p) => (
             <Pressable
               key={`sabqi-${p.pageNumber}`}
-              onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+              onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.quranSquircleRow,
@@ -501,7 +501,7 @@ export default function UnifiedHomeQueueScreen() {
           {dueQuran.manzilPages.map((p) => (
             <Pressable
               key={`manzil-${p.pageNumber}`}
-              onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+              onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.quranSquircleRow,

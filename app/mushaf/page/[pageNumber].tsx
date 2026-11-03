@@ -133,7 +133,7 @@ export default function MushafPageReaderScreen() {
       >
         <Pressable
           disabled={pageNum <= 1}
-          onPress={() => router.replace(`/quran/page/${pageNum - 1}`)}
+          onPress={() => router.replace(`/mushaf/page/${pageNum - 1}`)}
           accessibilityRole="button"
           style={[
             styles.navBtn,
@@ -162,7 +162,7 @@ export default function MushafPageReaderScreen() {
 
         <Pressable
           disabled={pageNum >= 604}
-          onPress={() => router.replace(`/quran/page/${pageNum + 1}`)}
+          onPress={() => router.replace(`/mushaf/page/${pageNum + 1}`)}
           accessibilityRole="button"
           style={[
             styles.navBtn,
@@ -293,7 +293,7 @@ export default function MushafPageReaderScreen() {
             {error}
           </Text>
           <Pressable
-            onPress={() => router.replace(`/quran/page/1`)}
+            onPress={() => router.replace(`/mushaf/page/1`)}
             accessibilityRole="button"
             style={[
               styles.retryBtn,

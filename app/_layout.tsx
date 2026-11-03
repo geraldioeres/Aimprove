@@ -35,23 +35,23 @@ function RootNavigator() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="japanese/review"
+          name="jp/review"
           options={{ title: 'Japanese SRS Review', presentation: 'card' }}
         />
         <Stack.Screen
-          name="japanese/lessons"
+          name="jp/lessons"
           options={{ title: 'Japanese New Lessons', presentation: 'card' }}
         />
         <Stack.Screen
-          name="japanese/reading"
+          name="jp/reading"
           options={{ title: 'Reading & Sentence Mining', presentation: 'card' }}
         />
         <Stack.Screen
-          name="quran/page/[pageNumber]"
+          name="mushaf/page/[pageNumber]"
           options={{ title: '15-Line Madani Mushaf', presentation: 'card' }}
         />
         <Stack.Screen
-          name="quran/heatmap"
+          name="mushaf/heatmap"
           options={{ title: '604-Page Mastery Heatmap', presentation: 'card' }}
         />
       </Stack>

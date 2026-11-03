@@ -188,7 +188,7 @@ export default function JapaneseTypedReviewScreen() {
               <Text style={styles.primaryBtnText}>Return to Today's Queue</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.replace('/japanese/lessons')}
+              onPress={() => router.replace('/jp/lessons')}
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,

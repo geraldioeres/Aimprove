@@ -159,7 +159,7 @@ export default function JapaneseHubScreen() {
       <View style={[styles.sessionBar, narrow && styles.stackCol]}>
         <Pressable
           disabled={availableLessons.length === 0}
-          onPress={() => router.push('/japanese/lessons')}
+          onPress={() => router.push('/jp/lessons')}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
@@ -193,7 +193,7 @@ export default function JapaneseHubScreen() {
 
         <Pressable
           disabled={dueReviews.totalCount === 0}
-          onPress={() => router.push('/japanese/review')}
+          onPress={() => router.push('/jp/review')}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
@@ -224,7 +224,7 @@ export default function JapaneseHubScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => router.push('/japanese/reading')}
+          onPress={() => router.push('/jp/reading')}
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.launchCard,
@@ -596,7 +596,7 @@ export default function JapaneseHubScreen() {
                 Open Reading & Sentence Mining, tap any word in a passage, and press "Mine to SRS Queue" to add cards here.
               </Text>
               <Pressable
-                onPress={() => router.push('/japanese/reading')}
+                onPress={() => router.push('/jp/reading')}
                 accessibilityRole="button"
                 style={[
                   styles.emptyActionBtn,

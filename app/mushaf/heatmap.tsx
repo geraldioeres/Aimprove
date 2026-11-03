@@ -206,7 +206,7 @@ export default function QuranMasteryHeatmapScreen() {
             return (
               <Pressable
                 key={item.pageNumber}
-                onPress={() => router.push(`/quran/page/${item.pageNumber}`)}
+                onPress={() => router.push(`/mushaf/page/${item.pageNumber}`)}
                 accessibilityRole="button"
                 style={[
                   styles.pageCell,

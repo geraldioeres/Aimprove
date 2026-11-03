@@ -45,7 +45,7 @@ export default function QuranHafalanHubScreen() {
     if (assignAsSabaq) {
       await startSabaqPage(num);
     }
-    router.push(`/quran/page/${num}`);
+    router.push(`/mushaf/page/${num}`);
   };
 
   return (
@@ -109,7 +109,7 @@ export default function QuranHafalanHubScreen() {
 
       {/* 604-Page Mastery Heatmap Callout */}
       <Pressable
-        onPress={() => router.push('/quran/heatmap')}
+        onPress={() => router.push('/mushaf/heatmap')}
         accessibilityRole="button"
         style={({ pressed }) => [
           styles.heatmapBanner,
@@ -161,7 +161,7 @@ export default function QuranHafalanHubScreen() {
             dueQuran.sabaqPages.map((p) => (
               <Pressable
                 key={p.pageNumber}
-                onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+                onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
                 accessibilityRole="button"
                 style={[
                   styles.pageCard,
@@ -205,7 +205,7 @@ export default function QuranHafalanHubScreen() {
             dueQuran.sabqiPages.map((p) => (
               <Pressable
                 key={p.pageNumber}
-                onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+                onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
                 accessibilityRole="button"
                 style={[
                   styles.pageCard,
@@ -252,7 +252,7 @@ export default function QuranHafalanHubScreen() {
             dueQuran.manzilPages.map((p) => (
               <Pressable
                 key={p.pageNumber}
-                onPress={() => router.push(`/quran/page/${p.pageNumber}`)}
+                onPress={() => router.push(`/mushaf/page/${p.pageNumber}`)}
                 accessibilityRole="button"
                 style={[
                   styles.pageCard,
@@ -364,7 +364,7 @@ export default function QuranHafalanHubScreen() {
           ].map((bm) => (
             <Pressable
               key={bm.page}
-              onPress={() => router.push(`/quran/page/${bm.page}`)}
+              onPress={() => router.push(`/mushaf/page/${bm.page}`)}
               accessibilityRole="button"
               style={[
                 styles.bookmarkChip,

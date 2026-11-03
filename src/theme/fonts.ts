@@ -1,17 +1,13 @@
 import { Platform, Text, TextInput, StyleSheet } from 'react-native';
-import {
-  useFonts,
-  NotoSans_400Regular,
-  NotoSans_600SemiBold,
-  NotoSans_700Bold,
-  NotoSans_800ExtraBold,
-} from '@expo-google-fonts/noto-sans';
-import {
-  NotoSansJP_400Regular,
-  NotoSansJP_600SemiBold,
-  NotoSansJP_700Bold,
-  NotoSansJP_800ExtraBold,
-} from '@expo-google-fonts/noto-sans-jp';
+import { useFonts } from 'expo-font';
+import { NotoSans_400Regular } from '@expo-google-fonts/noto-sans/400Regular';
+import { NotoSans_600SemiBold } from '@expo-google-fonts/noto-sans/600SemiBold';
+import { NotoSans_700Bold } from '@expo-google-fonts/noto-sans/700Bold';
+import { NotoSans_800ExtraBold } from '@expo-google-fonts/noto-sans/800ExtraBold';
+import { NotoSansJP_400Regular } from '@expo-google-fonts/noto-sans-jp/400Regular';
+import { NotoSansJP_600SemiBold } from '@expo-google-fonts/noto-sans-jp/600SemiBold';
+import { NotoSansJP_700Bold } from '@expo-google-fonts/noto-sans-jp/700Bold';
+import { NotoSansJP_800ExtraBold } from '@expo-google-fonts/noto-sans-jp/800ExtraBold';
 
 type Tier = '400' | '600' | '700' | '800';
 
