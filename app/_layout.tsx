@@ -79,6 +79,10 @@ function RootNavigator() {
           name="mushaf/heatmap"
           options={{ title: 'Mushaf Map', presentation: 'card' }}
         />
+        <Stack.Screen
+          name="mushaf/makharij"
+          options={{ title: 'Makhraj', presentation: 'card' }}
+        />
       </Stack>
       {holding ? (
         <View style={[StyleSheet.absoluteFill, styles.hold, { backgroundColor: colors.bgPrimary }]}>

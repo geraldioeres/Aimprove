@@ -137,6 +137,30 @@ export default function QuranHafalanHubScreen() {
         </View>
       </Pressable>
 
+      {/* Makhraj lookup: where each letter is pronounced */}
+      <Pressable
+        onPress={() => router.push('/mushaf/makharij')}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.heatmapBanner,
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
+        ]}
+      >
+        <View style={styles.heatmapLeft}>
+          <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>
+            Makhraj · مخارج الحروف
+          </Text>
+          <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
+            Where each letter is made: throat, tongue, lips and nose
+          </Text>
+        </View>
+        <View style={styles.heatmapBtn}>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
+        </View>
+      </Pressable>
+
       {/* Automated Daily Lifecycle Queue: Sabaq -> Sabqi -> Manzil */}
       <View
         style={[
