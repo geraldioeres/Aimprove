@@ -161,6 +161,30 @@ export default function QuranHafalanHubScreen() {
         </View>
       </Pressable>
 
+      {/* Arabic numbers: the digits used for pages and ayat */}
+      <Pressable
+        onPress={() => router.push('/mushaf/numbers')}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.heatmapBanner,
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
+        ]}
+      >
+        <View style={styles.heatmapLeft}>
+          <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>
+            Arabic numbers · ١٢٣
+          </Text>
+          <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
+            The digits the Mushaf uses for pages and ayat, with their names
+          </Text>
+        </View>
+        <View style={styles.heatmapBtn}>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
+        </View>
+      </Pressable>
+
       {/* Automated Daily Lifecycle Queue: Sabaq -> Sabqi -> Manzil */}
       <View
         style={[
