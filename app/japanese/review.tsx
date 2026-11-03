@@ -728,11 +728,11 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
   clozeBlankHighlight: {
-    color: '#FEF08A',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   clozeNuanceText: {
-    color: '#FEF3C7',
+    color: 'rgba(255,255,255,0.85)',
     fontSize: 13,
     fontWeight: '600',
   },
