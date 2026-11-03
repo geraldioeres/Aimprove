@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useLearningStore } from '../src/store/useLearningStore';
+import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 
 function RootNavigator() {
   const { colors, mode } = useTheme();
@@ -23,7 +24,7 @@ function RootNavigator() {
           },
           headerTintColor: colors.textPrimary,
           headerTitleStyle: {
-            fontWeight: '700',
+            fontFamily: FONT_LATIN['700'],
             fontSize: 17,
           },
           headerShadowVisible: false,
@@ -58,7 +59,12 @@ function RootNavigator() {
   );
 }
 
+applyGlobalFonts();
+
 export default function RootLayout() {
+  const fontsReady = useAppFonts();
+  if (!fontsReady) return null;
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
