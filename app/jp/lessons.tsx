@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,9 @@ export default function JapaneseLessonsScreen() {
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizInput, setQuizInput] = useState('');
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
+  const quizInputRef = useRef<TextInput>(null);
+  // Put the cursor back in the answer field so the next answer can be typed right away.
+  const refocusQuizInput = () => setTimeout(() => quizInputRef.current?.focus(), 0);
 
   const getKindColor = (kind: string) => {
     switch (kind) {
@@ -129,6 +132,7 @@ export default function JapaneseLessonsScreen() {
         setQuizInput('');
         if (quizIndex + 1 < batch.length) {
           setQuizIndex(quizIndex + 1);
+          refocusQuizInput();
         } else {
           await completeLessons(batch.map((b) => b.id));
           setPhase('done');
@@ -139,6 +143,7 @@ export default function JapaneseLessonsScreen() {
             ? `Try again. Expected reading: ${currentQuizSubject.readings.join(' • ')}`
             : `Try again. Expected meaning: ${currentQuizSubject.meanings.join(', ')}`
         );
+        refocusQuizInput();
       }
     };
 
@@ -194,6 +199,9 @@ export default function JapaneseLessonsScreen() {
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
+            autoFocus
+            blurOnSubmit={false}
+            ref={quizInputRef}
             style={[
               styles.quizInput,
               {
