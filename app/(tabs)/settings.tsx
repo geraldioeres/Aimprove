@@ -352,7 +352,7 @@ export default function SettingsAndCloudScreen() {
             ]}
           >
             <Text style={[styles.resetBtnText, { color: colors.textSecondary }]}>
-              Reset starter data
+              Erase all progress
             </Text>
           </Pressable>
         </View>

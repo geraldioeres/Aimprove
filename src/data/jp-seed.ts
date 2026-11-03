@@ -521,76 +521,20 @@ export const INITIAL_JP_READING_PASSAGES: JPReadingPassage[] = [
 ];
 
 /**
- * Generates initial user assignments for Level 1 WaniKani items:
- * - 6 Level 1 Radicals at Guru I (unlocking their Level 1 Kanji)
- * - 4 Level 1 Radicals due now in Apprentice III
- * - 6 Remaining Level 1 Radicals waiting in the Lesson Queue
- * - Dependent Level 1 Kanji & Vocab active in Apprentice + Lesson Queue
+ * A fresh start: every Level 1 item with no prerequisites (the radicals and
+ * Level 1 grammar) waits in the lesson queue. Nothing is reviewed yet.
+ * Kanji and vocabulary unlock as their parts reach Guru, as in normal play.
  */
 export function buildInitialJPAssignments(
   now: Date = new Date()
 ): Record<string, UserJPAssignment> {
-  const pastOneHour = new Date(now.getTime() - 3600 * 1000).toISOString();
-  const inTwoHours = new Date(now.getTime() + 2 * 3600 * 1000).toISOString();
-  const inFourHours = new Date(now.getTime() + 4 * 3600 * 1000).toISOString();
-  const inEightHours = new Date(now.getTime() + 8 * 3600 * 1000).toISOString();
-  const inTwelveHours = new Date(now.getTime() + 12 * 3600 * 1000).toISOString();
-
   const map: Record<string, UserJPAssignment> = {};
-
-  // 1. Level 1 Radicals at Guru I (so their dependent Level 1 Kanji are unlocked!)
-  const guruRadicals = [
-    'rad-ground',
-    'rad-person',
-    'rad-mouth',
-    'rad-mountain',
-    'rad-river',
-    'rad-toe',
-  ];
-  for (const id of guruRadicals) {
-    map[id] = {
-      subjectId: id,
-      srsStage: 5, // Guru I
-      unlockedAt: pastOneHour,
-      startedAt: pastOneHour,
-      nextReviewAt: inTwelveHours,
-      passedGuru: true,
-      burnedAt: null,
-      correctStreak: 5,
-      incorrectCount: 0,
-    };
-  }
-
-  // 2. Level 1 Radicals due right now for review!
-  const dueRadicals = ['rad-power', 'rad-big', 'rad-woman', 'rad-two'];
-  for (const id of dueRadicals) {
-    map[id] = {
-      subjectId: id,
-      srsStage: 4, // Apprentice IV -> 1 correct review promotes them to Guru I and unlocks their Kanji!
-      unlockedAt: pastOneHour,
-      startedAt: pastOneHour,
-      nextReviewAt: pastOneHour,
-      passedGuru: false,
-      burnedAt: null,
-      correctStreak: 4,
-      incorrectCount: 0,
-    };
-  }
-
-  // 3. Remaining Level 1 Radicals in Lesson Queue
-  const lessonRadicals = [
-    'rad-construction',
-    'rad-cross',
-    'rad-enter',
-    'rad-fins',
-    'rad-nine',
-    'rad-seven',
-  ];
-  for (const id of lessonRadicals) {
-    map[id] = {
-      subjectId: id,
+  for (const subj of INITIAL_JP_SUBJECTS) {
+    if (subj.level !== 1 || subj.componentIds.length > 0) continue;
+    map[subj.id] = {
+      subjectId: subj.id,
       srsStage: 0,
-      unlockedAt: pastOneHour,
+      unlockedAt: now.toISOString(),
       startedAt: null,
       nextReviewAt: null,
       passedGuru: false,
@@ -599,108 +543,5 @@ export function buildInitialJPAssignments(
       incorrectCount: 0,
     };
   }
-
-  // 4. Level 1 Kanji unlocked by the Guru Radicals
-  for (const id of ['kan-一', 'kan-人', 'kan-上']) {
-    map[id] = {
-      subjectId: id,
-      srsStage: 2, // Due now!
-      unlockedAt: pastOneHour,
-      startedAt: pastOneHour,
-      nextReviewAt: pastOneHour,
-      passedGuru: false,
-      burnedAt: null,
-      correctStreak: 2,
-      incorrectCount: 0,
-    };
-  }
-
-  map['kan-下'] = {
-    subjectId: 'kan-下',
-    srsStage: 4,
-    unlockedAt: pastOneHour,
-    startedAt: pastOneHour,
-    nextReviewAt: inTwoHours,
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 4,
-    incorrectCount: 0,
-  };
-
-  for (const id of ['kan-口', 'kan-山', 'kan-川']) {
-    map[id] = {
-      subjectId: id,
-      srsStage: 0, // Available in Lesson Queue
-      unlockedAt: pastOneHour,
-      startedAt: null,
-      nextReviewAt: null,
-      passedGuru: false,
-      burnedAt: null,
-      correctStreak: 0,
-      incorrectCount: 0,
-    };
-  }
-
-  // 5. Starter Level 1 Vocab & Grammar
-  map['voc-一つ'] = {
-    subjectId: 'voc-一つ',
-    srsStage: 1,
-    unlockedAt: pastOneHour,
-    startedAt: pastOneHour,
-    nextReviewAt: pastOneHour, // Due now!
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 1,
-    incorrectCount: 0,
-  };
-
-  map['voc-人'] = {
-    subjectId: 'voc-人',
-    srsStage: 2,
-    unlockedAt: pastOneHour,
-    startedAt: pastOneHour,
-    nextReviewAt: inFourHours,
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 2,
-    incorrectCount: 0,
-  };
-
-  map['voc-上'] = {
-    subjectId: 'voc-上',
-    srsStage: 0, // Available in Lesson Queue
-    unlockedAt: pastOneHour,
-    startedAt: null,
-    nextReviewAt: null,
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 0,
-    incorrectCount: 0,
-  };
-
-  map['gram-te-iru'] = {
-    subjectId: 'gram-te-iru',
-    srsStage: 2,
-    unlockedAt: pastOneHour,
-    startedAt: pastOneHour,
-    nextReviewAt: pastOneHour, // Due now!
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 2,
-    incorrectCount: 0,
-  };
-
-  map['gram-nakereba-naranai'] = {
-    subjectId: 'gram-nakereba-naranai',
-    srsStage: 3,
-    unlockedAt: pastOneHour,
-    startedAt: pastOneHour,
-    nextReviewAt: inEightHours,
-    passedGuru: false,
-    burnedAt: null,
-    correctStreak: 3,
-    incorrectCount: 0,
-  };
-
   return map;
 }
