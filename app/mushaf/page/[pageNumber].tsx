@@ -128,7 +128,7 @@ export default function MushafPageReaderScreen() {
       <View
         style={[
           styles.pageNavRow,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Pressable
@@ -139,7 +139,7 @@ export default function MushafPageReaderScreen() {
             styles.navBtn,
             {
               backgroundColor: colors.bgSurface,
-              borderColor: colors.borderStrong,
+              borderColor: colors.ink,
               opacity: pageNum <= 1 ? 0.4 : 1,
             },
           ]}
@@ -168,7 +168,7 @@ export default function MushafPageReaderScreen() {
             styles.navBtn,
             {
               backgroundColor: colors.bgSurface,
-              borderColor: colors.borderStrong,
+              borderColor: colors.ink,
               opacity: pageNum >= 604 ? 0.4 : 1,
             },
           ]}
@@ -183,7 +183,7 @@ export default function MushafPageReaderScreen() {
       <View
         style={[
           styles.controlsCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <View style={styles.controlsTopRow}>
@@ -245,8 +245,8 @@ export default function MushafPageReaderScreen() {
                 style={[
                   styles.hideModeBtn,
                   {
-                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
-                    borderColor: active ? colors.textPrimary : colors.border,
+                    backgroundColor: active ? colors.indigo : colors.bgSurface,
+                    borderColor: active ? colors.indigo : colors.ink,
                   },
                 ]}
               >
@@ -380,8 +380,8 @@ export default function MushafPageReaderScreen() {
                           styles.wordCell,
                           isMasked && {
                             backgroundColor: colors.bgMuted,
-                            borderColor: colors.borderStrong,
-                            borderWidth: 1,
+                            borderColor: colors.ink,
+                            borderWidth: 2,
                           },
                           !isMasked &&
                             wasPreviouslyFlagged &&
@@ -421,7 +421,7 @@ export default function MushafPageReaderScreen() {
       <View
         style={[
           styles.gradingCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <View style={styles.mistakeCounterRow}>
@@ -440,7 +440,7 @@ export default function MushafPageReaderScreen() {
               accessibilityRole="button"
               style={[
                 styles.stepBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
+                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
               ]}
             >
               <Text style={[styles.stepBtnText, { color: colors.textPrimary }]}>
@@ -452,7 +452,7 @@ export default function MushafPageReaderScreen() {
               accessibilityRole="button"
               style={[
                 styles.stepBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
+                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
               ]}
             >
               <Text style={[styles.stepBtnText, { color: colors.textPrimary }]}>
@@ -512,7 +512,7 @@ export default function MushafPageReaderScreen() {
         <View
           style={[
             styles.translationCard,
-            { backgroundColor: colors.bgSurface, borderColor: colors.border },
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
           ]}
         >
           <Pressable
@@ -577,14 +577,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 8,
   },
   navBtn: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   },
   controlsCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   stageChip: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   stageChipText: {
     fontSize: 11,
@@ -640,8 +640,8 @@ const styles = StyleSheet.create({
     minWidth: 100,
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   stateCard: {
     minHeight: 220,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.xl,
     justifyContent: 'center',
     alignItems: 'center',
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   },
   stateErrorTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   stateText: {
     fontSize: 14,
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 20,
     minHeight: 46,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   },
   mushafFrame: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.md,
     gap: 10,
   },
@@ -691,17 +691,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     alignItems: 'center',
     gap: 2,
   },
   surahArabicTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   surahLatinTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   bismillahRow: {
     paddingVertical: 8,
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   wordCell: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
     minHeight: 44,
     justifyContent: 'center',
   },
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   },
   gradingCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
   },
   gradingTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   gradingSub: {
@@ -779,8 +779,8 @@ const styles = StyleSheet.create({
   stepBtn: {
     paddingHorizontal: 16,
     minHeight: 44,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -796,8 +796,8 @@ const styles = StyleSheet.create({
   secondaryActionBtn: {
     paddingHorizontal: 20,
     minHeight: 48,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     minWidth: 220,
     minHeight: 48,
     paddingHorizontal: 20,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
   completionBanner: {
     padding: 14,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
   },
   completionText: {
     fontSize: 13,
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   translationCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.sm,
   },

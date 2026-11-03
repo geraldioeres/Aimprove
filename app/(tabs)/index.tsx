@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,31 +10,44 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
+import { CARD_EDGE, RADII, SPACING } from '../../src/theme/tokens';
 import {
   build24HourForecast,
+  localDayKey,
   selectAvailableJapaneseLessons,
   selectDueJapaneseReviews,
   selectDueQuranPages,
+  selectStreak,
   useLearningStore,
 } from '../../src/store/useLearningStore';
 import { getSurahSummaryForPage } from '../../src/data/quran-seed';
+import { PressBlock, StampCard, StampSeal } from '../../src/components/Stamp';
 
-export default function UnifiedHomeQueueScreen() {
+// Today's seal slams in once per app session, the first time Today shows it.
+let sealShownFor: string | null = null;
+
+export default function TodayScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const state = useLearningStore();
   const { width } = useWindowDimensions();
   const wide = width >= 760;
 
+  const todayKey = localDayKey(new Date());
+  const streak = selectStreak(state);
+  const slam = streak.goalMet && sealShownFor !== todayKey;
+  useEffect(() => {
+    if (streak.goalMet) sealShownFor = todayKey;
+  }, [streak.goalMet, todayKey]);
+
   if (!state.isHydrated) {
     return (
       <View style={[styles.centerState, { backgroundColor: colors.bgPrimary }]}>
-        <ActivityIndicator size="large" color={colors.jpRadical} />
-        <Text style={[styles.stateTitle, { color: colors.textSecondary }]}>
-          Loading your queue…
-        </Text>
+        <ActivityIndicator size="large" color={colors.indigo} />
+        <Text style={[styles.stateTitle, { color: colors.textSecondary }]}>Getting your card…</Text>
       </View>
     );
   }
@@ -44,251 +57,200 @@ export default function UnifiedHomeQueueScreen() {
   const dueQuran = selectDueQuranPages(state);
   const forecast = build24HourForecast(state);
 
-  const dueRadicals = dueJP.subjects.filter((s) => s.kind === 'radical').length;
-  const dueKanji = dueJP.subjects.filter((s) => s.kind === 'kanji').length;
-  const dueVocab = dueJP.subjects.filter((s) => s.kind === 'vocab').length + dueJP.minedCards.length;
-  const dueGrammar = dueJP.subjects.filter((s) => s.kind === 'grammar').length;
-
-  const totalDueNow = dueJP.totalCount + dueQuran.totalDue;
-  const todayDateStr = new Date().toISOString().slice(0, 10);
-  const completedToday = state.reviewLogs.filter(
-    (log) => log.reviewedAt && log.reviewedAt.slice(0, 10) === todayDateStr
-  ).length;
-  const dayTotal = completedToday + totalDueNow;
-  const dayPct = dayTotal === 0 ? 100 : Math.round((completedToday / dayTotal) * 100);
-
-  const maxForecast = Math.max(1, ...forecast.map((b) => b.jpCount + b.quranCount));
+  const count = (kind: string) => dueJP.subjects.filter((s) => s.kind === kind).length;
+  const breakdown = [
+    [count('radical'), 'radical'],
+    [count('kanji'), 'kanji'],
+    [count('vocab') + dueJP.minedCards.length, 'vocab'],
+    [count('grammar'), 'grammar'],
+  ]
+    .filter(([n]) => (n as number) > 0)
+    .map(([n, l]) => `${n} ${l}`)
+    .join(' · ');
 
   const lessonsOn = availableLessons.length > 0;
   const reviewsOn = dueJP.totalCount > 0;
+  const lessonLevels = Array.from(new Set(availableLessons.map((s: any) => s.level))).sort((a, b) => a - b);
 
-  const quranRows = [
-    ...dueQuran.sabaqPages.map((p) => ({
-      key: `sabaq-${p.pageNumber}`,
-      page: p.pageNumber,
-      stage: 'Sabaq',
-      note: 'New page',
-      action: 'Recite',
-      color: colors.quranSabaq,
-    })),
-    ...dueQuran.sabqiPages.map((p) => ({
-      key: `sabqi-${p.pageNumber}`,
-      page: p.pageNumber,
-      stage: 'Sabqi',
-      note: `Day ${p.sabqiDaysCompleted} of ${p.sabqiTargetDays}`,
-      action: 'Test',
-      color: colors.quranSabqi,
-    })),
-    ...dueQuran.manzilPages.map((p) => ({
-      key: `manzil-${p.pageNumber}`,
-      page: p.pageNumber,
-      stage: 'Manzil',
-      note: `${p.stability}d stability`,
-      action: 'Revise',
-      color: colors.quranManzil,
-    })),
-  ];
-
-  const breakdown = [
-    { label: 'Radicals', n: dueRadicals, color: colors.jpRadical },
-    { label: 'Kanji', n: dueKanji, color: colors.jpKanji },
-    { label: 'Vocabulary', n: dueVocab, color: colors.jpVocab },
-    { label: 'Grammar', n: dueGrammar, color: colors.jpGrammar },
-  ];
-
-  const addSabaq = (extra?: object) => (
-    <Pressable
-      onPress={() => router.push('/(tabs)/quran')}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        styles.emptyRow,
-        { borderColor: colors.borderStrong },
-        extra,
-        pressed && styles.pressed,
-      ]}
-    >
-      <Feather name="plus" size={16} color={colors.textSecondary} />
-      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-        Choose today's Sabaq page
-      </Text>
-    </Pressable>
+  const recitedToday = state.reviewLogs.filter(
+    (l) => l.domain === 'quran' && localDayKey(new Date(l.reviewedAt)) === todayKey
   );
+  const recitedPages = new Set(recitedToday.map((l) => Number(l.itemId)));
+
+  // Every page due today, plus pages already recited today, in stage order.
+  // A recited page keeps its row and stage tag and gets stamped in place.
+  const STAGE_ORDER = { sabaq: 0, sabqi: 1, manzil: 2, unstarted: 3 } as const;
+  const duePages = new Set([
+    ...dueQuran.sabaqPages.map((p) => p.pageNumber),
+    ...dueQuran.sabqiPages.map((p) => p.pageNumber),
+    ...dueQuran.manzilPages.map((p) => p.pageNumber),
+  ]);
+  const setoran = Array.from(new Set([...duePages, ...recitedPages]))
+    .map((page) => {
+      const prog = state.quranProgress[page];
+      const stage = (prog?.stage || 'sabaq') as keyof typeof STAGE_ORDER;
+      const done = recitedPages.has(page) && !duePages.has(page);
+      const note = done
+        ? 'Recited today'
+        : stage === 'sabaq'
+          ? 'New page'
+          : stage === 'sabqi'
+            ? `Day ${prog?.sabqiDaysCompleted ?? 1} of ${prog?.sabqiTargetDays ?? state.sabqiWindowDays}`
+            : 'Long-term revision';
+      const color =
+        stage === 'sabqi' ? colors.quranSabqi : stage === 'manzil' ? colors.quranManzil : colors.quranSabaq;
+      const label = stage === 'unstarted' ? 'Sabaq' : stage.charAt(0).toUpperCase() + stage.slice(1);
+      return { page, stage, label, note, color, done };
+    })
+    .sort((x, y) => STAGE_ORDER[x.stage] - STAGE_ORDER[y.stage] || x.page - y.page);
+
+  const maxForecast = Math.max(1, ...forecast.map((b) => b.jpCount + b.quranCount));
+  const dateLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.bgPrimary }]}
-      contentContainerStyle={[styles.content, wide && styles.contentWide]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }, wide && styles.contentWide]}
     >
+      <View style={styles.header}>
+        <Text style={[styles.h1, { color: colors.ink }]} accessibilityRole="header">
+          Today
+        </Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{dateLabel}</Text>
+      </View>
+
       {state.syncError ? (
-        <View style={[styles.errorBanner, { backgroundColor: colors.dangerBg, borderColor: colors.danger }]}>
-          <Text style={[styles.errorBannerTitle, { color: colors.danger }]}>
-            Couldn't sync: {state.syncError}
-          </Text>
-          <Text style={[styles.errorBannerSub, { color: colors.textPrimary }]}>
-            Your progress is saved on this device. Check the Supabase connection in Settings, then retry.
+        <View style={[styles.banner, { backgroundColor: colors.dangerBg, borderColor: colors.danger }]}>
+          <Text style={[styles.bannerTitle, { color: colors.danger }]}>Couldn't sync: {state.syncError}</Text>
+          <Text style={[styles.bannerSub, { color: colors.ink }]}>
+            Your progress is safe on this phone. Check Cloud sync in Settings, then try again.
           </Text>
         </View>
       ) : null}
 
-      {/* Lessons / Reviews */}
-      <View style={styles.launchRow}>
-        <Pressable
-          disabled={!lessonsOn}
-          onPress={() => router.push('/jp/lessons')}
-          accessibilityRole="button"
-          accessibilityLabel={`${availableLessons.length} lessons available`}
-          style={({ pressed }) => [
-            styles.launchTile,
-            lessonsOn
-              ? [TILE_LIP, { backgroundColor: colors.jpKanji }]
-              : { backgroundColor: colors.bgSurface, borderColor: colors.border, borderWidth: 1 },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.launchLabel, { color: lessonsOn ? '#FFFFFF' : colors.textSecondary }]}>
-            Lessons
-          </Text>
-          <Text
-            style={[
-              styles.launchCount,
-              lessonsOn ? [GLYPH_SHADOW, { color: '#FFFFFF' }] : { color: colors.textMuted },
-            ]}
-          >
-            {availableLessons.length}
-          </Text>
-          <Text style={[styles.launchHint, { color: lessonsOn ? '#FFFFFF' : colors.textMuted }]}>
-            {lessonsOn ? 'Start lessons' : 'Finish reviews to unlock more'}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          disabled={!reviewsOn}
-          onPress={() => router.push('/jp/review')}
-          accessibilityRole="button"
-          accessibilityLabel={`${dueJP.totalCount} reviews available`}
-          style={({ pressed }) => [
-            styles.launchTile,
-            reviewsOn
-              ? [TILE_LIP, { backgroundColor: colors.jpRadical }]
-              : { backgroundColor: colors.bgSurface, borderColor: colors.border, borderWidth: 1 },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.launchLabel, { color: reviewsOn ? '#FFFFFF' : colors.textSecondary }]}>
-            Reviews
-          </Text>
-          <Text
-            style={[
-              styles.launchCount,
-              reviewsOn ? [GLYPH_SHADOW, { color: '#FFFFFF' }] : { color: colors.textMuted },
-            ]}
-          >
-            {dueJP.totalCount}
-          </Text>
-          <Text style={[styles.launchHint, { color: reviewsOn ? '#FFFFFF' : colors.textMuted }]}>
-            {reviewsOn ? 'Start reviews' : 'Nothing due right now'}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Due breakdown by item type + today's progress */}
-      <View style={[styles.panel, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-        <View style={styles.breakdownRow}>
-          {breakdown.map((b) => (
-            <View key={b.label} style={styles.breakdownCell}>
-              <View style={styles.breakdownTop}>
-                <View style={[styles.swatch, { backgroundColor: b.color }]} />
-                <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>{b.label}</Text>
-              </View>
-              <Text style={[styles.breakdownCount, { color: b.n > 0 ? colors.textPrimary : colors.textMuted }]}>
-                {b.n}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <View style={[styles.rule, { backgroundColor: colors.border }]} />
-        <View style={styles.dayRow}>
-          <Text style={[styles.dayText, { color: colors.textPrimary }]}>
-            <Text style={styles.dayStrong}>{completedToday}</Text> of {dayTotal} done today
-          </Text>
-          <Pressable onPress={() => router.push('/(tabs)/japanese')} accessibilityRole="link" hitSlop={8}>
-            <Text style={[styles.link, { color: colors.jpRadical }]}>Level {state.currentJPLevel} ›</Text>
-          </Pressable>
-        </View>
-        <View style={[styles.track, { backgroundColor: colors.bgMuted }]}>
-          <View style={[styles.fill, { width: `${dayPct}%`, backgroundColor: colors.success }]} />
-        </View>
-      </View>
-
       <View style={[styles.cols, wide && styles.twoCol]}>
-        {/* Quran */}
-        <View style={[styles.panel, wide && styles.colItem, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          <View style={styles.panelHead}>
-            <Text style={[styles.panelTitle, { color: colors.textPrimary }]}>Quran Hafalan</Text>
-            <Pressable onPress={() => router.push('/mushaf/heatmap')} accessibilityRole="link" hitSlop={8}>
-              <Text style={[styles.link, { color: colors.quranSabaq }]}>604-page map ›</Text>
-            </Pressable>
-          </View>
+        <View style={[styles.col, wide && styles.colItem]}>
+          <StampCard streak={streak} slamToday={slam} />
 
-          {dueQuran.sabaqPages.length === 0 ? addSabaq(quranRows.length > 0 ? { marginBottom: 8 } : undefined) : null}
-          {quranRows.map((r, i) => (
-            <Pressable
-              key={r.key}
-              onPress={() => router.push(`/mushaf/page/${r.page}`)}
+          <View style={styles.launchRow}>
+            <PressBlock
+              disabled={!reviewsOn}
+              onPress={() => router.push('/jp/review')}
               accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.qRow,
-                i > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
-                pressed && { backgroundColor: colors.bgMuted },
-              ]}
+              accessibilityLabel={`${dueJP.totalCount} reviews due`}
+              style={[styles.launch, { backgroundColor: reviewsOn ? colors.indigo : colors.bgSurface }]}
             >
-              <View style={[styles.stageTag, TILE_LIP, { backgroundColor: r.color }]}>
-                <Text style={[styles.stageTagText, GLYPH_SHADOW]}>{r.stage}</Text>
+              <View style={styles.launchHead}>
+                <Text style={[styles.launchLabel, { color: reviewsOn ? '#FFFFFF' : colors.textSecondary }]}>Reviews</Text>
+                {reviewsOn ? <Feather name="arrow-right" size={20} color="#FFFFFF" /> : null}
               </View>
-              <View style={styles.qInfo}>
-                <Text numberOfLines={1} style={[styles.qTitle, { color: colors.textPrimary }]}>
-                  Page {r.page} · {getSurahSummaryForPage(r.page)}
-                </Text>
-                <Text style={[styles.qNote, { color: colors.textMuted }]}>{r.note}</Text>
+              <Text style={[styles.launchCount, { color: reviewsOn ? '#FFFFFF' : colors.textMuted }]}>{dueJP.totalCount}</Text>
+              <Text numberOfLines={1} style={[styles.launchHint, { color: reviewsOn ? '#E6E8F5' : colors.textMuted }]}>
+                {reviewsOn ? breakdown : 'All caught up'}
+              </Text>
+            </PressBlock>
+
+            <PressBlock
+              disabled={!lessonsOn}
+              onPress={() => router.push('/jp/lessons')}
+              accessibilityRole="button"
+              accessibilityLabel={`${availableLessons.length} lessons waiting`}
+              style={[styles.launch, { backgroundColor: lessonsOn ? colors.marigold : colors.bgSurface }]}
+            >
+              <View style={styles.launchHead}>
+                <Text style={[styles.launchLabel, { color: lessonsOn ? colors.ink : colors.textSecondary }]}>Lessons</Text>
+                {lessonsOn ? <Feather name="arrow-right" size={20} color={colors.ink} /> : null}
               </View>
-              <Text style={[styles.qAction, { color: r.color }]}>{r.action} ›</Text>
-            </Pressable>
-          ))}
+              <Text style={[styles.launchCount, { color: lessonsOn ? colors.ink : colors.textMuted }]}>
+                {availableLessons.length}
+              </Text>
+              <Text numberOfLines={1} style={[styles.launchHint, { color: lessonsOn ? colors.ink : colors.textMuted }]}>
+                {lessonsOn ? `Level ${lessonLevels.join(', ')}` : 'Clear reviews to unlock more'}
+              </Text>
+            </PressBlock>
+          </View>
         </View>
 
-        {/* Forecast */}
-        <View style={[styles.panel, wide && styles.colItem, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-          <View style={styles.panelHead}>
-            <Text style={[styles.panelTitle, { color: colors.textPrimary }]}>Review Forecast</Text>
-            <Text style={[styles.panelMeta, { color: colors.textMuted }]}>Next 24 hours</Text>
-          </View>
-          {forecast.map((b, i) => {
-            const n = b.jpCount + b.quranCount;
-            return (
-              <View
-                key={b.hourOffset}
-                style={[styles.fRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+        <View style={[styles.col, wide && styles.colItem]}>
+          <View style={[styles.card, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
+            <View style={styles.cardHead}>
+              <Text style={[styles.cardTitle, { color: colors.ink }]}>Setoran today</Text>
+              <Pressable onPress={() => router.push('/mushaf/heatmap')} accessibilityRole="link" hitSlop={10}>
+                <Text style={[styles.link, { color: colors.indigo }]}>Mushaf map</Text>
+              </Pressable>
+            </View>
+
+            {setoran.length === 0 ? (
+              <Text style={[styles.empty, { color: colors.textSecondary }]}>Nothing due. Pick a new Sabaq page to start.</Text>
+            ) : null}
+
+            {setoran.map((r, i) => (
+              <Pressable
+                key={r.page}
+                onPress={() => router.push(`/mushaf/page/${r.page}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`Page ${r.page}, ${r.label}, ${r.done ? 'recited today' : 'due'}`}
+                style={({ pressed }) => [
+                  styles.qRow,
+                  i > 0 && { borderTopWidth: 1, borderTopColor: colors.border, borderStyle: 'dashed' },
+                  pressed && { backgroundColor: colors.bgMuted },
+                ]}
               >
-                <Text style={[styles.fLabel, { color: colors.textSecondary }]}>
-                  {b.label.replace(/^\+\d+h \((.*)\)$/, '$1')}
-                </Text>
-                <View style={styles.fBarArea}>
-                  {b.jpCount > 0 ? (
-                    <View
-                      style={[styles.fBar, { width: `${(b.jpCount / maxForecast) * 100}%`, backgroundColor: colors.jpRadical }]}
-                    />
-                  ) : null}
-                  {b.quranCount > 0 ? (
-                    <View
-                      style={[styles.fBar, { width: `${(b.quranCount / maxForecast) * 100}%`, backgroundColor: colors.quranSabaq }]}
-                    />
-                  ) : null}
+                <View style={[styles.tag, { backgroundColor: r.color }]}>
+                  <Text style={[styles.tagText, { color: '#FFFFFF' }]}>{r.label}</Text>
                 </View>
-                <Text style={[styles.fDelta, { color: n > 0 ? colors.textPrimary : colors.textMuted }]}>+{n}</Text>
-                <Text style={[styles.fTotal, { color: colors.textMuted }]}>{b.cumulativeTotal}</Text>
-              </View>
-            );
-          })}
+                <View style={styles.qInfo}>
+                  <Text numberOfLines={1} style={[styles.qTitle, { color: colors.ink }]}>
+                    Page {r.page} · {getSurahSummaryForPage(r.page)}
+                  </Text>
+                  <Text style={[styles.qNote, { color: colors.textMuted }]}>{r.note}</Text>
+                </View>
+                {r.done ? (
+                  <StampSeal size={34} seed={`${todayKey}-${r.page}`} />
+                ) : (
+                  <View style={[styles.slot, { borderColor: colors.textMuted }]} />
+                )}
+              </Pressable>
+            ))}
+
+            {dueQuran.sabaqPages.length === 0 ? (
+              <Pressable
+                onPress={() => router.push('/(tabs)/quran')}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.addRow, { borderColor: colors.ink }, pressed && { backgroundColor: colors.bgMuted }]}
+              >
+                <Feather name="plus" size={16} color={colors.ink} />
+                <Text style={[styles.addText, { color: colors.ink }]}>Choose a new Sabaq page</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={[styles.card, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
+            <View style={styles.cardHead}>
+              <Text style={[styles.cardTitle, { color: colors.ink }]}>Coming up</Text>
+              <Text style={[styles.meta, { color: colors.textMuted }]}>Next 24 hours</Text>
+            </View>
+            {forecast.map((b, i) => {
+              const n = b.jpCount + b.quranCount;
+              return (
+                <View key={b.hourOffset} style={[styles.fRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                  <Text style={[styles.fLabel, { color: colors.textSecondary }]}>
+                    {b.label.replace(/^\+\d+h \((.*)\)$/, '$1')}
+                  </Text>
+                  <View style={styles.fBarArea}>
+                    {b.jpCount > 0 ? (
+                      <View style={[styles.fBar, { width: `${(b.jpCount / maxForecast) * 100}%`, backgroundColor: colors.indigo }]} />
+                    ) : null}
+                    {b.quranCount > 0 ? (
+                      <View style={[styles.fBar, { width: `${(b.quranCount / maxForecast) * 100}%`, backgroundColor: colors.quranSabaq }]} />
+                    ) : null}
+                  </View>
+                  <Text style={[styles.fDelta, { color: n > 0 ? colors.ink : colors.textMuted }]}>+{n}</Text>
+                  <Text style={[styles.fTotal, { color: colors.textMuted }]}>{b.cumulativeTotal}</Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -297,130 +259,62 @@ export default function UnifiedHomeQueueScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: {
-    padding: SPACING.md,
-    paddingBottom: SPACING.xxl,
-    gap: SPACING.md,
-  },
-  contentWide: {
-    width: '100%',
-    maxWidth: 1040,
-    alignSelf: 'center',
-    padding: SPACING.lg,
-  },
-  centerState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
+  content: { paddingHorizontal: 16, paddingBottom: SPACING.xxl, gap: 16 },
+  contentWide: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: 24 },
+  centerState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.sm },
   stateTitle: { fontSize: 14 },
-  pressed: { opacity: 0.85 },
-  errorBanner: {
-    padding: SPACING.md,
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    gap: 4,
-  },
-  errorBannerTitle: { fontSize: 14, fontWeight: '700' },
-  errorBannerSub: { fontSize: 13, lineHeight: 19 },
 
-  launchRow: { flexDirection: 'row', gap: SPACING.sm },
-  launchTile: {
-    flex: 1,
-    minHeight: 132,
-    borderRadius: RADII.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    justifyContent: 'space-between',
-  },
-  launchLabel: { fontSize: 15, fontWeight: '700' },
-  launchCount: {
-    fontSize: 44,
-    lineHeight: 52,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  launchHint: { fontSize: 12, fontWeight: '600' },
+  header: { gap: 2, marginBottom: 2 },
+  h1: { fontSize: 34, lineHeight: 40, fontWeight: '900' },
+  date: { fontSize: 14, fontWeight: '500' },
 
-  panel: {
-    borderRadius: RADII.sm,
-    borderWidth: 1,
-    padding: SPACING.md,
-  },
-  panelHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: SPACING.sm,
-    gap: SPACING.sm,
-  },
-  panelTitle: { fontSize: 16, fontWeight: '700' },
-  panelMeta: { fontSize: 12 },
-  link: { fontSize: 13, fontWeight: '700' },
+  banner: { padding: 14, borderRadius: RADII.sm, borderWidth: 2, gap: 4 },
+  bannerTitle: { fontSize: 14, fontWeight: '700' },
+  bannerSub: { fontSize: 13, lineHeight: 19 },
 
-  breakdownRow: { flexDirection: 'row', flexWrap: 'wrap', rowGap: SPACING.sm },
-  breakdownCell: { flexGrow: 1, flexBasis: 120, gap: 2 },
-  breakdownTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  swatch: { width: 10, height: 10, borderRadius: 2 },
-  breakdownLabel: { fontSize: 12, fontWeight: '600' },
-  breakdownCount: { fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  rule: { height: 1, marginVertical: SPACING.md },
-  dayRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dayText: { fontSize: 13 },
-  dayStrong: { fontWeight: '700' },
-  track: { height: 6, borderRadius: 2, overflow: 'hidden' },
-  fill: { height: '100%' },
-
-  cols: { gap: SPACING.md },
+  cols: { gap: 16 },
   twoCol: { flexDirection: 'row', alignItems: 'flex-start' },
+  col: { gap: 16 },
   colItem: { flex: 1 },
 
-  emptyRow: {
+  launchRow: { flexDirection: 'row', gap: 12 },
+  launch: { flex: 1, minHeight: 150, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'space-between' },
+  launchHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  launchLabel: { fontSize: 16, fontWeight: '900' },
+  launchCount: { fontSize: 56, lineHeight: 62, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  launchHint: { fontSize: 13, fontWeight: '500' },
+
+  card: { borderRadius: RADII.sm, padding: 16 },
+  cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 },
+  cardTitle: { fontSize: 17, fontWeight: '900' },
+  meta: { fontSize: 12, fontWeight: '500' },
+  link: { fontSize: 14, fontWeight: '700' },
+  empty: { fontSize: 14, paddingVertical: 8 },
+
+  qRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 8 },
+  tag: { width: 66, paddingVertical: 5, borderRadius: RADII.xs, alignItems: 'center' },
+  tagText: { fontSize: 12, fontWeight: '700' },
+  qInfo: { flex: 1, minWidth: 0, gap: 1 },
+  qTitle: { fontSize: 15, fontWeight: '700' },
+  qNote: { fontSize: 12 },
+  slot: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderStyle: 'dashed', marginHorizontal: 2 },
+  addRow: {
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     minHeight: 48,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
     borderRadius: RADII.sm,
   },
-  emptyText: { fontSize: 13, fontWeight: '600' },
-  qRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 56,
-    paddingVertical: 8,
-  },
-  stageTag: {
-    width: 64,
-    paddingVertical: 4,
-    borderRadius: RADII.xs,
-    alignItems: 'center',
-  },
-  stageTagText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  qInfo: { flex: 1, minWidth: 0, gap: 1 },
-  qTitle: { fontSize: 14, fontWeight: '700' },
-  qNote: { fontSize: 12 },
-  qAction: { fontSize: 13, fontWeight: '700' },
+  addText: { fontSize: 14, fontWeight: '700' },
 
   fRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 36 },
-  fLabel: { width: 52, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  fBarArea: { flex: 1, flexDirection: 'row', height: 10, gap: 1 },
-  fBar: { height: '100%', borderRadius: 1 },
-  fDelta: {
-    width: 32,
-    textAlign: 'right',
-    fontSize: 13,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
+  fLabel: { width: 54, fontSize: 12, fontWeight: '500', fontVariant: ['tabular-nums'] },
+  fBarArea: { flex: 1, flexDirection: 'row', height: 10, gap: 2 },
+  fBar: { height: '100%', borderRadius: 2 },
+  fDelta: { width: 32, textAlign: 'right', fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
   fTotal: { width: 28, textAlign: 'right', fontSize: 12, fontVariant: ['tabular-nums'] },
 });

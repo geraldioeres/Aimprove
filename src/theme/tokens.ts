@@ -11,6 +11,15 @@ export interface ThemePalette {
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
+  // Stamp card world
+  ink: string;
+  hanko: string; // stamp red: seals and streaks only
+  hankoInk: string; // stamp red for small text
+  hankoBg: string;
+  indigo: string; // primary action ink
+  indigoBg: string;
+  marigold: string; // lessons
+  marigoldBg: string;
   // Japanese item types. Solid fills carry white glyphs; *Bg is the quiet tint.
   jpRadical: string;
   jpRadicalBg: string;
@@ -49,62 +58,74 @@ export interface ThemePalette {
   warningBg: string;
 }
 
+const INK = '#16161A';
+const HANKO = '#E5402A';
+const INDIGO = '#25348C';
+const MARIGOLD = '#F2C230';
+
 export const LIGHT_PALETTE: ThemePalette = {
   mode: 'light',
-  bgPrimary: '#F4F4F4',
-  bgSurface: '#FFFFFF',
-  bgMuted: '#F4F4F4',
+  bgPrimary: '#F3F2EE', // the desk the card sits on
+  bgSurface: '#FFFFFF', // card stock
+  bgMuted: '#F3F2EE',
   bgElevated: '#FFFFFF',
-  border: '#E1E1E1',
-  borderStrong: '#C9C9C9',
-  textPrimary: '#333333',
-  textSecondary: '#555555',
-  textMuted: '#6E6E6E',
-  jpRadical: '#0082C8',
-  jpRadicalBg: '#E3F3FC',
-  jpKanji: '#E0009A',
-  jpKanjiBg: '#FCE4F4',
-  jpVocab: '#A000F0',
-  jpVocabBg: '#F3E4FD',
-  jpGrammar: '#00806F',
-  jpGrammarBg: '#E0F2EF',
-  quranSabaq: '#1E8A4C',
-  quranSabaqBg: '#E3F3E9',
-  quranSabqi: '#B86400',
-  quranSabqiBg: '#FBEEDC',
-  quranManzil: '#294DDB',
-  quranManzilBg: '#E6EBFB',
-  mushafPaper: '#FFFEF9',
-  mushafBorder: '#E3DDCB',
-  srsApprentice: '#DD0093',
-  srsGuru: '#882D9E',
-  srsMaster: '#294DDB',
-  srsEnlightened: '#0082C8',
-  srsBurned: '#434343',
-  streakFlame: '#E0009A',
-  streakFlameBg: '#FCE4F4',
-  progressFluid: '#0082C8',
-  progressFluidBg: '#E3F3FC',
-  success: '#3B8F1C',
-  successBg: '#E8F5E0',
-  danger: '#E0002B',
-  dangerBg: '#FDE4E8',
-  warning: '#B86400',
-  warningBg: '#FBEEDC',
+  border: '#DCDAD3', // quiet row dividers inside a card
+  borderStrong: INK, // card edges, inputs, buttons
+  textPrimary: INK,
+  textSecondary: '#46454D',
+  textMuted: '#626169',
+  ink: INK,
+  hanko: HANKO,
+  hankoInk: '#C4301D',
+  hankoBg: '#FCE7E3',
+  indigo: INDIGO,
+  indigoBg: '#E6E8F5',
+  marigold: MARIGOLD,
+  marigoldBg: '#FDF3D3',
+  jpRadical: '#1A6FD1',
+  jpRadicalBg: '#E3EEFB',
+  jpKanji: '#D1267C',
+  jpKanjiBg: '#FBE4F0',
+  jpVocab: '#7B3FD6',
+  jpVocabBg: '#EFE6FB',
+  jpGrammar: '#0C7F65',
+  jpGrammarBg: '#DFF2EC',
+  quranSabaq: '#1B7F45',
+  quranSabaqBg: '#E1F2E7',
+  quranSabqi: '#AD5E00',
+  quranSabqiBg: '#FAEBD8',
+  quranManzil: INDIGO,
+  quranManzilBg: '#E6E8F5',
+  mushafPaper: '#FFFFFF',
+  mushafBorder: '#DCDAD3',
+  srsApprentice: '#D1267C',
+  srsGuru: '#7B3FD6',
+  srsMaster: INDIGO,
+  srsEnlightened: '#1A6FD1',
+  srsBurned: '#3A3A40',
+  streakFlame: HANKO,
+  streakFlameBg: '#FCE7E3',
+  progressFluid: INDIGO,
+  progressFluidBg: '#E6E8F5',
+  success: '#2E8540',
+  successBg: '#E3F3E6',
+  danger: '#D3311F',
+  dangerBg: '#FCE7E3',
+  warning: '#AD5E00',
+  warningBg: '#FAEBD8',
 };
 
 // Light only. Kept as an alias so imports elsewhere keep compiling.
 export const DARK_PALETTE = LIGHT_PALETTE;
 
-// Flat, square-ish corners. `pill` is used for buttons and tags, which stay
-// nearly square in this system; `round` is for true circles and count badges.
+// Card-stock corners: soft enough to feel printed and cut, never pill-shaped.
 export const RADII = {
-  xs: 3,
-  sm: 4,
-  md: 5,
-  lg: 6,
-  xl: 8,
-  pill: 4,
+  xs: 4,
+  sm: 6,
+  md: 6,
+  lg: 8,
+  xl: 10,
+  pill: 6,
   round: 999,
 } as const;
 
@@ -117,17 +138,26 @@ export const SPACING = {
   xxl: 40,
 } as const;
 
-/**
- * The item-tile signature: a solid type colour with a darker bottom lip and
- * a hard 1px shadow under the white glyph.
- */
-export const TILE_LIP = {
-  borderBottomWidth: 3,
-  borderBottomColor: 'rgba(0,0,0,0.22)',
+/** A card's printed edge: 2px ink outline. */
+export const CARD_EDGE = {
+  borderWidth: 2,
+  borderColor: INK,
 } as const;
 
-export const GLYPH_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.28)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 0,
+/**
+ * The pressable signature: 2px ink outline with a thicker ink base, like a
+ * rubber stamp's block. On press the base drops (see PRESSED_BASE).
+ */
+export const TILE_LIP = {
+  borderWidth: 2,
+  borderColor: INK,
+  borderBottomWidth: 5,
 } as const;
+
+export const PRESSED_BASE = {
+  borderBottomWidth: 2,
+  transform: [{ translateY: 3 }],
+} as const;
+
+// The old glyph shadow is retired; kept empty so imports still compile.
+export const GLYPH_SHADOW = {} as const;

@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#fff;color:#111014;font-family:'Bricolage Grotesque',sans-serif}
+.top{display:flex;justify-content:space-between;align-items:center;padding:52px 20px 12px}
+.top h1{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.av{width:36px;height:36px;border-radius:50%;background:#111014;color:#D4F84A;display:grid;place-items:center;font-weight:800}
+.stack{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.card{border-radius:22px;padding:18px 20px;position:relative;overflow:hidden}
+.streak{background:#D4F84A;display:flex;justify-content:space-between;align-items:center;height:132px}
+.streak .n{font-size:76px;font-weight:800;line-height:.9;letter-spacing:-.04em}
+.streak .l{font-size:15px;font-weight:700;margin-top:6px}
+.ring{width:84px;height:84px;border-radius:50%;background:conic-gradient(#111014 0 68%,rgba(17,16,20,.15) 0);display:grid;place-items:center}
+.ring i{width:62px;height:62px;border-radius:50%;background:#D4F84A;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:18px}
+.row{display:flex;gap:10px}
+.half{flex:1;height:178px;display:flex;flex-direction:column;justify-content:space-between}
+.rev{background:#2F5BFF;color:#fff}
+.les{background:#FF3DA5;color:#111014}
+.half .k{font-size:15px;font-weight:700}
+.half .n{font-size:84px;font-weight:800;line-height:.85;letter-spacing:-.05em}
+.half .h{font-size:13px;font-weight:500}
+.go{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);color:#111014;display:grid;place-items:center;font-weight:800}
+.quran{background:#0B5D4B;color:#EAF7F1;height:196px}
+.quran .k{font-size:15px;font-weight:700;margin-bottom:12px}
+.pg{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid rgba(234,247,241,.18);font-size:15px}
+.tag{font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;background:#EAF7F1;color:#0B5D4B}
+.strip{display:flex;gap:4px;margin-top:2px}
+.strip b{flex:1;height:8px;border-radius:4px;background:rgba(17,16,20,.12)}
+.strip b.on{background:#111014}
+.tabs{position:absolute;bottom:0;left:0;right:0;height:82px;border-top:1px solid #ECEBF0;background:#fff;display:flex;justify-content:space-around;padding-top:12px;font-size:12px;font-weight:700;color:#8A8892}
+.tabs .on{color:#111014}
+.dot{display:block;width:22px;height:22px;border-radius:7px;background:currentColor;margin:0 auto 4px}
+</style></head><body>
+<div class="top"><h1>Today</h1><div class="av">G</div></div>
+<div class="stack">
+  <div class="card streak">
+    <div><div class="n">12</div><div class="l">day streak · keep it going</div></div>
+    <div class="ring"><i>68%</i></div>
+  </div>
+  <div class="row">
+    <div class="card half rev"><span class="go">→</span><div class="k">Reviews</div><div><div class="n">23</div><div class="h">9 kanji · 14 vocab</div></div></div>
+    <div class="card half les"><span class="go">→</span><div class="k">Lessons</div><div><div class="n">5</div><div class="h">Level 4 radicals</div></div></div>
+  </div>
+  <div class="card quran">
+    <div class="k">Quran today</div>
+    <div class="pg"><span>Page 582 · An-Naba</span><span class="tag">Sabaq</span></div>
+    <div class="pg"><span>Pages 578–581</span><span class="tag">Sabqi</span></div>
+    <div class="pg"><span>Page 3 · Al-Baqarah</span><span class="tag">Manzil</span></div>
+  </div>
+</div>
+<div class="tabs"><div class="on"><span class="dot"></span>Today</div><div><span class="dot"></span>Japanese</div><div><span class="dot"></span>Quran</div><div><span class="dot"></span>Settings</div></div>
+</body></html>

@@ -275,11 +275,17 @@ export const GRAMMAR_SUBJECTS: JPSubject[] = [
   },
 ];
 
+// Generated placeholder mnemonics only restate the answer (and name the source
+// site), so treat them as missing and let the UI say so.
+const STUB_MNEMONIC = /^(WaniKani )?Level \d+ (radical|vocabulary)\b/;
+
 /**
- * Full WaniKani Level 1-60 Curriculum (478 Radicals + 2,026 Kanji + 6,345 Vocab + JLPT Grammar = 8,855 Subjects)
+ * Full Level 1-60 Curriculum (478 Radicals + 2,026 Kanji + 6,345 Vocab + JLPT Grammar = 8,855 Subjects)
  */
 export const INITIAL_JP_SUBJECTS: JPSubject[] = [
-  ...(fullWaniKaniDataset as JPSubject[]),
+  ...(fullWaniKaniDataset as JPSubject[]).map((subj) =>
+    STUB_MNEMONIC.test(subj.mnemonic || '') ? { ...subj, mnemonic: '' } : subj
+  ),
   ...GRAMMAR_SUBJECTS,
 ];
 

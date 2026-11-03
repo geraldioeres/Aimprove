@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
+import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectAvailableJapaneseLessons,
   useLearningStore,
@@ -60,7 +60,7 @@ export default function JapaneseLessonsScreen() {
         <View
           style={[
             styles.card,
-            { backgroundColor: colors.bgSurface, borderColor: colors.border },
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
           ]}
         >
           <Text style={[styles.headline, { color: colors.textPrimary }]}>
@@ -72,7 +72,7 @@ export default function JapaneseLessonsScreen() {
           <Pressable
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
-            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.jpRadical }]}
+            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.indigo }]}
           >
             <Text style={styles.primaryBtnText}>Back to Today</Text>
           </Pressable>
@@ -87,7 +87,7 @@ export default function JapaneseLessonsScreen() {
         <View
           style={[
             styles.card,
-            { backgroundColor: colors.bgSurface, borderColor: colors.border },
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
           ]}
         >
           <Text style={[styles.headline, { color: colors.textPrimary }]}>
@@ -99,7 +99,7 @@ export default function JapaneseLessonsScreen() {
           <Pressable
             onPress={() => router.replace('/(tabs)')}
             accessibilityRole="button"
-            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.jpRadical }]}
+            style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.indigo }]}
           >
             <Text style={styles.primaryBtnText}>Back to Today</Text>
           </Pressable>
@@ -155,7 +155,7 @@ export default function JapaneseLessonsScreen() {
         <View
           style={[
             styles.lessonBanner,
-            TILE_LIP,
+            CARD_EDGE,
             { backgroundColor: getKindColor(currentQuizSubject.kind) },
           ]}
         >
@@ -198,7 +198,7 @@ export default function JapaneseLessonsScreen() {
               styles.quizInput,
               {
                 backgroundColor: colors.bgSurface,
-                borderColor: colors.borderStrong,
+                borderColor: colors.ink,
                 color: colors.textPrimary,
               },
             ]}
@@ -209,7 +209,7 @@ export default function JapaneseLessonsScreen() {
             style={[
               styles.quizSubmitBtn,
               TILE_LIP,
-              { backgroundColor: colors.textPrimary },
+              { backgroundColor: colors.indigo },
             ]}
           >
             <Text style={styles.primaryBtnText}>Check</Text>
@@ -278,7 +278,7 @@ export default function JapaneseLessonsScreen() {
       <View
         style={[
           styles.lessonBanner,
-          TILE_LIP,
+          CARD_EDGE,
           { backgroundColor: getKindColor(currentSubject.kind) },
         ]}
       >
@@ -296,7 +296,7 @@ export default function JapaneseLessonsScreen() {
       <View
         style={[
           styles.detailCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         {currentSubject.readings.length > 0 ? (
@@ -326,7 +326,7 @@ export default function JapaneseLessonsScreen() {
             Mnemonic
           </Text>
           <Text style={[styles.detailBody, { color: colors.textPrimary }]}>
-            {currentSubject.mnemonic}
+            {currentSubject.mnemonic || 'No mnemonic for this item yet.'}
           </Text>
           {currentSubject.readingMnemonic ? (
             <Text style={[styles.detailBody, { color: colors.textSecondary, marginTop: 4 }]}>
@@ -369,7 +369,7 @@ export default function JapaneseLessonsScreen() {
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
+                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
               ]}
             >
               <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
@@ -382,7 +382,7 @@ export default function JapaneseLessonsScreen() {
             <Pressable
               onPress={() => setStepIndex(stepIndex + 1)}
               accessibilityRole="button"
-              style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.textPrimary }]}
+              style={[styles.primaryBtn, TILE_LIP, { backgroundColor: colors.indigo }]}
             >
               <Text style={styles.primaryBtnText}>Next</Text>
             </Pressable>
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.xl,
     gap: SPACING.md,
   },
@@ -445,8 +445,8 @@ const styles = StyleSheet.create({
   miniPill: {
     paddingHorizontal: 14,
     minHeight: 44,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 80,
     lineHeight: 100,
-    fontWeight: '400',
+    fontWeight: '700',
   },
   bannerMeanings: {
     color: '#FFFFFF',
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   detailCard: {
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.lg,
     gap: SPACING.md,
   },
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   exampleBox: {
     padding: 14,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 4,
     marginTop: 4,
   },
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     paddingHorizontal: 22,
     minHeight: 50,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -543,8 +543,8 @@ const styles = StyleSheet.create({
   secondaryBtn: {
     paddingHorizontal: 20,
     minHeight: 50,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -563,8 +563,8 @@ const styles = StyleSheet.create({
   quizInput: {
     flex: 1,
     minHeight: 54,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     paddingHorizontal: 18,
     fontSize: 20,
     textAlign: 'center',
@@ -572,14 +572,14 @@ const styles = StyleSheet.create({
   quizSubmitBtn: {
     paddingHorizontal: 24,
     minHeight: 54,
-    borderRadius: 4,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quizAlert: {
     padding: 14,
     borderRadius: 6,
-    borderWidth: 1,
+    borderWidth: 2,
   },
   quizAlertText: {
     fontSize: 14,

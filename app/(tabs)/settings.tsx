@@ -55,11 +55,48 @@ export default function SettingsAndCloudScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
+      {/* Daily goal: how many items earn today's stamp */}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
+        ]}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Daily goal</Text>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          Reviews, lessons and recitations you need each day to earn the day's stamp and keep your streak.
+        </Text>
+        <View style={styles.windowPillRow}>
+          {[5, 10, 20, 40].map((goal) => {
+            const active = state.dailyGoal === goal;
+            return (
+              <Pressable
+                key={goal}
+                onPress={() => state.setDailyGoal(goal)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.windowPill,
+                  {
+                    backgroundColor: active ? colors.indigo : colors.bgSurface,
+                    borderColor: active ? colors.indigo : colors.ink,
+                  },
+                ]}
+              >
+                <Text style={[styles.windowPillText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>
+                  {goal} a day
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Sabqi revision window Config */}
       <View
         style={[
           styles.card,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -81,9 +118,9 @@ export default function SettingsAndCloudScreen() {
                   styles.windowPill,
                   {
                     backgroundColor: active
-                      ? colors.textPrimary
+                      ? colors.indigo
                       : colors.bgSurface,
-                    borderColor: active ? colors.textPrimary : colors.border,
+                    borderColor: active ? colors.indigo : colors.ink,
                   },
                 ]}
               >
@@ -105,7 +142,7 @@ export default function SettingsAndCloudScreen() {
       <View
         style={[
           styles.card,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <View style={styles.statusHeaderRow}>
@@ -152,7 +189,7 @@ export default function SettingsAndCloudScreen() {
             styles.input,
             {
               backgroundColor: colors.bgSurface,
-              borderColor: colors.borderStrong,
+              borderColor: colors.ink,
               color: colors.textPrimary,
             },
           ]}
@@ -170,7 +207,7 @@ export default function SettingsAndCloudScreen() {
             styles.input,
             {
               backgroundColor: colors.bgSurface,
-              borderColor: colors.borderStrong,
+              borderColor: colors.ink,
               color: colors.textPrimary,
             },
           ]}
@@ -181,7 +218,7 @@ export default function SettingsAndCloudScreen() {
           accessibilityRole="button"
           style={[
             styles.primaryBtn,
-            { backgroundColor: colors.textPrimary },
+            { backgroundColor: colors.indigo },
           ]}
         >
           <Text style={styles.primaryBtnText}>Save connection</Text>
@@ -210,7 +247,7 @@ export default function SettingsAndCloudScreen() {
               accessibilityRole="button"
               style={[
                 styles.secondaryBtn,
-                { backgroundColor: colors.bgSurface, borderColor: colors.border },
+                { backgroundColor: colors.bgSurface, borderColor: colors.ink },
               ]}
             >
               <Text style={[styles.secondaryBtnText, { color: colors.textPrimary }]}>
@@ -231,7 +268,7 @@ export default function SettingsAndCloudScreen() {
                 styles.input,
                 {
                   backgroundColor: colors.bgSurface,
-                  borderColor: colors.borderStrong,
+                  borderColor: colors.ink,
                   color: colors.textPrimary,
                 },
               ]}
@@ -246,7 +283,7 @@ export default function SettingsAndCloudScreen() {
                 styles.input,
                 {
                   backgroundColor: colors.bgSurface,
-                  borderColor: colors.borderStrong,
+                  borderColor: colors.ink,
                   color: colors.textPrimary,
                 },
               ]}
@@ -257,7 +294,7 @@ export default function SettingsAndCloudScreen() {
                 accessibilityRole="button"
                 style={[
                   styles.primaryBtn,
-                  { flex: 1, backgroundColor: colors.textPrimary },
+                  { flex: 1, backgroundColor: colors.indigo },
                 ]}
               >
                 <Text style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
@@ -272,7 +309,7 @@ export default function SettingsAndCloudScreen() {
                   {
                     flex: 1,
                     backgroundColor: colors.bgSurface,
-                    borderColor: colors.borderStrong,
+                    borderColor: colors.ink,
                   },
                 ]}
               >
@@ -299,7 +336,7 @@ export default function SettingsAndCloudScreen() {
       <View
         style={[
           styles.card,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <View style={styles.statusHeaderRow}>
@@ -311,7 +348,7 @@ export default function SettingsAndCloudScreen() {
             accessibilityRole="button"
             style={[
               styles.resetBtn,
-              { backgroundColor: colors.bgSurface, borderColor: colors.border },
+              { backgroundColor: colors.bgSurface, borderColor: colors.ink },
             ]}
           >
             <Text style={[styles.resetBtnText, { color: colors.textSecondary }]}>
@@ -331,7 +368,7 @@ export default function SettingsAndCloudScreen() {
                 key={log.id}
                 style={[
                   styles.logRow,
-                  { backgroundColor: colors.bgSurface, borderColor: colors.border },
+                  { backgroundColor: colors.bgSurface, borderColor: colors.ink },
                 ]}
               >
                 <View style={styles.logLeft}>
@@ -373,13 +410,13 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: RADII.lg,
-    borderWidth: 1,
+    borderWidth: 2,
     padding: SPACING.md,
     gap: SPACING.sm,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   sectionSub: {
     fontSize: 13,
@@ -394,7 +431,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 46,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -412,7 +449,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     minHeight: 42,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -439,7 +476,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     paddingHorizontal: 18,
     fontSize: 14,
   },
@@ -459,7 +496,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 18,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -497,7 +534,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 36,
     borderRadius: RADII.pill,
-    borderWidth: 1,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -518,7 +555,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 2,
     gap: 8,
   },
   logLeft: {
@@ -527,7 +564,7 @@ const styles = StyleSheet.create({
   },
   logTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   logMeta: {
     fontSize: 12,

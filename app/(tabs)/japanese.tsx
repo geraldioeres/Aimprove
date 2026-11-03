@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme/ThemeContext';
-import { GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
+import { GLYPH_SHADOW, PRESSED_BASE, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   JP_SUBJECT_BY_ID,
   JP_SUBJECTS_BY_LEVEL,
@@ -154,7 +154,7 @@ export default function JapaneseHubScreen() {
       style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       contentContainerStyle={styles.content}
     >
-      {/* WaniKani-style dashboard: Lessons / Reviews / Reading */}
+      {/* Lessons / Reviews / Reading */}
       <View style={[styles.sessionBar, narrow && styles.stackCol]}>
         <Pressable
           disabled={availableLessons.length === 0}
@@ -164,25 +164,25 @@ export default function JapaneseHubScreen() {
             styles.launchCard,
             narrow && styles.launchCardNarrow,
             {
-              backgroundColor: availableLessons.length > 0 ? WK.kanji : dashGray,
-              borderColor: availableLessons.length > 0 ? WK.kanji : dashBorder,
-              opacity: pressed ? 0.88 : 1,
+              backgroundColor: availableLessons.length > 0 ? colors.marigold : dashGray,
+              borderColor: colors.ink,
             },
-            availableLessons.length > 0 && TILE_LIP,
+            availableLessons.length > 0 ? TILE_LIP : { borderWidth: 2, borderColor: colors.border },
+            pressed && PRESSED_BASE,
           ]}
         >
-          <Text style={[styles.launchTitle, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textPrimary }]}>
+          <Text style={[styles.launchTitle, { color: colors.ink }]}>
             Lessons
           </Text>
           {availableLessons.length > 0 ? (
-            <Text style={[styles.launchCount, GLYPH_SHADOW, { color: '#FFFFFF' }]}>{availableLessons.length}</Text>
+            <Text style={[styles.launchCount, { color: colors.ink }]}>{availableLessons.length}</Text>
           ) : (
             <Text style={[styles.launchCount, { color: colors.textMuted }]}>0</Text>
           )}
-          <Text style={[styles.launchHint, { color: availableLessons.length > 0 ? '#FFFFFF' : colors.textMuted }]}>
+          <Text style={[styles.launchHint, { color: availableLessons.length > 0 ? colors.ink : colors.textMuted }]}>
             {availableLessons.length > 0
-              ? 'New items are ready to learn.'
-              : 'All done. Do your Reviews to unlock more Lessons.'}
+              ? 'Fresh items, ready to learn.'
+              : 'All learned. Clear your reviews to unlock more.'}
           </Text>
         </Pressable>
 
@@ -194,11 +194,11 @@ export default function JapaneseHubScreen() {
             styles.launchCard,
             narrow && styles.launchCardNarrow,
             {
-              backgroundColor: dueReviews.totalCount > 0 ? WK.radical : dashGray,
-              borderColor: dueReviews.totalCount > 0 ? WK.radical : dashBorder,
-              opacity: pressed ? 0.88 : 1,
+              backgroundColor: dueReviews.totalCount > 0 ? colors.indigo : dashGray,
+              borderColor: colors.ink,
             },
-            dueReviews.totalCount > 0 && TILE_LIP,
+            dueReviews.totalCount > 0 ? TILE_LIP : { borderWidth: 2, borderColor: colors.border },
+            pressed && PRESSED_BASE,
           ]}
         >
           <Text style={[styles.launchTitle, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textPrimary }]}>
@@ -209,8 +209,8 @@ export default function JapaneseHubScreen() {
           </Text>
           <Text style={[styles.launchHint, { color: dueReviews.totalCount > 0 ? '#FFFFFF' : colors.textMuted }]}>
             {dueReviews.totalCount > 0
-              ? 'Reviews are waiting for you.'
-              : 'There are no more Reviews to do right now.'}
+              ? 'Waiting for you. Keep the streak alive.'
+              : 'All caught up. Nice.'}
           </Text>
         </Pressable>
 
@@ -220,19 +220,24 @@ export default function JapaneseHubScreen() {
           style={({ pressed }) => [
             styles.launchCard,
             styles.launchCardWide,
-            { backgroundColor: colors.bgSurface, borderColor: dashBorder, opacity: pressed ? 0.88 : 1 },
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
+            TILE_LIP,
+            pressed && PRESSED_BASE,
           ]}
         >
           <Text style={[styles.launchTitle, { color: colors.textPrimary }]}>Reading & Mining</Text>
           <Text style={[styles.launchHint, { color: colors.textSecondary }]}>
             {state.jpPassages.length} passages. Tap a word to add it to your SRS queue.
           </Text>
-          <Text style={[styles.seeAll, { color: WK.vocab }]}>Open reading ›</Text>
+          <View style={styles.linkRow}>
+            <Text style={[styles.seeAll, { color: colors.indigo }]}>Open reading</Text>
+            <Feather name="chevron-right" size={16} color={colors.indigo} />
+          </View>
         </Pressable>
       </View>
 
       {/* Recent Mistakes + Extra Study */}
-      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Mistakes</Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
           {recentMistakeCount > 0
@@ -241,7 +246,7 @@ export default function JapaneseHubScreen() {
         </Text>
       </View>
 
-      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Extra Study</Text>
         <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
           A snapshot of your recent activity, outside your regular Reviews.
@@ -251,7 +256,7 @@ export default function JapaneseHubScreen() {
           { label: 'Recent Mistakes', n: recentMistakeCount },
           { label: 'Burned Items', n: burnedTotal },
         ].map((r) => (
-          <View key={r.label} style={[styles.spreadRow, { backgroundColor: colors.bgMuted, borderColor: dashBorder }]}>
+          <View key={r.label} style={[styles.spreadRow, { borderColor: colors.border }]}>
             <Text style={[styles.spreadName, { color: colors.textPrimary }]}>{r.label}</Text>
             <View style={[styles.countPill, { backgroundColor: colors.textSecondary }]}>
               <Text style={styles.countPillText}>{r.n}</Text>
@@ -260,7 +265,7 @@ export default function JapaneseHubScreen() {
         ))}
       </View>
       {/* Level Progress */}
-      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
         <View style={styles.levelHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Level Progress</Text>
           <View style={styles.levelStepper}>
@@ -298,13 +303,16 @@ export default function JapaneseHubScreen() {
               key={col.kind}
               accessibilityRole="button"
               onPress={() => setFilterKind(col.kind)}
-              style={[styles.levelCol, narrow && styles.levelColRow, narrow ? { borderLeftColor: col.color } : null, { borderTopColor: col.color, backgroundColor: colors.bgMuted }]}
+              style={({ pressed }) => [styles.levelCol, narrow && styles.levelColRow, TILE_LIP, { backgroundColor: col.color }, pressed && PRESSED_BASE]}
             >
-              <Text style={[styles.levelColLabel, { color: col.color }]}>{col.label}</Text>
-              <Text style={[styles.levelColCount, { color: colors.textPrimary }]}>
+              <Text style={[styles.levelColLabel, { color: '#FFFFFF' }]}>{col.label}</Text>
+              <Text style={[styles.levelColCount, { color: '#FFFFFF' }]}>
                 {col.passed}/{col.total}
               </Text>
-              <Text style={[styles.seeAll, { color: colors.textSecondary }]}>See All ›</Text>
+              <View style={styles.linkRow}>
+                <Text style={[styles.seeAll, { color: '#FFFFFF' }]}>See all</Text>
+                <Feather name="chevron-right" size={16} color="#FFFFFF" />
+              </View>
             </Pressable>
           ))}
         </View>
@@ -326,7 +334,7 @@ export default function JapaneseHubScreen() {
       </View>
 
       {/* Item Spread */}
-      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+      <View style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
         <View style={styles.levelHeaderRow}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Item Spread</Text>
           <View style={styles.legendRow}>
@@ -343,7 +351,7 @@ export default function JapaneseHubScreen() {
         </View>
         <View style={styles.spreadTable}>
           {spreadRows.map((row) => (
-            <View key={row.name} style={[styles.spreadRow, { backgroundColor: colors.bgMuted, borderColor: dashBorder }]}>
+            <View key={row.name} style={[styles.spreadRow, { borderColor: colors.border }]}>
               <Text style={[styles.spreadName, { color: colors.textPrimary }]}>{row.name}</Text>
               <View style={styles.spreadPills}>
                 <View style={[styles.countPill, { backgroundColor: WK.radical }]}>
@@ -370,7 +378,7 @@ export default function JapaneseHubScreen() {
         { title: 'Critical Condition Items', sub: 'Items that could use some extra study time.', empty: 'Your items are in good health.', items: criticalItems },
         { title: 'Recently Burned', sub: 'Items that you have burned in the last 30 days.', empty: 'Nothing burned yet. Keep reviewing.', items: recentlyBurned },
       ].map((box) => (
-        <View key={box.title} style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: dashBorder }]}>
+        <View key={box.title} style={[styles.sectionCard, { backgroundColor: colors.bgSurface, borderColor: colors.ink }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{box.title}</Text>
           <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>{box.sub}</Text>
           {box.items.length === 0 ? (
@@ -396,11 +404,11 @@ export default function JapaneseHubScreen() {
           )}
         </View>
       ))}
-      {/* Full WaniKani Level 1-60 Navigator */}
+      {/* Level 1-60 navigator */}
       <View
         style={[
           styles.sectionCard,
-          { backgroundColor: colors.bgSurface, borderColor: colors.border },
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
         ]}
       >
         <View style={styles.levelHeaderRow}>
@@ -414,7 +422,7 @@ export default function JapaneseHubScreen() {
           </View>
         </View>
 
-        {/* 6 WaniKani 10-Level Tier Tabs */}
+        {/* Ten-level tier tabs */}
         <View style={styles.tierRow}>
           {WANIKANI_TIERS.map((tier, idx) => {
             const active = selectedTierIndex === idx;
@@ -429,8 +437,8 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.tierBtn,
                   {
-                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
-                    borderColor: active ? colors.textPrimary : colors.border,
+                    backgroundColor: active ? colors.indigo : colors.bgSurface,
+                    borderColor: active ? colors.indigo : colors.ink,
                   },
                 ]}
               >
@@ -470,12 +478,12 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.levelPill,
                   {
-                    backgroundColor: isSelected ? colors.textPrimary : colors.bgSurface,
+                    backgroundColor: isSelected ? colors.indigo : colors.bgSurface,
                     borderColor: isSelected
-                      ? colors.textPrimary
+                      ? colors.indigo
                       : isCurrent
-                      ? colors.jpKanji
-                      : colors.border,
+                      ? colors.ink
+                      : colors.ink,
                     borderWidth: isCurrent && !isSelected ? 2 : 1,
                   },
                 ]}
@@ -499,14 +507,14 @@ export default function JapaneseHubScreen() {
         <View
           style={[
             styles.unlockProgressBox,
-            { backgroundColor: colors.bgMuted, borderColor: colors.border },
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
           ]}
         >
           <View style={styles.unlockProgressTextRow}>
             <Text style={[styles.unlockProgressLabel, { color: colors.textPrimary }]}>
               Level {selectedLevel} kanji at Guru
             </Text>
-            <Text style={[styles.unlockProgressValue, { color: colors.jpKanji }]}>
+            <Text style={[styles.unlockProgressValue, { color: colors.ink }]}>
               {guruKanjiInLevel} / {requiredForLevelUp}
             </Text>
           </View>
@@ -524,7 +532,7 @@ export default function JapaneseHubScreen() {
                     100,
                     Math.round((guruKanjiInLevel / requiredForLevelUp) * 100)
                   )}%`,
-                  backgroundColor: colors.jpKanji,
+                  backgroundColor: colors.indigo,
                 },
               ]}
             />
@@ -552,8 +560,8 @@ export default function JapaneseHubScreen() {
                 style={[
                   styles.filterTab,
                   {
-                    backgroundColor: active ? colors.textPrimary : colors.bgSurface,
-                    borderColor: active ? colors.textPrimary : colors.border,
+                    backgroundColor: active ? colors.indigo : colors.bgSurface,
+                    borderColor: active ? colors.indigo : colors.ink,
                   },
                 ]}
               >
@@ -580,10 +588,10 @@ export default function JapaneseHubScreen() {
               ]}
             >
               <Text style={[styles.emptyMinedTitle, { color: colors.textPrimary }]}>
-                No Mined Cards Yet
+                No mined cards yet
               </Text>
               <Text style={[styles.emptyMinedSub, { color: colors.textSecondary }]}>
-                Open Reading & Sentence Mining, tap any word in a passage, and press "Mine to SRS Queue" to add cards here.
+                Open Reading, tap any word in a passage, then "Add to reviews" to collect it here.
               </Text>
               <Pressable
                 onPress={() => router.push('/jp/reading')}
@@ -594,7 +602,7 @@ export default function JapaneseHubScreen() {
                 ]}
               >
                 <Text style={styles.emptyActionBtnText}>
-                  Open Reading Passages
+                  Open Reading
                 </Text>
               </Pressable>
             </View>
@@ -654,10 +662,10 @@ export default function JapaneseHubScreen() {
                       backgroundColor: isLocked
                         ? colors.bgMuted
                         : kindStyle.bg,
-                      borderColor: isLocked ? colors.border : kindStyle.fg,
-                      opacity: pressed ? 0.8 : 1,
+                      borderColor: isLocked ? colors.border : colors.ink,
                     },
                     !isLocked && TILE_LIP,
+                    pressed && !isLocked && PRESSED_BASE,
                   ]}
                 >
                   <View style={styles.tileTopRow}>
@@ -781,7 +789,7 @@ export default function JapaneseHubScreen() {
                     Mnemonic & Breakdown
                   </Text>
                   <Text style={[styles.mnemonicBody, { color: colors.textSecondary }]}>
-                    {inspectedSubject.mnemonic}
+                    {inspectedSubject.mnemonic || 'No mnemonic for this item yet.'}
                   </Text>
                   {inspectedSubject.readingMnemonic ? (
                     <Text
@@ -840,6 +848,7 @@ const styles = StyleSheet.create({
   },
   launchCardNarrow: {
     flex: 0,
+    flexShrink: 0,
     flexBasis: 'auto',
     minHeight: 120,
     minWidth: 0,
@@ -851,8 +860,6 @@ const styles = StyleSheet.create({
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 0,
-    borderLeftWidth: 5,
     gap: 10,
   },
   chipWrap: {
@@ -864,7 +871,7 @@ const styles = StyleSheet.create({
     minWidth: 44,
     minHeight: 44,
     paddingHorizontal: 10,
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -881,8 +888,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
     minHeight: 150,
     padding: 16,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
     gap: 4,
   },
   launchCardWide: {
@@ -897,7 +903,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 1,
   },
   donePillText: {
@@ -943,8 +949,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 76,
     padding: 10,
-    borderRadius: 4,
-    borderTopWidth: 4,
+    borderRadius: 6,
     gap: 2,
     justifyContent: 'space-between',
   },
@@ -959,7 +964,7 @@ const styles = StyleSheet.create({
   },
   passBanner: {
     padding: 12,
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 1,
   },
   passBannerText: {
@@ -977,7 +982,7 @@ const styles = StyleSheet.create({
   legendChip: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   legendChipText: {
     color: '#FFFFFF',
@@ -992,10 +997,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 44,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
   },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   spreadName: {
     fontSize: 13,
     fontWeight: '600',
@@ -1008,7 +1013,7 @@ const styles = StyleSheet.create({
     minWidth: 34,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 6,
     alignItems: 'center',
   },
   countPillText: {
@@ -1017,25 +1022,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },  launchCount: {
-    fontSize: 40,
-    lineHeight: 48,
-    fontWeight: '700',
+    fontSize: 48,
+    lineHeight: 56,
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   launchTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   sectionCard: {
-    borderRadius: 4,
-    borderWidth: 1,
+    borderRadius: 6,
+    borderWidth: 2,
     overflow: 'hidden',
     padding: SPACING.md,
     gap: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '900',
     flexShrink: 1,
   },
   sectionSub: {

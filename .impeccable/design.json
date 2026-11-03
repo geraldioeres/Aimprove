@@ -1,0 +1,584 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-03T07:00:33.860Z",
+  "title": "Design System: Aimprove",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Sumi Ink",
+        "canonical": "#16161A",
+        "tonalRamp": [
+          "#0B0B0D",
+          "#242427",
+          "#3F3F43",
+          "#5D5D62",
+          "#7D7D82",
+          "#A1A1A5",
+          "#C7C7CB",
+          "#EEEEF1"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Warm Grey Desk",
+        "canonical": "#F3F2EE",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#242422",
+          "#40403D",
+          "#5E5E5A",
+          "#7E7D7A",
+          "#A2A19E",
+          "#C8C7C5",
+          "#EFEEEC"
+        ]
+      },
+      "card-stock": {
+        "role": "neutral",
+        "displayName": "Card Stock White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#7D7D7D",
+          "#A1A1A1",
+          "#C7C7C7",
+          "#EEEEEE"
+        ]
+      },
+      "rule-quiet": {
+        "role": "neutral",
+        "displayName": "Quiet Rule",
+        "canonical": "#DCDAD3",
+        "tonalRamp": [
+          "#0C0B09",
+          "#252420",
+          "#41403B",
+          "#5F5E58",
+          "#7F7D77",
+          "#A3A19C",
+          "#C9C7C2",
+          "#F0EEEA"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "canonical": "#46454D",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#242328",
+          "#403F45",
+          "#5D5C64",
+          "#7D7C84",
+          "#A1A0A8",
+          "#C7C6CD",
+          "#EEEEF3"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#626169",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#242328",
+          "#403F45",
+          "#5D5D64",
+          "#7D7C84",
+          "#A1A0A8",
+          "#C7C6CD",
+          "#EEEEF3"
+        ]
+      },
+      "hanko": {
+        "role": "secondary",
+        "displayName": "Hanko Red",
+        "canonical": "#E5402A",
+        "tonalRamp": [
+          "#210000",
+          "#4B0100",
+          "#7A0B00",
+          "#AF1500",
+          "#D93D28",
+          "#F9725D",
+          "#FEB1A2",
+          "#FFE9E4"
+        ]
+      },
+      "hanko-ink": {
+        "role": "secondary",
+        "displayName": "Hanko Text Red",
+        "canonical": "#C4301D",
+        "tonalRamp": [
+          "#210000",
+          "#4B0100",
+          "#7B0800",
+          "#A92312",
+          "#D24733",
+          "#F27864",
+          "#FEB1A2",
+          "#FFE9E4"
+        ]
+      },
+      "hanko-bg": {
+        "role": "secondary",
+        "displayName": "Hanko Tint",
+        "canonical": "#FCE7E3",
+        "tonalRamp": [
+          "#100908",
+          "#2B211F",
+          "#493C3A",
+          "#695956",
+          "#8A7975",
+          "#AD9D9A",
+          "#D2C4C1",
+          "#F7EBE9"
+        ]
+      },
+      "indigo": {
+        "role": "primary",
+        "displayName": "Indigo Ink",
+        "canonical": "#25348C",
+        "tonalRamp": [
+          "#03042D",
+          "#131D53",
+          "#29387D",
+          "#4156A9",
+          "#5E76D0",
+          "#849DED",
+          "#B2C5FE",
+          "#E9EEFE"
+        ]
+      },
+      "indigo-bg": {
+        "role": "primary",
+        "displayName": "Indigo Tint",
+        "canonical": "#E6E8F5",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#23242A",
+          "#3E3F47",
+          "#5B5D67",
+          "#7B7C87",
+          "#9FA1AB",
+          "#C5C7CF",
+          "#EDEEF5"
+        ]
+      },
+      "marigold": {
+        "role": "tertiary",
+        "displayName": "Lessons Marigold",
+        "canonical": "#F2C230",
+        "tonalRamp": [
+          "#110A00",
+          "#2E2200",
+          "#503D01",
+          "#745A00",
+          "#9A7804",
+          "#C29C2D",
+          "#E4C470",
+          "#FFEDC1"
+        ]
+      },
+      "marigold-bg": {
+        "role": "tertiary",
+        "displayName": "Marigold Tint",
+        "canonical": "#FDF3D3",
+        "tonalRamp": [
+          "#0F0B02",
+          "#292413",
+          "#463F2B",
+          "#655D44",
+          "#867D62",
+          "#A9A189",
+          "#CEC7B2",
+          "#F4EEDD"
+        ]
+      },
+      "jp-radical": {
+        "role": "tertiary",
+        "displayName": "Radical Blue",
+        "canonical": "#1A6FD1",
+        "tonalRamp": [
+          "#000A24",
+          "#00224E",
+          "#003D80",
+          "#095BB3",
+          "#307CDB",
+          "#63A3F7",
+          "#A3CAFF",
+          "#E5F0FE"
+        ]
+      },
+      "jp-kanji": {
+        "role": "tertiary",
+        "displayName": "Kanji Pink",
+        "canonical": "#D1267C",
+        "tonalRamp": [
+          "#1F000C",
+          "#480025",
+          "#770042",
+          "#AA0060",
+          "#D33480",
+          "#F36CA4",
+          "#FFAAC9",
+          "#FFE7EF"
+        ]
+      },
+      "jp-vocab": {
+        "role": "tertiary",
+        "displayName": "Vocabulary Violet",
+        "canonical": "#7B3FD6",
+        "tonalRamp": [
+          "#11002A",
+          "#2E005F",
+          "#4C1A8E",
+          "#6C36BE",
+          "#8C58E7",
+          "#AD87FE",
+          "#CDBBFE",
+          "#F0EBFE"
+        ]
+      },
+      "jp-grammar": {
+        "role": "tertiary",
+        "displayName": "Grammar Teal",
+        "canonical": "#0C7F65",
+        "tonalRamp": [
+          "#000F09",
+          "#002C21",
+          "#024C3B",
+          "#016E57",
+          "#319076",
+          "#68B39B",
+          "#99D7C2",
+          "#C9FCEA"
+        ]
+      },
+      "quran-sabaq": {
+        "role": "tertiary",
+        "displayName": "Sabaq Green",
+        "canonical": "#1B7F45",
+        "tonalRamp": [
+          "#001003",
+          "#002D13",
+          "#004E24",
+          "#14703B",
+          "#3A9159",
+          "#6CB482",
+          "#9CD8AC",
+          "#CCFDD8"
+        ]
+      },
+      "quran-sabqi": {
+        "role": "tertiary",
+        "displayName": "Sabqi Amber",
+        "canonical": "#AD5E00",
+        "tonalRamp": [
+          "#180600",
+          "#3A1B00",
+          "#603201",
+          "#8B4B01",
+          "#B4681E",
+          "#D49058",
+          "#F5B98B",
+          "#FFEADB"
+        ]
+      },
+      "quran-manzil": {
+        "role": "tertiary",
+        "displayName": "Manzil Indigo",
+        "canonical": "#25348C",
+        "tonalRamp": [
+          "#03042D",
+          "#131D53",
+          "#29387D",
+          "#4156A9",
+          "#5E76D0",
+          "#849DED",
+          "#B2C5FE",
+          "#E9EEFE"
+        ]
+      },
+      "srs-burned": {
+        "role": "neutral",
+        "displayName": "Burned Charcoal",
+        "canonical": "#3A3A40",
+        "tonalRamp": [
+          "#0B0B0E",
+          "#242427",
+          "#3F3F44",
+          "#5D5D63",
+          "#7C7C83",
+          "#A1A1A7",
+          "#C7C7CC",
+          "#EEEEF2"
+        ]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Success Green",
+        "canonical": "#2E8540",
+        "tonalRamp": [
+          "#001001",
+          "#002D0A",
+          "#034E1A",
+          "#1F6F31",
+          "#41914F",
+          "#71B479",
+          "#9FD8A5",
+          "#CEFDD2"
+        ]
+      },
+      "success-bg": {
+        "role": "semantic",
+        "displayName": "Success Tint",
+        "canonical": "#E3F3E6",
+        "tonalRamp": [
+          "#070D08",
+          "#1E2620",
+          "#39433B",
+          "#556157",
+          "#748176",
+          "#99A59B",
+          "#C0CBC2",
+          "#E8F1EA"
+        ]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "System Error Red",
+        "canonical": "#D3311F",
+        "tonalRamp": [
+          "#210000",
+          "#4B0000",
+          "#7B0700",
+          "#AE1706",
+          "#D73F2D",
+          "#F77460",
+          "#FFB0A2",
+          "#FFE9E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Count Display",
+        "purpose": "Big tabular counts on the Reviews and Lessons blocks; glyph prompts run 44–48px at the same weight."
+      },
+      "headline": {
+        "displayName": "Screen Headline",
+        "purpose": "Screen titles (Today) and the review summary headline."
+      },
+      "title": {
+        "displayName": "Card Title",
+        "purpose": "Card titles, block labels (16px), navigation header (18px)."
+      },
+      "body-strong": {
+        "displayName": "Row Title",
+        "purpose": "Row titles, links and action text."
+      },
+      "body": {
+        "displayName": "Note",
+        "purpose": "Notes, dates, hints and the goal sentence (13–14px)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Stage tags, weekday labels, tab labels and badges (11–12px), sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "none",
+        "value": "none",
+        "purpose": "No soft shadows anywhere; the tab bar and headers explicitly disable elevation and shadow."
+      },
+      {
+        "name": "card-edge",
+        "value": "border: 2px solid #16161A",
+        "purpose": "Printed edge on static containers (CARD_EDGE)."
+      },
+      {
+        "name": "stamp-block-base",
+        "value": "border: 2px solid #16161A; border-bottom-width: 5px",
+        "purpose": "Pressable primary blocks (TILE_LIP)."
+      },
+      {
+        "name": "stamp-block-pressed",
+        "value": "border-bottom-width: 2px; transform: translateY(3px)",
+        "purpose": "Pressed state of a stamp block (PRESSED_BASE)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "seal-slam",
+        "value": "420ms after 180ms delay, Easing.out(Easing.exp) ≈ cubic-bezier(0.16, 1, 0.3, 1); scale 2.2→1, rotate (tilt−26°)→tilt, opacity 0→0.9 at 40%→1",
+        "purpose": "StampSeal landing; medium haptic on native when it finishes; shown in place under reduce motion."
+      },
+      {
+        "name": "wrong-shake",
+        "value": "translateX steps of 55ms",
+        "purpose": "Answer field shake on a wrong answer; skipped under reduce motion."
+      },
+      {
+        "name": "result-in",
+        "value": "opacity 0→1, translateY 10px→0",
+        "purpose": "Review result card entrance."
+      },
+      {
+        "name": "press-drop",
+        "value": "instant on pressed state",
+        "purpose": "Stamp-block base drop on press; no opacity fade."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Reviews Press Block",
+      "kind": "button",
+      "refersTo": "press-block-primary",
+      "description": "Primary pressable: indigo fill, ink outline and 5px ink base that drops on press.",
+      "html": "<button class=\"ds-block-primary\"><span class=\"ds-bh\">Reviews <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/><polyline points=\"12 5 19 12 12 19\"/></svg></span><span class=\"ds-bc\">14</span><span class=\"ds-bt\">6 kanji · 8 vocab</span></button>",
+      "css": ".ds-block-primary{font-family:'Zen Kaku Gothic New', sans-serif;border:2px solid #16161A;border-bottom-width:5px;border-radius:6px;padding:12px 14px;min-width:150px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;background:#25348C;color:#fff}.ds-block-primary .ds-bh{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:900}.ds-block-primary .ds-bc{font-size:56px;line-height:62px;font-weight:900;font-variant-numeric:tabular-nums}.ds-block-primary .ds-bt{font-size:13px;font-weight:500;color:#E6E8F5}.ds-block-primary:hover{filter:brightness(1.08)}.ds-block-primary:active{border-bottom-width:2px;transform:translateY(3px);}.ds-block-primary:focus-visible{outline:3px solid #25348C;outline-offset:2px;}"
+    },
+    {
+      "name": "Lessons Press Block",
+      "kind": "button",
+      "refersTo": "press-block-lessons",
+      "description": "Lessons entry: marigold fill with ink text, same stamp-block base.",
+      "html": "<button class=\"ds-block-lessons\"><span class=\"ds-bh\">Lessons <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/><polyline points=\"12 5 19 12 12 19\"/></svg></span><span class=\"ds-bc\">5</span><span class=\"ds-bt\">Level 1, 2</span></button>",
+      "css": ".ds-block-lessons{font-family:'Zen Kaku Gothic New', sans-serif;border:2px solid #16161A;border-bottom-width:5px;border-radius:6px;padding:12px 14px;min-width:150px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;background:#F2C230;color:#16161A}.ds-block-lessons .ds-bh{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:900}.ds-block-lessons .ds-bc{font-size:56px;line-height:62px;font-weight:900;font-variant-numeric:tabular-nums}.ds-block-lessons .ds-bt{font-size:13px;font-weight:500;}.ds-block-lessons:hover{filter:brightness(1.04)}.ds-block-lessons:active{border-bottom-width:2px;transform:translateY(3px);}.ds-block-lessons:focus-visible{outline:3px solid #25348C;outline-offset:2px;}"
+    },
+    {
+      "name": "Disabled Press Block",
+      "kind": "button",
+      "refersTo": "press-block-disabled",
+      "description": "Nothing to do: flat white, quiet-rule outline, no base.",
+      "html": "<button class=\"ds-block-off\" disabled><span class=\"ds-bh\">Reviews</span><span class=\"ds-bc\">0</span><span class=\"ds-bt\">All caught up</span></button>",
+      "css": ".ds-block-off{font-family:'Zen Kaku Gothic New', sans-serif;background:#fff;color:#626169;border:2px solid #DCDAD3;border-radius:6px;padding:12px 14px;min-width:150px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:default}.ds-block-off .ds-bh{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:900}.ds-block-off .ds-bc{font-size:56px;line-height:62px;font-weight:900;font-variant-numeric:tabular-nums}.ds-block-off .ds-bt{font-size:13px;font-weight:500;}.ds-block-off .ds-bh{color:#46454D}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Printed card: white stock, 2px ink edge, 6px corners, 900 title against an indigo link, hairline data rows.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-head\"><span class=\"ds-card-title\">Coming up</span><a class=\"ds-link\" href=\"#\">Mushaf map</a></div><div class=\"ds-frow\"><span>3 PM</span><i style=\"width:30%\"></i><b>+1</b></div><div class=\"ds-frow\"><span>9 PM</span><i style=\"width:60%\"></i><b>+2</b></div></div>",
+      "css": ".ds-card{font-family:'Zen Kaku Gothic New', sans-serif;background:#fff;color:#16161A;border:2px solid #16161A;border-radius:6px;padding:16px;width:320px}.ds-card-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}.ds-card-title{font-size:17px;font-weight:900}.ds-link{color:#25348C;font-size:14px;font-weight:700;text-decoration:none}.ds-link:hover{text-decoration:underline}.ds-link:focus-visible{outline:3px solid #25348C;outline-offset:2px;}.ds-frow{display:flex;align-items:center;gap:10px;min-height:36px;font-size:12px;color:#46454D;font-variant-numeric:tabular-nums}.ds-frow+.ds-frow{border-top:1px solid #DCDAD3}.ds-frow span{width:54px}.ds-frow i{display:block;height:10px;background:#25348C;border-radius:2px}.ds-frow b{margin-left:auto;color:#16161A;font-size:13px}"
+    },
+    {
+      "name": "Stamp Card",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signature: the week card with seven day boxes, red seals on stamped days, dashed indigo today, streak and goal bar (hover shows the met-goal red fill).",
+      "html": "<div class=\"ds-stampcard\" tabindex=\"0\"><div class=\"ds-sc-head\"><span class=\"ds-sc-title\">Week 12</span><span class=\"ds-sc-streak\">4-day streak</span></div><div class=\"ds-days\"><div class=\"ds-day\"><span>Mon</span><svg class=\"ds-seal\" width=\"30\" height=\"30\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-8deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></div><div class=\"ds-day\"><span>Tue</span><svg class=\"ds-seal\" width=\"30\" height=\"30\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-11deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></div><div class=\"ds-day\"><span>Wed</span><svg class=\"ds-seal\" width=\"30\" height=\"30\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-14deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></div><div class=\"ds-day\"><span>Thu</span><svg class=\"ds-seal\" width=\"30\" height=\"30\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-17deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></div><div class=\"ds-day ds-today\"><span>Fri</span><em>7</em></div><div class=\"ds-day ds-future\"><span>Sat</span></div><div class=\"ds-day ds-future\"><span>Sun</span></div></div><div class=\"ds-goal\"><span>3 more to earn today’s stamp.</span><b>7/10</b></div><div class=\"ds-track\"><i></i></div></div>",
+      "css": ".ds-stampcard{font-family:'Zen Kaku Gothic New', sans-serif;background:#fff;border:2px solid #16161A;border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;width:340px;color:#16161A}.ds-stampcard:focus-visible{outline:3px solid #25348C;outline-offset:2px;}.ds-sc-head{display:flex;justify-content:space-between;align-items:baseline}.ds-sc-title{font-size:17px;font-weight:900}.ds-sc-streak{font-size:15px;font-weight:900;color:#C4301D;font-variant-numeric:tabular-nums}.ds-days{display:flex;gap:6px}.ds-day{flex:1;aspect-ratio:.7;border:1.5px solid #16161A;border-radius:4px;padding:3px 0 0 5px;display:flex;flex-direction:column;font-size:11px;font-weight:700}.ds-day .ds-seal{margin:auto auto auto -3px}.ds-day em{margin:auto;font-style:normal;font-size:12px;color:#626169}.ds-today{border:2px dashed #25348C;color:#25348C}.ds-future{border-color:#DCDAD3;color:#626169}.ds-goal{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:500;color:#46454D}.ds-goal b{font-size:14px;font-weight:900;color:#16161A;font-variant-numeric:tabular-nums}.ds-track{height:10px;border:1.5px solid #16161A;border-radius:3px;overflow:hidden}.ds-track i{display:block;height:100%;width:70%;background:#25348C;transition:width .4s}.ds-stampcard:hover .ds-track i{width:100%;background:#E5402A}"
+    },
+    {
+      "name": "Stamp Seal",
+      "kind": "custom",
+      "refersTo": "hanko",
+      "description": "Hand-pressed hanko seal: broken ring, squared 済, per-seed tilt and voids; slams in over 420ms with exponential ease-out (press to replay).",
+      "html": "<button class=\"ds-seal-demo\" aria-label=\"Replay stamp\"><svg class=\"ds-seal\" width=\"96\" height=\"96\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-12deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></button>",
+      "css": ".ds-seal-demo{background:#fff;border:2px solid #16161A;border-radius:6px;padding:16px;cursor:pointer}.ds-seal-demo .ds-seal{animation:ds-slam .42s cubic-bezier(.16,1,.3,1) .18s both}.ds-seal-demo:active .ds-seal{animation:none}.ds-seal-demo:focus-visible{outline:3px solid #25348C;outline-offset:2px;}@keyframes ds-slam{0%{opacity:0;transform:scale(2.2) rotate(-38deg)}40%{opacity:.9}100%{opacity:.94;transform:scale(1) rotate(-12deg)}}@media (prefers-reduced-motion:reduce){.ds-seal-demo .ds-seal{animation:none}}"
+    },
+    {
+      "name": "Setoran Row with Stage Tag",
+      "kind": "chip",
+      "refersTo": "stage-tag",
+      "description": "Quran checklist row: solid stage tag, page title, dashed open slot or 済 seal, dashed dividers.",
+      "html": "<div class=\"ds-setoran\"><div class=\"ds-qrow\" tabindex=\"0\"><span class=\"ds-tag\" style=\"background:#1B7F45\">Sabaq</span><span class=\"ds-qi\"><b>Page 582 · An-Naba</b><small>New page</small></span><span class=\"ds-slot\"></span></div><div class=\"ds-qrow\" tabindex=\"0\"><span class=\"ds-tag\" style=\"background:#1B7F45\">Sabaq</span><span class=\"ds-qi\"><b>Page 600 · Al-Humazah</b><small>Recited today</small></span><svg class=\"ds-seal\" width=\"34\" height=\"34\" viewBox=\"0 0 100 100\" style=\"transform:rotate(-14deg);opacity:.94\"><g fill=\"none\" stroke=\"#E5402A\"><path d=\"M 54.39 8.23 A 42 42 0 0 1 91.77 45.61\" stroke-width=\"7.4\"/><path d=\"M 91.74 56.57 A 42 42 0 0 1 51.47 91.97\" stroke-width=\"6.1\"/><path d=\"M 48.53 91.97 A 42 42 0 0 1 8.06 52.93\" stroke-width=\"7.9\"/><path d=\"M 8.26 46.34 A 42 42 0 0 1 48.53 8.03\" stroke-width=\"6.6\"/><g stroke-width=\"7.5\" stroke-linecap=\"square\"><path d=\"M21 31 L29 37\"/><path d=\"M19 47 L28 53\"/><path d=\"M19 73 L31 59\"/><path d=\"M61 20 L61 28\"/><path d=\"M40 33 L81 33\"/><path d=\"M47 38 L75 57\"/><path d=\"M75 38 L44 59\"/><path d=\"M49 63 L49 81\"/><path d=\"M71 63 L71 82\"/><path d=\"M49 63 L71 63\"/><path d=\"M49 72 L71 72\"/></g></g><circle cx=\"83\" cy=\"30\" r=\"1.7\" fill=\"#fff\"/><circle cx=\"20\" cy=\"74\" r=\"1.2\" fill=\"#fff\"/><circle cx=\"62\" cy=\"91\" r=\"2.2\" fill=\"#fff\"/></svg></div><div class=\"ds-qrow\" tabindex=\"0\"><span class=\"ds-tag\" style=\"background:#AD5E00\">Sabqi</span><span class=\"ds-qi\"><b>Page 602 · Al-Kafirun</b><small>Day 4 of 7</small></span><span class=\"ds-slot\"></span></div><div class=\"ds-qrow\" tabindex=\"0\"><span class=\"ds-tag\" style=\"background:#25348C\">Manzil</span><span class=\"ds-qi\"><b>Page 2 · Al-Baqarah</b><small>Long-term revision</small></span><span class=\"ds-slot\"></span></div></div>",
+      "css": ".ds-setoran{font-family:'Zen Kaku Gothic New', sans-serif;background:#fff;border:2px solid #16161A;border-radius:6px;padding:8px 16px;width:340px}.ds-qrow{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 0;cursor:pointer}.ds-qrow+.ds-qrow{border-top:1px dashed #DCDAD3}.ds-qrow:hover{background:#F3F2EE}.ds-qrow:focus-visible{outline:3px solid #25348C;outline-offset:2px;}.ds-tag{width:66px;flex-shrink:0;padding:5px 0;border-radius:4px;color:#fff;font-size:12px;font-weight:700;text-align:center}.ds-qi{flex:1;min-width:0;display:flex;flex-direction:column}.ds-qi b{font-size:15px;font-weight:700;color:#16161A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ds-qi small{font-size:12px;color:#626169}.ds-slot{width:30px;height:30px;flex-shrink:0;border-radius:50%;border:1.5px dashed #626169;margin:0 2px}"
+    },
+    {
+      "name": "Answer Input",
+      "kind": "input",
+      "refersTo": "answer-input",
+      "description": "Review field: white, 2px ink outline, centred 22px text, desk-grey submit well. Wrong answers shake; they never turn red.",
+      "html": "<label class=\"ds-answer\"><input placeholder=\"Your response\"/><button aria-label=\"Submit\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"/><polyline points=\"12 5 19 12 12 19\"/></svg></button></label>",
+      "css": ".ds-answer{display:flex;align-items:center;position:relative;width:340px;background:#fff;border:2px solid #16161A;border-radius:6px;font-family:'Zen Kaku Gothic New', sans-serif}.ds-answer input{flex:1;min-height:56px;padding:0 56px;border:0;background:transparent;font:inherit;font-size:22px;text-align:center;color:#16161A;outline:none}.ds-answer input::placeholder{color:#626169}.ds-answer:focus-within{outline:3px solid #E6E8F5;outline-offset:0}.ds-answer button{position:absolute;right:6px;width:44px;height:44px;border:0;border-radius:6px;background:#F3F2EE;color:#16161A;display:grid;place-items:center;cursor:pointer}.ds-answer button:hover{background:#DCDAD3}.ds-answer button:focus-visible{outline:3px solid #25348C;outline-offset:2px;}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar-active",
+      "description": "White bar with 2px ink top rule; indigo active, muted inactive, ink count badges.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab ds-on\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3 3 8l9 5 9-5-9-5z\"/><path d=\"m3 13 9 5 9-5\"/></svg><em>4</em>Today</a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 5h9M8.5 3v2M6 5c1 4 3 6 6 7M11 5c-1 4-3 6-6 8\"/><path d=\"m13 20 4-9 4 9M14.5 17h5\"/></svg>Japanese</a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 5c3-1 6-1 9 1v14c-3-2-6-2-9-1V5zM21 5c-3-1-6-1-9 1v14c3-2 6-2 9-1V5z\"/></svg><em>4</em>Quran</a><a class=\"ds-tab\" href=\"#\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><circle cx=\"12\" cy=\"12\" r=\"8\"/></svg>Settings</a></nav>",
+      "css": ".ds-tabs{display:flex;width:360px;background:#fff;border-top:2px solid #16161A;padding-top:6px;font-family:'Zen Kaku Gothic New', sans-serif}.ds-tab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:54px;font-size:11px;line-height:14px;font-weight:700;color:#626169;text-decoration:none}.ds-tab:hover{color:#16161A}.ds-tab:focus-visible{outline:3px solid #25348C;outline-offset:2px;}.ds-on,.ds-on:hover{color:#25348C}.ds-tab em{position:absolute;top:-4px;left:calc(50% + 4px);min-width:18px;height:18px;border-radius:9px;background:#16161A;color:#fff;font-style:normal;font-size:11px;line-height:18px;text-align:center}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Attendance Card",
+    "overview": "Aimprove is a daily attendance card, in the line of a rajio taiso card or a pesantren setoran card. Each study day is a box, and a finished day gets a red hanko seal pressed into it. The interface is printed card stock laid on a faint warm-grey desk. Ink outlines draw the edges. Colour is reserved for meaning: red for stamps, indigo for the next action, marigold for Lessons, and solid fills for item types and memorisation stages.\n\nDensity is phone-first and steady: full-width cards, 16px gutters, big tabular counts, and short rows. Depth comes from printing, not lighting. Cards have a 2px ink edge, and pressable blocks have a thicker ink base that drops when pressed, like a rubber stamp block. No screen uses a soft shadow. The one moment of ceremony is the seal landing. Everything else, especially the Quran text, stays calm.\n\nLight mode only (`DARK_PALETTE` is an alias of `LIGHT_PALETTE`).",
+    "keyCharacteristics": [
+      "White card stock (#FFFFFF) on a warm-grey desk (#F3F2EE), never cream.",
+      "2px ink (#16161A) edges and 6px cut corners on every card, input and block.",
+      "One typeface, Zen Kaku Gothic New, at four weights, for both Latin and Japanese.",
+      "The red hanko seal is the only celebratory device, and the red is reserved for it.",
+      "Pressable blocks have a 5px ink base that drops 3px on press."
+    ],
+    "rules": [
+      {
+        "name": "The Seal Owns the Red Rule",
+        "body": "Hanko red appears only as seal ink, the streak text, and the met-goal bar. Never use it for buttons, badges, links or errors.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Verdict Rule",
+        "body": "A wrong answer is drawn in ink: an ink-ringed ✕ and \"Not quite\" on a white card, with a short shake. A correct answer gets a slammed 正 seal. Never colour a learner's mistake red.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Job Rule",
+        "body": "Indigo means \"act here / you are here\", and marigold means Lessons. Neither colour is used as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Heavy Ink Rule",
+        "body": "Headings and counts use the 900 Black cut, and supporting text drops to 500. Two weights per card carry the hierarchy, so a colour change is never needed to do it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Count Rule",
+        "body": "Every number that ticks (streak, goal fraction, due counts, forecast deltas) uses `tabular-nums`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Stamp Block Rule",
+        "body": "Anything you can press as a primary action has a 2px ink outline with a 5px ink bottom edge (`TILE_LIP`). On press, the bottom edge drops to 2px and the block moves down 3px (`PRESSED_BASE`). Disabled blocks go flat: a 2px quiet-rule outline, white fill and muted text, with no base.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Printed Edge Rule",
+        "body": "Static containers (cards, the review result, inputs) use a flat 2px ink edge (`CARD_EDGE`) and never get the thick base. A thick base means \"press me\".",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put every surface on white card stock (#FFFFFF) with a 2px ink edge and 6px corners, on the #F3F2EE desk.",
+      "Do give every primary pressable the stamp-block base (2px ink outline, 5px ink bottom edge, drop 3px on press), and make disabled blocks flat with a quiet-rule outline.",
+      "Do keep hanko red for seals, the streak line (in hanko-ink) and the met-goal bar.",
+      "Do mark open or to-do slots with dashed lines, and done ones with a seal.",
+      "Do use Zen Kaku Gothic New at 900 for headings and counts, 700 for row titles and labels, and 500 for notes. Use tabular numerals on every count.",
+      "Do respect reduce motion: seals appear in place and the wrong-answer shake is skipped.",
+      "Do keep the Mushaf page and Quran text calm, with no seals, slams or celebration over the text."
+    ],
+    "donts": [
+      "Don't use red to grade the learner. Wrong answers are an ink ✕ and \"Not quite\".",
+      "Don't use soft drop shadows, glows or gradients. Depth comes from the ink base only.",
+      "Don't use a cream or yellowed ground. The desk is a faint warm grey (#F3F2EE) and cards are pure white.",
+      "Don't add a second typeface or a mascot, XP or confetti layer. The seal is the only reward.",
+      "Don't put white text on marigold.",
+      "Don't add a dark mode palette. The world is light only."
+    ]
+  }
+}
