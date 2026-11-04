@@ -62,12 +62,32 @@ const LEAD_MINUTES = 10;
 const DAYS_AHEAD = 3;
 let handlerSet = false;
 
-export async function enableReminderPermission(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return true;
-  const asked = await Notifications.requestPermissionsAsync();
-  return asked.granted;
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync('prayer', {
+    name: 'Prayer reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+}
+
+/**
+ * Ask for notification permission. On Android 13+ the system only shows the
+ * prompt once the app has a notification channel, so create it first.
+ * `canAskAgain` is false when the user has blocked notifications and only
+ * the phone's settings can turn them back on.
+ */
+export async function enableReminderPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+  if (Platform.OS === 'web') return { granted: false, canAskAgain: false };
+  try {
+    await ensureAndroidChannel();
+    const current = await Notifications.getPermissionsAsync();
+    if (current.granted) return { granted: true, canAskAgain: true };
+    if (!current.canAskAgain) return { granted: false, canAskAgain: false };
+    const asked = await Notifications.requestPermissionsAsync();
+    return { granted: asked.granted, canAskAgain: asked.canAskAgain };
+  } catch {
+    return { granted: false, canAskAgain: true };
+  }
 }
 
 /**
@@ -97,12 +117,7 @@ export async function scheduleReminders(
         handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
       });
     }
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('prayer', {
-        name: 'Prayer reminders',
-        importance: Notifications.AndroidImportance.HIGH,
-      });
-    }
+    await ensureAndroidChannel();
 
     const now = Date.now();
     for (let d = 0; d < DAYS_AHEAD; d++) {

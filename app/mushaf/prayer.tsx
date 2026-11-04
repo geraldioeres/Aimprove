@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -420,12 +421,20 @@ function RemindersCard({ bare = false }: { bare?: boolean }) {
   const [note, setNote] = useState<string | null>(null);
   const web = Platform.OS === 'web';
 
+  const [blocked, setBlocked] = useState(false);
+
   const toggle = async (on: boolean) => {
     setNote(null);
+    setBlocked(false);
     if (on) {
-      const granted = await enableReminderPermission();
-      if (!granted) {
-        setNote('Notifications are off for Aimprove. Turn them on in your phone settings.');
+      const perm = await enableReminderPermission();
+      if (!perm.granted) {
+        setBlocked(!perm.canAskAgain);
+        setNote(
+          perm.canAskAgain
+            ? 'Allow notifications when your phone asks, so reminders can appear.'
+            : 'Notifications are blocked for Aimprove. Turn them on in your phone settings, then try again.'
+        );
         return;
       }
       if (!track.location) setNote('Add your location too, so reminders know the prayer times.');
@@ -452,6 +461,12 @@ function RemindersCard({ bare = false }: { bare?: boolean }) {
         />
       </View>
       {note ? <Text style={[styles.meta, { color: colors.ink }]}>{note}</Text> : null}
+      {blocked ? (
+        <Pressable onPress={() => Linking.openSettings()} accessibilityRole="button" style={styles.inlineBtn} hitSlop={6}>
+          <Feather name="settings" size={16} color={colors.indigo} />
+          <Text style={[styles.link, { color: colors.indigo }]}>Open phone settings</Text>
+        </Pressable>
+      ) : null}
     </>
   );
 
