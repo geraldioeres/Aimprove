@@ -352,6 +352,8 @@ function OpenBlock({
   const router = useRouter();
   const colours = usePrayerTrack((s) => s.tajweedColours);
   const setColours = usePrayerTrack((s) => s.setTajweedColours);
+  const wordByWord = usePrayerTrack((s) => s.wordByWord);
+  const setWordByWord = usePrayerTrack((s) => s.setWordByWord);
   const keys = useMemo(() => Array.from({ length: count }, (_, i) => ayahFromIndex(from + i).key), [from, count]);
   const [texts, setTexts] = useState<AyahText[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -375,18 +377,24 @@ function OpenBlock({
         <Text style={[styles.h3, { color: colors.ink }]}>{title}</Text>
         {time ? <Text style={[styles.meta, { color: colors.textSecondary }]}>{formatClock(time)}</Text> : null}
       </View>
-      <View style={styles.headRow}>
-        <Text style={[styles.rangeBig, { color: colors.quranSabaq }]}>{rangeLabel(from, count)}</Text>
-        <Pressable
-          onPress={() => setColours(!colours)}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: colours }}
-          hitSlop={8}
-          style={styles.inlineBtn}
-        >
-          <Feather name={colours ? 'check-square' : 'square'} size={16} color={colors.indigo} />
-          <Text style={[styles.link, { color: colors.indigo }]}>Tajweed colours</Text>
-        </Pressable>
+      <Text style={[styles.rangeBig, { color: colors.quranSabaq }]}>{rangeLabel(from, count)}</Text>
+      <View style={styles.viewToggles}>
+        {([
+          ['Word by word', wordByWord, setWordByWord],
+          ['Tajweed colours', colours, setColours],
+        ] as const).map(([label, on, setOn]) => (
+          <Pressable
+            key={label}
+            onPress={() => setOn(!on)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: on }}
+            hitSlop={6}
+            style={styles.inlineBtn}
+          >
+            <Feather name={on ? 'check-square' : 'square'} size={16} color={colors.indigo} />
+            <Text style={[styles.link, { color: colors.indigo }]}>{label}</Text>
+          </Pressable>
+        ))}
       </View>
 
       {error ? (
@@ -401,7 +409,16 @@ function OpenBlock({
       ) : (
         texts.map((t, i) => (
           <View key={t.key} style={[styles.ayah, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
-            {colours && t.tajweed ? (
+            {wordByWord && t.words.length ? (
+              <View style={styles.words}>
+                {t.words.map((w, j) => (
+                  <View key={j} style={[styles.wordTile, { borderColor: colors.border }]}>
+                    <Text style={[styles.wordArabic, { color: colors.ink }]}>{w.arabic}</Text>
+                    <Text style={[styles.wordMeaning, { color: colors.textSecondary }]}>{w.meaning}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : colours && t.tajweed ? (
               <Text style={[styles.arabic, { color: colors.ink }]}>
                 {parseTajweed(t.tajweed).map((seg, j) =>
                   seg.rule ? (
@@ -570,6 +587,18 @@ const styles = StyleSheet.create({
   slotRange: { flex: 1, fontSize: 14 },
   slot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, marginHorizontal: 1 },
   rangeBig: { fontSize: 15, fontWeight: '900', flexShrink: 1 },
+  viewToggles: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, marginTop: -4 },
+  words: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
+  wordTile: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: RADII.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    maxWidth: '100%',
+  },
+  wordArabic: { fontSize: 26, lineHeight: 48, writingDirection: 'rtl' },
+  wordMeaning: { fontSize: 12, lineHeight: 16, textAlign: 'center', maxWidth: 140 },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ayah: { paddingVertical: 12, gap: 6 },
   arabic: { fontSize: 26, lineHeight: 50, textAlign: 'right', writingDirection: 'rtl' },
