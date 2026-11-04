@@ -1,14 +1,18 @@
 import { create } from 'zustand';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { ayahsLeftInSurah, TOTAL_AYAHS } from '../data/surahs';
 import { PRAYERS, PrayerKey, prayerTimesFor, scheduleReminders } from '../lib/prayer-times';
 import { localDayKey, useLearningStore } from './useLearningStore';
+import { getSupabaseClient } from '../lib/supabase';
 
 /**
  * Ayah-by-prayer memorisation: 3 new ayah in the 10 minutes before each of the
  * five prayers and 3 more after it, so up to 30 new ayah a day. It runs beside
- * the page-based Sabaq track and is stored per account on this device.
+ * the page-based Sabaq track. It is saved on the device per account and synced
+ * to Supabase (`user_prayer_track`), newest change wins. Location and
+ * reminders are device settings and stay local.
  */
 
 export type SlotPhase = 'before' | 'after';
@@ -43,7 +47,12 @@ interface Saved {
   today: DoneBlock[]; // blocks finished today, in order
   skipped: SlotKey[]; // today's slots that had already passed when the track started
   history: DoneBlock[]; // recent finished blocks, newest first
+  updatedAt: string; // ISO time of the last synced change ('' = never changed)
 }
+
+// What travels between devices. Location and reminders are left out.
+const SYNCED = ['startIndex', 'cursor', 'tajweedColours', 'dayKey', 'today', 'skipped', 'history'] as const;
+type Synced = Pick<Saved, (typeof SYNCED)[number]>;
 
 interface PrayerTrackState extends Saved {
   loadedFor: string | null; // user id the state was loaded for
@@ -67,6 +76,7 @@ const EMPTY: Saved = {
   today: [],
   skipped: [],
   history: [],
+  updatedAt: '',
 };
 
 const keyFor = (userId: string) => `aimprove.prayer.user.${userId}.v1`;
@@ -77,10 +87,6 @@ export function blockSize(from: number): number {
   return Math.min(BLOCK_SIZE, ayahsLeftInSurah(from));
 }
 
-/**
- * Today's ten slots with the ayah each covers. Finished slots show what was
- * memorised; the rest preview the next blocks in slot order.
- */
 /**
  * Slots to skip when starting at `now`, so the day begins at the nearest
  * prayer: the "after" block of the prayer just prayed if it is closer, or the
@@ -105,6 +111,10 @@ export function passedSlots(location: PrayerLocation | null, now: Date = new Dat
   return SLOTS.slice(0, cut).map((s) => s.key);
 }
 
+/**
+ * Today's ten slots with the ayah each covers. Finished slots show what was
+ * memorised; the rest preview the next blocks in slot order.
+ */
 export function planToday(state: Pick<Saved, 'cursor' | 'today'> & { skipped?: SlotKey[] }) {
   const doneBy = new Map(state.today.map((b) => [b.slot, b]));
   const skipped = new Set(state.skipped || []);
@@ -123,19 +133,92 @@ export function planToday(state: Pick<Saved, 'cursor' | 'today'> & { skipped?: S
   });
 }
 
+let appStateHooked = false;
+
 export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
-  const save = async () => {
+  const writeLocal = async () => {
     const userId = get().loadedFor;
     if (!userId) return;
-    const { startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history } = get();
+    const { startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history, updatedAt } =
+      get();
     try {
       await AsyncStorage.setItem(
         keyFor(userId),
-        JSON.stringify({ startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history })
+        JSON.stringify({
+          startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history, updatedAt,
+        })
       );
     } catch {
       // non-fatal
     }
+  };
+
+  const syncedState = (): Synced => {
+    const st = get();
+    return Object.fromEntries(SYNCED.map((k) => [k, st[k]])) as Synced;
+  };
+
+  // Take another device's newer track; keep this device's location and reminders.
+  const adopt = async (state: Partial<Synced>, updatedAt: string) => {
+    const patch: Partial<Saved> = { updatedAt };
+    for (const k of SYNCED) if (state[k] !== undefined) (patch as any)[k] = state[k];
+    set(patch);
+    await writeLocal();
+    rollDay();
+    reschedule();
+  };
+
+  const push = async () => {
+    const sb = getSupabaseClient();
+    const userId = get().loadedFor;
+    if (!sb || !userId || !get().updatedAt) return;
+    try {
+      const { data, error } = await sb.rpc('upsert_prayer_track', {
+        p_state: syncedState(),
+        p_updated_at: get().updatedAt,
+      });
+      if (error || !data || get().loadedFor !== userId) return;
+      const row = data as { state: Partial<Synced>; updated_at: string };
+      if (Date.parse(row.updated_at) > Date.parse(get().updatedAt)) await adopt(row.state, row.updated_at);
+    } catch {
+      // offline: the next change or launch pushes again
+    }
+  };
+
+  const pull = async () => {
+    const sb = getSupabaseClient();
+    const userId = get().loadedFor;
+    if (!sb || !userId) return;
+    try {
+      const { data, error } = await sb
+        .from('user_prayer_track')
+        .select('state, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error || get().loadedFor !== userId) return;
+      // A track started before syncing existed has no timestamp: upload it
+      // once if the account has nothing yet.
+      if (!data && !get().updatedAt && get().startIndex !== null) {
+        set({ updatedAt: new Date().toISOString() });
+        await writeLocal();
+      }
+      const local = get().updatedAt ? Date.parse(get().updatedAt) : 0;
+      const remote = data ? Date.parse(data.updated_at) : 0;
+      if (data && remote > local) await adopt(data.state, data.updated_at);
+      else if (local > remote) await push();
+    } catch {
+      // offline: keep the local copy
+    }
+  };
+
+  /**
+   * Save after a change. Track changes are stamped and pushed to the account;
+   * device-only changes (location, reminders) are just written locally.
+   */
+  const save = async (opts: { sync?: boolean } = { sync: true }) => {
+    if (opts.sync !== false) set({ updatedAt: new Date().toISOString() });
+    await writeLocal();
+    if (opts.sync !== false) void push();
   };
 
   // A new day starts with an empty set of slots; unfinished ayah simply wait.
@@ -172,6 +255,13 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
       set({ ...EMPTY, ...saved, loadedFor: userId });
       rollDay();
       reschedule();
+      await pull();
+      if (!appStateHooked) {
+        appStateHooked = true;
+        AppState.addEventListener('change', (s) => {
+          if (s === 'active' && get().loadedFor) void pull();
+        });
+      }
     },
 
     start: async (startIndex) => {
@@ -202,7 +292,7 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
           // reverse geocoding isn't available everywhere (e.g. web)
         }
         set({ location: { lat: pos.coords.latitude, lng: pos.coords.longitude, label } });
-        await save();
+        await save({ sync: false });
         reschedule();
         return { ok: true };
       } catch (e: any) {
@@ -212,7 +302,7 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
 
     setReminders: async (on) => {
       set({ remindersOn: on });
-      await save();
+      await save({ sync: false });
       reschedule();
     },
 
