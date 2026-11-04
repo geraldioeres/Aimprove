@@ -24,6 +24,9 @@ import {
 } from '../../src/store/useLearningStore';
 import { getSurahSummaryForPage } from '../../src/data/quran-seed';
 import { PressBlock, StampCard, StampSeal } from '../../src/components/Stamp';
+import { planToday, usePrayerTrack } from '../../src/store/usePrayerTrack';
+import { rangeLabel } from '../../src/data/surahs';
+import { PRAYERS } from '../../src/lib/prayer-times';
 
 // Today's seal slams in once per app session, the first time Today shows it.
 let sealShownFor: string | null = null;
@@ -33,6 +36,7 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const state = useLearningStore();
+  const prayerTrack = usePrayerTrack();
   const { width } = useWindowDimensions();
   const wide = width >= 760;
 
@@ -85,6 +89,11 @@ export default function TodayScreen() {
     ...dueQuran.sabqiPages.map((p) => p.pageNumber),
     ...dueQuran.manzilPages.map((p) => p.pageNumber),
   ]);
+  const prayerOpen =
+    prayerTrack.startIndex !== null && prayerTrack.loadedFor === state.userId
+      ? planToday(prayerTrack).find((p) => p.isNext) || null
+      : null;
+
   const setoran = Array.from(new Set([...duePages, ...recitedPages]))
     .map((page) => {
       const prog = state.quranProgress[page];
@@ -180,7 +189,30 @@ export default function TodayScreen() {
               </Pressable>
             </View>
 
-            {setoran.length === 0 ? (
+            {prayerOpen ? (
+              <Pressable
+                onPress={() => router.push('/mushaf/prayer')}
+                accessibilityRole="button"
+                accessibilityLabel={`Ayah by prayer: ${rangeLabel(prayerOpen.from, prayerOpen.count)}`}
+                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: colors.bgMuted }]}
+              >
+                <View style={[styles.tag, { backgroundColor: colors.quranSabaq }]}>
+                  <Text style={[styles.tagText, { color: '#FFFFFF' }]}>Ayah</Text>
+                </View>
+                <View style={styles.qInfo}>
+                  <Text numberOfLines={1} style={[styles.qTitle, { color: colors.ink }]}>
+                    {rangeLabel(prayerOpen.from, prayerOpen.count)}
+                  </Text>
+                  <Text style={[styles.qNote, { color: colors.textMuted }]}>
+                    {prayerOpen.phase === 'before' ? 'Before' : 'After'}{' '}
+                    {PRAYERS.find((p) => p.key === prayerOpen.prayer)?.name}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.ink} />
+              </Pressable>
+            ) : null}
+
+            {setoran.length === 0 && !prayerOpen ? (
               <Text style={[styles.empty, { color: colors.textSecondary }]}>Nothing due. Pick a new Sabaq page to start.</Text>
             ) : null}
 

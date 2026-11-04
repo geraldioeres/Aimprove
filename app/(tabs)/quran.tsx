@@ -137,6 +137,28 @@ export default function QuranHafalanHubScreen() {
         </View>
       </Pressable>
 
+      {/* Ayah by prayer: 3 ayah before and 3 after each of the five prayers */}
+      <Pressable
+        onPress={() => router.push('/mushaf/prayer')}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.heatmapBanner,
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
+        ]}
+      >
+        <View style={styles.heatmapLeft}>
+          <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>Ayah by prayer</Text>
+          <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
+            3 new ayah before each prayer and 3 after, 30 a day
+          </Text>
+        </View>
+        <View style={styles.heatmapBtn}>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
+        </View>
+      </Pressable>
+
       {/* Makhraj lookup: where each letter is pronounced */}
       <Pressable
         onPress={() => router.push('/mushaf/makharij')}

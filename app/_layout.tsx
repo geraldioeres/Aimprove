@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useLearningStore } from '../src/store/useLearningStore';
+import { usePrayerTrack } from '../src/store/usePrayerTrack';
 import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 
 function RootNavigator() {
@@ -19,6 +20,11 @@ function RootNavigator() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // The ayah-by-prayer track is stored per account; reload it on sign-in/out.
+  useEffect(() => {
+    if (authReady) usePrayerTrack.getState().load(userId);
+  }, [authReady, userId]);
 
   // An account is required: signed-out users only see sign-in and sign-up.
   const onAuthScreen = segments[0] === 'sign-in' || segments[0] === 'sign-up';
@@ -86,6 +92,10 @@ function RootNavigator() {
         <Stack.Screen
           name="mushaf/numbers"
           options={{ title: 'Arabic numbers', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="mushaf/prayer"
+          options={{ title: 'Ayah by prayer', presentation: 'card' }}
         />
       </Stack>
       {holding ? (

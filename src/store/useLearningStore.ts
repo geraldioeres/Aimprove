@@ -90,6 +90,8 @@ interface LearningState {
   hydrate: () => Promise<void>;
   setSabqiWindowDays: (days: number) => Promise<void>;
   setDailyGoal: (goal: number) => Promise<void>;
+  /** Add (or, for an undo, subtract) finished items for today's goal. Used by the ayah-by-prayer track. */
+  recordStudyItems: (count: number) => Promise<void>;
   completeJPLessonBatch: (subjectIds: string[]) => Promise<string[]>;
   submitJPReviewOutcome: (
     subjectId: string,
@@ -195,6 +197,15 @@ export const useLearningStore = create<LearningState>((set, get) => ({
       dailyGoal: Math.min(100, Math.max(1, Math.round(goal))),
       settingsUpdatedAt: new Date().toISOString(),
     });
+    await persistState(get());
+    await syncProfileToSupabase(get());
+  },
+
+  recordStudyItems: async (count: number) => {
+    if (count === 0) return;
+    const key = localDayKey(new Date());
+    const days = get().studyDays;
+    set({ studyDays: { ...days, [key]: Math.max(0, (days[key] || 0) + count) } });
     await persistState(get());
     await syncProfileToSupabase(get());
   },
