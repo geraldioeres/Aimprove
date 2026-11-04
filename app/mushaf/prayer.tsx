@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +14,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { parseTajweed } from '../../src/data/tajweed';
+import { parseTajweed, TajweedRule } from '../../src/data/tajweed';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { CARD_EDGE, RADII, SPACING } from '../../src/theme/tokens';
 import { PressBlock, StampSeal } from '../../src/components/Stamp';
@@ -350,6 +351,7 @@ function OpenBlock({
 }) {
   const { colors } = useTheme();
   const router = useRouter();
+  const [rulePeek, setRulePeek] = useState<TajweedRule | null>(null);
   const colours = usePrayerTrack((s) => s.tajweedColours);
   const setColours = usePrayerTrack((s) => s.setTajweedColours);
   const wordByWord = usePrayerTrack((s) => s.wordByWord);
@@ -424,7 +426,7 @@ function OpenBlock({
                   seg.rule ? (
                     <Text
                       key={j}
-                      onPress={() => router.push(`/mushaf/tajweed?rule=${seg.rule!.id}`)}
+                      onPress={() => setRulePeek(seg.rule!)}
                       accessibilityRole="link"
                       accessibilityLabel={seg.rule.name}
                       style={{ color: seg.rule.color }}
@@ -450,7 +452,69 @@ function OpenBlock({
       <PressBlock onPress={onDone} accessibilityRole="button" style={[styles.primaryBtn, { backgroundColor: colors.indigo }]}>
         <Text style={styles.primaryText}>I've memorised these</Text>
       </PressBlock>
+      <RuleSheet
+        rule={rulePeek}
+        onClose={() => setRulePeek(null)}
+        onMore={(id) => {
+          setRulePeek(null);
+          router.push(`/mushaf/tajweed?rule=${id}`);
+        }}
+      />
     </View>
+  );
+}
+
+/** A short explanation of one tajweed rule, opened by tapping a coloured part. */
+function RuleSheet({
+  rule,
+  onClose,
+  onMore,
+}: {
+  rule: TajweedRule | null;
+  onClose: () => void;
+  onMore: (id: string) => void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Modal visible={Boolean(rule)} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button">
+        {rule ? (
+          <Pressable
+            onPress={() => {}}
+            style={[styles.sheet, CARD_EDGE, { backgroundColor: colors.bgSurface }]}
+            accessibilityViewIsModal
+          >
+            <View style={styles.sheetHead}>
+              <View style={[styles.sheetSwatch, { backgroundColor: rule.color }]} />
+              <Text style={[styles.h3, { color: colors.ink, flex: 1 }]} accessibilityRole="header">
+                {rule.name}
+              </Text>
+              <Text style={[styles.sheetArabic, { color: colors.ink }]}>{rule.arabic}</Text>
+            </View>
+            {rule.length ? (
+              <Text style={[styles.meta, { color: colors.textSecondary }]}>{rule.length}</Text>
+            ) : null}
+            <View style={{ gap: 2 }}>
+              <Text style={[styles.label, { color: colors.textMuted }]}>How to read it</Text>
+              <Text style={[styles.body, { color: colors.ink }]}>{rule.how}</Text>
+            </View>
+            <View style={{ gap: 2 }}>
+              <Text style={[styles.label, { color: colors.textMuted }]}>When</Text>
+              <Text style={[styles.body, { color: colors.ink }]}>{rule.when}</Text>
+            </View>
+            <View style={styles.sheetActions}>
+              <Pressable onPress={() => onMore(rule.id)} accessibilityRole="link" hitSlop={8} style={styles.inlineBtn}>
+                <Text style={[styles.link, { color: colors.indigo }]}>See full rule</Text>
+                <Feather name="chevron-right" size={16} color={colors.indigo} />
+              </Pressable>
+              <PressBlock onPress={onClose} accessibilityRole="button" style={[styles.sheetClose, { backgroundColor: colors.bgSurface }]}>
+                <Text style={[styles.secondaryText, { color: colors.ink }]}>Close</Text>
+              </PressBlock>
+            </View>
+          </Pressable>
+        ) : null}
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -604,4 +668,11 @@ const styles = StyleSheet.create({
   arabic: { fontSize: 26, lineHeight: 50, textAlign: 'right', writingDirection: 'rtl' },
   ayahKey: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   translation: { fontSize: 14, lineHeight: 21 },
+  scrim: { flex: 1, backgroundColor: 'rgba(22,22,26,0.45)', justifyContent: 'flex-end', padding: 16 },
+  sheet: { borderRadius: RADII.sm, padding: 18, gap: 12, width: '100%', maxWidth: 520, alignSelf: 'center' },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sheetSwatch: { width: 14, height: 14, borderRadius: 7 },
+  sheetArabic: { fontSize: 20, lineHeight: 38 },
+  sheetActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 },
+  sheetClose: { minHeight: 44, minWidth: 96, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
 });
