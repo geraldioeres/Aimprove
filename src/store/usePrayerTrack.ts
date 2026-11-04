@@ -43,6 +43,7 @@ interface Saved {
   location: PrayerLocation | null;
   remindersOn: boolean;
   tajweedColours: boolean;
+  wordByWord: boolean;
   dayKey: string; // the day `today` belongs to
   today: DoneBlock[]; // blocks finished today, in order
   skipped: SlotKey[]; // today's slots that had already passed when the track started
@@ -51,7 +52,7 @@ interface Saved {
 }
 
 // What travels between devices. Location and reminders are left out.
-const SYNCED = ['startIndex', 'cursor', 'tajweedColours', 'dayKey', 'today', 'skipped', 'history'] as const;
+const SYNCED = ['startIndex', 'cursor', 'tajweedColours', 'wordByWord', 'dayKey', 'today', 'skipped', 'history'] as const;
 type Synced = Pick<Saved, (typeof SYNCED)[number]>;
 
 interface PrayerTrackState extends Saved {
@@ -61,6 +62,7 @@ interface PrayerTrackState extends Saved {
   setLocationFromDevice: () => Promise<{ ok: boolean; message?: string }>;
   setReminders: (on: boolean) => Promise<void>;
   setTajweedColours: (on: boolean) => Promise<void>;
+  setWordByWord: (on: boolean) => Promise<void>;
   completeSlot: (slot: SlotKey) => Promise<void>;
   undoLast: () => Promise<void>;
   reset: () => Promise<void>;
@@ -72,6 +74,7 @@ const EMPTY: Saved = {
   location: null,
   remindersOn: false,
   tajweedColours: true,
+  wordByWord: false,
   dayKey: '',
   today: [],
   skipped: [],
@@ -139,13 +142,15 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
   const writeLocal = async () => {
     const userId = get().loadedFor;
     if (!userId) return;
-    const { startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history, updatedAt } =
-      get();
+    const {
+      startIndex, cursor, location, remindersOn, tajweedColours, wordByWord, dayKey, today, skipped, history, updatedAt,
+    } = get();
     try {
       await AsyncStorage.setItem(
         keyFor(userId),
         JSON.stringify({
-          startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history, updatedAt,
+          startIndex, cursor, location, remindersOn, tajweedColours, wordByWord, dayKey, today, skipped, history,
+          updatedAt,
         })
       );
     } catch {
@@ -311,6 +316,11 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
       await save();
     },
 
+    setWordByWord: async (on) => {
+      set({ wordByWord: on });
+      await save();
+    },
+
     completeSlot: async (slot) => {
       rollDay();
       const plan = planToday(get());
@@ -356,9 +366,10 @@ export interface AyahText {
   arabic: string;
   tajweed: string; // Quran.com tajweed-marked HTML (parse with parseTajweed)
   translationId: string;
+  words: { arabic: string; meaning: string }[]; // word-by-word, Indonesian
 }
 
-const textKey = (key: string) => `aimprove.ayah.v3.${key}`;
+const textKey = (key: string) => `aimprove.ayah.v4.${key}`;
 
 export async function loadAyahText(key: string): Promise<AyahText> {
   try {
@@ -368,7 +379,7 @@ export async function loadAyahText(key: string): Promise<AyahText> {
     // fall through to the network
   }
   const res = await fetch(
-    `https://api.quran.com/api/v4/verses/by_key/${key}?translations=33&fields=text_uthmani,text_uthmani_tajweed`
+    `https://api.quran.com/api/v4/verses/by_key/${key}?translations=33&fields=text_uthmani,text_uthmani_tajweed&words=true&word_fields=text_uthmani&language=id`
   );
   if (!res.ok) throw new Error(`Couldn't load ayah ${key} (HTTP ${res.status})`);
   const data = await res.json();
@@ -377,6 +388,9 @@ export async function loadAyahText(key: string): Promise<AyahText> {
     key,
     arabic: v?.text_uthmani || '',
     tajweed: v?.text_uthmani_tajweed || '',
+    words: (v?.words || [])
+      .filter((w: any) => w.char_type_name === 'word')
+      .map((w: any) => ({ arabic: w.text_uthmani || '', meaning: w.translation?.text || '' })),
     // Drop footnote markers (<sup foot_note=…>1</sup>) before stripping tags.
     translationId: String(v?.translations?.[0]?.text || '')
       .replace(/<sup[^>]*>.*?<\/sup>/g, '')
