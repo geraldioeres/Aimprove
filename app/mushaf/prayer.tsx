@@ -138,7 +138,8 @@ function Setup() {
       <View style={[styles.card, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
         <Text style={[styles.h3, { color: colors.ink }]}>Prayer times</Text>
         <Text style={[styles.body, { color: colors.textSecondary }]}>
-          Worked out on your phone from your location (Kemenag method). Nothing is sent anywhere.
+          Worked out on your phone from your location (Kemenag method). Nothing is sent anywhere. With a location,
+          you start at the next prayer instead of Subuh.
         </Text>
         {track.location ? <Times lat={track.location.lat} lng={track.location.lng} label={track.location.label} /> : null}
         <PressBlock
@@ -276,9 +277,11 @@ function Track({ now }: { now: Date }) {
                     numberOfLines={1}
                     style={[styles.slotRange, { color: s.count ? colors.ink : colors.textMuted, fontWeight: s.isNext ? '900' : '500' }]}
                   >
-                    {s.count ? rangeLabel(s.from, s.count) : '—'}
+                    {s.skipped ? 'Passed before you started' : s.count ? rangeLabel(s.from, s.count) : '—'}
                   </Text>
-                  {s.done ? (
+                  {s.skipped ? (
+                    <View style={[styles.slot, { borderColor: 'transparent' }]} />
+                  ) : s.done ? (
                     <StampSeal size={28} seed={`${track.dayKey}-${s.key}`} />
                   ) : (
                     <View

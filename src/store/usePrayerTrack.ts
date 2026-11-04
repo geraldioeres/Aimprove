@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { ayahsLeftInSurah, TOTAL_AYAHS } from '../data/surahs';
-import { PRAYERS, PrayerKey, scheduleReminders } from '../lib/prayer-times';
+import { PRAYERS, PrayerKey, prayerTimesFor, scheduleReminders } from '../lib/prayer-times';
 import { localDayKey, useLearningStore } from './useLearningStore';
 
 /**
@@ -40,6 +40,7 @@ interface Saved {
   remindersOn: boolean;
   dayKey: string; // the day `today` belongs to
   today: DoneBlock[]; // blocks finished today, in order
+  skipped: SlotKey[]; // today's slots that had already passed when the track started
   history: DoneBlock[]; // recent finished blocks, newest first
 }
 
@@ -61,6 +62,7 @@ const EMPTY: Saved = {
   remindersOn: false,
   dayKey: '',
   today: [],
+  skipped: [],
   history: [],
 };
 
@@ -76,19 +78,45 @@ export function blockSize(from: number): number {
  * Today's ten slots with the ayah each covers. Finished slots show what was
  * memorised; the rest preview the next blocks in slot order.
  */
-export function planToday(state: Pick<Saved, 'cursor' | 'today'>) {
+/**
+ * Slots to skip when starting at `now`, so the day begins at the nearest
+ * prayer: the "after" block of the prayer just prayed if it is closer, or the
+ * "before" block of the next prayer. Needs prayer times, so with no location
+ * nothing is skipped and the day starts at Subuh.
+ */
+export function passedSlots(location: PrayerLocation | null, now: Date = new Date()): SlotKey[] {
+  if (!location) return [];
+  const times = prayerTimesFor(location.lat, location.lng, now);
+  const t = now.getTime();
+  const next = times.findIndex((p) => p.time.getTime() > t);
+  const last = next === -1 ? times.length - 1 : next - 1;
+  let firstOpen: SlotKey;
+  if (last < 0) firstOpen = `${times[0].key}-before`; // before today's Subuh
+  else if (next === -1) firstOpen = `${times[last].key}-after`; // after Isya
+  else {
+    const sinceLast = t - times[last].time.getTime();
+    const untilNext = times[next].time.getTime() - t;
+    firstOpen = sinceLast <= untilNext ? `${times[last].key}-after` : `${times[next].key}-before`;
+  }
+  const cut = SLOTS.findIndex((s) => s.key === firstOpen);
+  return SLOTS.slice(0, cut).map((s) => s.key);
+}
+
+export function planToday(state: Pick<Saved, 'cursor' | 'today'> & { skipped?: SlotKey[] }) {
   const doneBy = new Map(state.today.map((b) => [b.slot, b]));
+  const skipped = new Set(state.skipped || []);
   let next = state.cursor;
   let firstOpen: SlotKey | null = null;
   return SLOTS.map((s) => {
     const done = doneBy.get(s.key);
-    if (done) return { ...s, from: done.from, count: done.count, done: true, isNext: false };
+    if (done) return { ...s, from: done.from, count: done.count, done: true, isNext: false, skipped: false };
+    if (skipped.has(s.key)) return { ...s, from: next, count: 0, done: false, isNext: false, skipped: true };
     const from = next;
     const count = blockSize(from);
     next += count;
     const isNext = firstOpen === null && count > 0;
     if (isNext) firstOpen = s.key;
-    return { ...s, from, count, done: false, isNext };
+    return { ...s, from, count, done: false, isNext, skipped: false };
   });
 }
 
@@ -96,11 +124,11 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
   const save = async () => {
     const userId = get().loadedFor;
     if (!userId) return;
-    const { startIndex, cursor, location, remindersOn, dayKey, today, history } = get();
+    const { startIndex, cursor, location, remindersOn, dayKey, today, skipped, history } = get();
     try {
       await AsyncStorage.setItem(
         keyFor(userId),
-        JSON.stringify({ startIndex, cursor, location, remindersOn, dayKey, today, history })
+        JSON.stringify({ startIndex, cursor, location, remindersOn, dayKey, today, skipped, history })
       );
     } catch {
       // non-fatal
@@ -110,7 +138,7 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
   // A new day starts with an empty set of slots; unfinished ayah simply wait.
   const rollDay = () => {
     const key = localDayKey(new Date());
-    if (get().dayKey !== key) set({ dayKey: key, today: [] });
+    if (get().dayKey !== key) set({ dayKey: key, today: [], skipped: [] });
   };
 
   const reschedule = () => {
@@ -144,7 +172,14 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
     },
 
     start: async (startIndex) => {
-      set({ startIndex, cursor: startIndex, today: [], dayKey: localDayKey(new Date()) });
+      // Begin at the nearest prayer: today's slots that already passed are skipped.
+      set({
+        startIndex,
+        cursor: startIndex,
+        today: [],
+        skipped: passedSlots(get().location),
+        dayKey: localDayKey(new Date()),
+      });
       await save();
       reschedule();
     },
