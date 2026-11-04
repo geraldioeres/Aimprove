@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { parseTajweed } from '../../src/data/tajweed';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { CARD_EDGE, RADII, SPACING } from '../../src/theme/tokens';
 import { PressBlock, StampSeal } from '../../src/components/Stamp';
@@ -347,6 +349,9 @@ function OpenBlock({
   onDone: () => void;
 }) {
   const { colors } = useTheme();
+  const router = useRouter();
+  const colours = usePrayerTrack((s) => s.tajweedColours);
+  const setColours = usePrayerTrack((s) => s.setTajweedColours);
   const keys = useMemo(() => Array.from({ length: count }, (_, i) => ayahFromIndex(from + i).key), [from, count]);
   const [texts, setTexts] = useState<AyahText[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -370,7 +375,19 @@ function OpenBlock({
         <Text style={[styles.h3, { color: colors.ink }]}>{title}</Text>
         {time ? <Text style={[styles.meta, { color: colors.textSecondary }]}>{formatClock(time)}</Text> : null}
       </View>
-      <Text style={[styles.rangeBig, { color: colors.quranSabaq }]}>{rangeLabel(from, count)}</Text>
+      <View style={styles.headRow}>
+        <Text style={[styles.rangeBig, { color: colors.quranSabaq }]}>{rangeLabel(from, count)}</Text>
+        <Pressable
+          onPress={() => setColours(!colours)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: colours }}
+          hitSlop={8}
+          style={styles.inlineBtn}
+        >
+          <Feather name={colours ? 'check-square' : 'square'} size={16} color={colors.indigo} />
+          <Text style={[styles.link, { color: colors.indigo }]}>Tajweed colours</Text>
+        </Pressable>
+      </View>
 
       {error ? (
         <View style={styles.errorRow}>
@@ -384,7 +401,27 @@ function OpenBlock({
       ) : (
         texts.map((t, i) => (
           <View key={t.key} style={[styles.ayah, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
-            <Text style={[styles.arabic, { color: colors.ink }]}>{t.arabic}</Text>
+            {colours && t.tajweed ? (
+              <Text style={[styles.arabic, { color: colors.ink }]}>
+                {parseTajweed(t.tajweed).map((seg, j) =>
+                  seg.rule ? (
+                    <Text
+                      key={j}
+                      onPress={() => router.push(`/mushaf/tajweed?rule=${seg.rule!.id}`)}
+                      accessibilityRole="link"
+                      accessibilityLabel={seg.rule.name}
+                      style={{ color: seg.rule.color }}
+                    >
+                      {seg.text}
+                    </Text>
+                  ) : (
+                    <Text key={j}>{seg.text}</Text>
+                  )
+                )}
+              </Text>
+            ) : (
+              <Text style={[styles.arabic, { color: colors.ink }]}>{t.arabic}</Text>
+            )}
             <Text style={[styles.ayahKey, { color: colors.textMuted }]}>{t.key}</Text>
             {t.translationId ? (
               <Text style={[styles.translation, { color: colors.textSecondary }]}>{t.translationId}</Text>
@@ -532,7 +569,7 @@ const styles = StyleSheet.create({
   slotPhase: { width: 52, fontSize: 13, fontWeight: '500' },
   slotRange: { flex: 1, fontSize: 14 },
   slot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, marginHorizontal: 1 },
-  rangeBig: { fontSize: 15, fontWeight: '900', marginTop: -6 },
+  rangeBig: { fontSize: 15, fontWeight: '900', flexShrink: 1 },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ayah: { paddingVertical: 12, gap: 6 },
   arabic: { fontSize: 26, lineHeight: 50, textAlign: 'right', writingDirection: 'rtl' },

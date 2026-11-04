@@ -97,6 +97,10 @@ function RootNavigator() {
           name="mushaf/prayer"
           options={{ title: 'Ayah by prayer', presentation: 'card' }}
         />
+        <Stack.Screen
+          name="mushaf/tajweed"
+          options={{ title: 'Tajweed', presentation: 'card' }}
+        />
       </Stack>
       {holding ? (
         <View style={[StyleSheet.absoluteFill, styles.hold, { backgroundColor: colors.bgPrimary }]}>

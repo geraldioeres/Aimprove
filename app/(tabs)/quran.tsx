@@ -159,6 +159,28 @@ export default function QuranHafalanHubScreen() {
         </View>
       </Pressable>
 
+      {/* Tajweed lookup: every rule with an example */}
+      <Pressable
+        onPress={() => router.push('/mushaf/tajweed')}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.heatmapBanner,
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
+        ]}
+      >
+        <View style={styles.heatmapLeft}>
+          <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>Tajweed · التجويد</Text>
+          <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
+            Izhar, ikhfa, idgham, qalqalah, mad and more, with examples
+          </Text>
+        </View>
+        <View style={styles.heatmapBtn}>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
+        </View>
+      </Pressable>
+
       {/* Makhraj lookup: where each letter is pronounced */}
       <Pressable
         onPress={() => router.push('/mushaf/makharij')}
