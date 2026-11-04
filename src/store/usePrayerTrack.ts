@@ -38,6 +38,7 @@ interface Saved {
   cursor: number; // next ayah to memorise
   location: PrayerLocation | null;
   remindersOn: boolean;
+  tajweedColours: boolean;
   dayKey: string; // the day `today` belongs to
   today: DoneBlock[]; // blocks finished today, in order
   skipped: SlotKey[]; // today's slots that had already passed when the track started
@@ -50,6 +51,7 @@ interface PrayerTrackState extends Saved {
   start: (startIndex: number) => Promise<void>;
   setLocationFromDevice: () => Promise<{ ok: boolean; message?: string }>;
   setReminders: (on: boolean) => Promise<void>;
+  setTajweedColours: (on: boolean) => Promise<void>;
   completeSlot: (slot: SlotKey) => Promise<void>;
   undoLast: () => Promise<void>;
   reset: () => Promise<void>;
@@ -60,6 +62,7 @@ const EMPTY: Saved = {
   cursor: 0,
   location: null,
   remindersOn: false,
+  tajweedColours: true,
   dayKey: '',
   today: [],
   skipped: [],
@@ -124,11 +127,11 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
   const save = async () => {
     const userId = get().loadedFor;
     if (!userId) return;
-    const { startIndex, cursor, location, remindersOn, dayKey, today, skipped, history } = get();
+    const { startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history } = get();
     try {
       await AsyncStorage.setItem(
         keyFor(userId),
-        JSON.stringify({ startIndex, cursor, location, remindersOn, dayKey, today, skipped, history })
+        JSON.stringify({ startIndex, cursor, location, remindersOn, tajweedColours, dayKey, today, skipped, history })
       );
     } catch {
       // non-fatal
@@ -213,6 +216,11 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
       reschedule();
     },
 
+    setTajweedColours: async (on) => {
+      set({ tajweedColours: on });
+      await save();
+    },
+
     completeSlot: async (slot) => {
       rollDay();
       const plan = planToday(get());
@@ -256,10 +264,11 @@ export const usePrayerTrack = create<PrayerTrackState>((set, get) => {
 export interface AyahText {
   key: string;
   arabic: string;
+  tajweed: string; // Quran.com tajweed-marked HTML (parse with parseTajweed)
   translationId: string;
 }
 
-const textKey = (key: string) => `aimprove.ayah.v2.${key}`;
+const textKey = (key: string) => `aimprove.ayah.v3.${key}`;
 
 export async function loadAyahText(key: string): Promise<AyahText> {
   try {
@@ -269,7 +278,7 @@ export async function loadAyahText(key: string): Promise<AyahText> {
     // fall through to the network
   }
   const res = await fetch(
-    `https://api.quran.com/api/v4/verses/by_key/${key}?translations=33&fields=text_uthmani`
+    `https://api.quran.com/api/v4/verses/by_key/${key}?translations=33&fields=text_uthmani,text_uthmani_tajweed`
   );
   if (!res.ok) throw new Error(`Couldn't load ayah ${key} (HTTP ${res.status})`);
   const data = await res.json();
@@ -277,6 +286,7 @@ export async function loadAyahText(key: string): Promise<AyahText> {
   const text: AyahText = {
     key,
     arabic: v?.text_uthmani || '',
+    tajweed: v?.text_uthmani_tajweed || '',
     // Drop footnote markers (<sup foot_note=…>1</sup>) before stripping tags.
     translationId: String(v?.translations?.[0]?.text || '')
       .replace(/<sup[^>]*>.*?<\/sup>/g, '')
