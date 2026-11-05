@@ -18,6 +18,7 @@ import {
   localDayKey,
   selectAvailableJapaneseLessons,
   selectDueJapaneseReviews,
+  selectUpcomingJapaneseReviews,
   selectDueQuranPages,
   selectStreak,
   useLearningStore,
@@ -57,6 +58,7 @@ export default function TodayScreen() {
   }
 
   const dueJP = selectDueJapaneseReviews(state);
+  const upcoming = selectUpcomingJapaneseReviews(state).totalCount;
   const availableLessons = selectAvailableJapaneseLessons(state);
   const dueQuran = selectDueQuranPages(state);
   const forecast = build24HourForecast(state);
@@ -178,6 +180,19 @@ export default function TodayScreen() {
               </Text>
             </PressBlock>
           </View>
+
+          {upcoming > 0 ? (
+            <PressBlock
+              onPress={() => router.push('/jp/review?ahead=1')}
+              accessibilityRole="button"
+              accessibilityLabel={`Review ahead: ${upcoming} reviews not due yet`}
+              style={[styles.aheadBtn, { backgroundColor: colors.bgSurface }]}
+            >
+              <Feather name="fast-forward" size={18} color={colors.ink} />
+              <Text style={[styles.aheadText, { color: colors.ink }]}>Review ahead</Text>
+              <Text style={[styles.aheadMeta, { color: colors.textSecondary }]}>{upcoming} not due yet</Text>
+            </PressBlock>
+          ) : null}
         </View>
 
         <View style={[styles.col, wide && styles.colItem]}>
@@ -310,6 +325,9 @@ const styles = StyleSheet.create({
   colItem: { flex: 1 },
 
   launchRow: { flexDirection: 'row', gap: 12 },
+  aheadBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14 },
+  aheadText: { fontSize: 15, fontWeight: '900' },
+  aheadMeta: { flex: 1, textAlign: 'right', fontSize: 13, fontVariant: ['tabular-nums'] },
   launch: { flex: 1, minHeight: 150, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'space-between' },
   launchHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   launchLabel: { fontSize: 16, fontWeight: '900' },

@@ -9,12 +9,13 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING } from '../../src/theme/tokens';
 import {
   selectDueJapaneseReviews,
+  selectUpcomingJapaneseReviews,
   selectStreak,
   useLearningStore,
 } from '../../src/store/useLearningStore';
@@ -44,14 +45,34 @@ interface ReviewPromptTask {
   contextSentence?: { ja: string; en: string };
 }
 
+/**
+ * A fresh session per URL: "Review ahead" from the summary replaces this
+ * screen with itself, so key on the params to rebuild the queue.
+ */
 export default function JapaneseTypedReviewScreen() {
+  const { ahead, t } = useLocalSearchParams<{ ahead?: string; t?: string }>();
+  return <ReviewSession key={`${ahead ?? ''}-${t ?? ''}`} />;
+}
+
+function ReviewSession() {
   const router = useRouter();
   const { colors } = useTheme();
   const state = useLearningStore();
   const submitReview = useLearningStore((s) => s.submitJPReviewOutcome);
 
+  const { ahead } = useLocalSearchParams<{ ahead?: string }>();
+  const reviewingAhead = ahead === '1';
+
   const initialTasks = useMemo(() => {
-    const due = selectDueJapaneseReviews(state);
+    // Due reviews first; when reviewing ahead, also the ones still waiting.
+    const dueNow = selectDueJapaneseReviews(state);
+    const waiting = reviewingAhead
+      ? selectUpcomingJapaneseReviews(state)
+      : { subjects: [], minedCards: [], totalCount: 0 };
+    const due = {
+      subjects: [...dueNow.subjects, ...waiting.subjects],
+      minedCards: [...dueNow.minedCards, ...waiting.minedCards],
+    };
     const list: ReviewPromptTask[] = [];
 
     for (const subj of due.subjects) {
@@ -194,6 +215,7 @@ export default function JapaneseTypedReviewScreen() {
 
   if (!currentTask) {
     const streak = selectStreak(state);
+    const upcomingNow = selectUpcomingJapaneseReviews(state).totalCount;
     const itemsTotal = new Set(initialTasks.map((t) => t.subjectId)).size;
     const firstTry = Math.max(0, itemsTotal - Object.keys(subjectMistakeMap).length);
     const earnedStamp = streak.goalMet && !goalMetAtStart;
@@ -246,6 +268,18 @@ export default function JapaneseTypedReviewScreen() {
               <Text style={[styles.primaryBtnText, { color: colors.ink }]}>Learn new items</Text>
             </PressBlock>
           </View>
+          {upcomingNow > 0 ? (
+            <PressBlock
+              onPress={() => router.replace(`/jp/review?ahead=1&t=${Date.now()}`)}
+              accessibilityRole="button"
+              style={[styles.primaryBtn, styles.aheadBtn, { backgroundColor: colors.bgSurface }]}
+            >
+              <Feather name="fast-forward" size={18} color={colors.ink} />
+              <Text style={[styles.primaryBtnText, { color: colors.ink }]}>
+                Review ahead · {upcomingNow} not due yet
+              </Text>
+            </PressBlock>
+          ) : null}
         </View>
       </ScrollView>
     );
@@ -593,6 +627,7 @@ const styles = StyleSheet.create({
   summaryHeadline: { fontSize: 34, lineHeight: 40, fontWeight: '900' },
   summaryBody: { fontSize: 15, lineHeight: 22, marginTop: -8 },
   summaryBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  aheadBtn: { flexDirection: 'row', gap: 10, flex: 0 },
   primaryBtn: {
     flex: 1,
     minWidth: 140,

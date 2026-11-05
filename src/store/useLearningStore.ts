@@ -1073,6 +1073,32 @@ async function syncProfileToSupabase(state: LearningState) {
 /**
  * O(1) indexed selector helpers for Unified Home Queue & 24-Hour Review Forecast
  */
+/**
+ * Reviews still waiting on their SRS timer (stage 1-8, not yet due), soonest
+ * first. "Review ahead" lets someone who already knows the material answer
+ * these now instead of waiting; the next interval then counts from now.
+ */
+export function selectUpcomingJapaneseReviews(
+  state: LearningState,
+  now: Date = new Date()
+): { subjects: JPSubject[]; minedCards: UserJPMinedCard[]; totalCount: number } {
+  const nowMs = now.getTime();
+  const waiting = Object.values(state.jpAssignments)
+    .filter(
+      (a) => a.srsStage >= 1 && a.srsStage < 9 && a.nextReviewAt && new Date(a.nextReviewAt).getTime() > nowMs
+    )
+    .sort((a, b) => new Date(a.nextReviewAt!).getTime() - new Date(b.nextReviewAt!).getTime());
+  const subjects: JPSubject[] = [];
+  for (const a of waiting) {
+    const subj = JP_SUBJECT_BY_ID[a.subjectId];
+    if (subj) subjects.push(subj);
+  }
+  const minedCards = state.jpMinedCards.filter(
+    (c) => c.srsStage >= 1 && c.srsStage < 9 && c.nextReviewAt && new Date(c.nextReviewAt).getTime() > nowMs
+  );
+  return { subjects, minedCards, totalCount: subjects.length + minedCards.length };
+}
+
 export function selectDueJapaneseReviews(
   state: LearningState,
   now: Date = new Date()

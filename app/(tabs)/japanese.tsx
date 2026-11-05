@@ -17,9 +17,11 @@ import {
   JP_SUBJECTS_BY_LEVEL,
   selectAvailableJapaneseLessons,
   selectDueJapaneseReviews,
+  selectUpcomingJapaneseReviews,
   useLearningStore,
 } from '../../src/store/useLearningStore';
 import { JPSubject, JPSubjectKind } from '../../src/data/jp-seed';
+import { PressBlock } from '../../src/components/Stamp';
 import { WANIKANI_STAGES } from '../../src/lib/srs-wanikani';
 
 const WANIKANI_TIERS = [
@@ -69,6 +71,7 @@ export default function JapaneseHubScreen() {
   const [inspectedSubject, setInspectedSubject] = useState<JPSubject | null>(null);
 
   const dueReviews = selectDueJapaneseReviews(state);
+  const upcoming = selectUpcomingJapaneseReviews(state).totalCount;
   const availableLessons = selectAvailableJapaneseLessons(state);
 
   const WK = { radical: colors.jpRadical, kanji: colors.jpKanji, vocab: colors.jpVocab };
@@ -213,6 +216,19 @@ export default function JapaneseHubScreen() {
               : 'All caught up. Nice.'}
           </Text>
         </Pressable>
+
+        {upcoming > 0 ? (
+          <PressBlock
+            onPress={() => router.push('/jp/review?ahead=1')}
+            accessibilityRole="button"
+            accessibilityLabel={`Review ahead: ${upcoming} reviews not due yet`}
+            style={[styles.aheadBtn, { backgroundColor: colors.bgSurface }]}
+          >
+            <Feather name="fast-forward" size={18} color={colors.ink} />
+            <Text style={[styles.aheadText, { color: colors.ink }]}>Review ahead</Text>
+            <Text style={[styles.aheadMeta, { color: colors.textSecondary }]}>{upcoming} not due yet</Text>
+          </PressBlock>
+        ) : null}
 
         <Pressable
           onPress={() => router.push('/jp/reading')}
@@ -879,8 +895,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
-  },  sessionBar: {
+  },
+  aheadBtn: {
+    flexBasis: '100%',
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 50,
+    paddingHorizontal: 14,
+  },
+  aheadText: { fontSize: 15, fontWeight: '900' },
+  aheadMeta: { flex: 1, textAlign: 'right', fontSize: 13, fontVariant: ['tabular-nums'] },
+  sessionBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
   },
   launchCard: {
