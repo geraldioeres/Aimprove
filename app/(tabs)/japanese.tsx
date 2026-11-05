@@ -222,7 +222,7 @@ export default function JapaneseHubScreen() {
             onPress={() => router.push('/jp/review?ahead=1')}
             accessibilityRole="button"
             accessibilityLabel={`Review ahead: ${upcoming} reviews not due yet`}
-            style={[styles.aheadBtn, { backgroundColor: colors.bgSurface }]}
+            style={[styles.aheadBtn, !narrow && styles.aheadFullRow, { backgroundColor: colors.bgSurface }]}
           >
             <Feather name="fast-forward" size={18} color={colors.ink} />
             <Text style={[styles.aheadText, { color: colors.ink }]}>Review ahead</Text>
@@ -861,6 +861,7 @@ const styles = StyleSheet.create({
   },
   stackCol: {
     flexDirection: 'column',
+    flexWrap: 'nowrap', // a wrapping column spills cards into a second column off-screen
   },
   launchCardNarrow: {
     flex: 0,
@@ -897,13 +898,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   aheadBtn: {
-    flexBasis: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     minHeight: 50,
     paddingHorizontal: 14,
   },
+  // Own line in the wide row layout; on phones the column already gives it one.
+  aheadFullRow: { flexBasis: '100%' },
   aheadText: { fontSize: 15, fontWeight: '900' },
   aheadMeta: { flex: 1, textAlign: 'right', fontSize: 13, fontVariant: ['tabular-nums'] },
   sessionBar: {
