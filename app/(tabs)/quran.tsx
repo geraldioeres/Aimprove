@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,10 @@ import {
   getJuzForPage,
   getSurahSummaryForPage,
 } from '../../src/data/quran-seed';
+import { SURAHS } from '../../src/data/surahs';
+
+// "Al-Baqarah" -> "albaqarah", so "baqarah" or "al baqara" both match.
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export default function QuranHafalanHubScreen() {
   const router = useRouter();
@@ -28,6 +32,16 @@ export default function QuranHafalanHubScreen() {
 
   const [jumpPageInput, setJumpPageInput] = useState('582');
   const [pageInputError, setPageInputError] = useState<string | null>(null);
+  const [surahQuery, setSurahQuery] = useState('');
+  const [showAllSurahs, setShowAllSurahs] = useState(false);
+
+  const surahMatches = useMemo(() => {
+    const all = SURAHS.map((s, i) => ({ ...s, number: i + 1 }));
+    const q = squash(surahQuery);
+    if (!q) return all;
+    return all.filter((s) => (/^[0-9]+$/.test(q) ? String(s.number) === q : squash(s.name).includes(q)));
+  }, [surahQuery]);
+  const surahList = surahQuery || showAllSurahs ? surahMatches : surahMatches.slice(0, 8);
 
   const dueQuran = selectDueQuranPages(state);
   const allProgress = Object.values(state.quranProgress);
@@ -473,6 +487,80 @@ export default function QuranHafalanHubScreen() {
           ))}
         </View>
       </View>
+      {/* Read: find a surah and read it with tajweed colours and meaning */}
+      <View
+        style={[
+          styles.sectionCard,
+          { backgroundColor: colors.bgSurface, borderColor: colors.ink },
+        ]}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Read</Text>
+        <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+          Find a surah and read it ayah by ayah. Turn tajweed colours and the Indonesian meaning on or off as you read.
+        </Text>
+        <View style={[styles.searchBox, { borderColor: colors.ink, backgroundColor: colors.bgSurface }]}>
+          <Feather name="search" size={18} color={colors.textMuted} />
+          <TextInput
+            value={surahQuery}
+            onChangeText={setSurahQuery}
+            placeholder="Surah name or number"
+            placeholderTextColor={colors.textMuted}
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+            onSubmitEditing={() => {
+              if (surahMatches.length === 1) router.push(`/mushaf/surah/${surahMatches[0].number}`);
+            }}
+            accessibilityLabel="Find a surah"
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+          />
+          {surahQuery ? (
+            <Pressable onPress={() => setSurahQuery('')} accessibilityRole="button" accessibilityLabel="Clear" hitSlop={10}>
+              <Feather name="x" size={18} color={colors.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+        <View>
+          {surahList.map((s) => (
+            <Pressable
+              key={s.number}
+              onPress={() => router.push(`/mushaf/surah/${s.number}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`Read surah ${s.number}, ${s.name}`}
+              style={({ pressed }) => [
+                styles.surahRow,
+                { borderColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Text style={[styles.surahNum, { color: colors.textMuted }]}>{s.number}</Text>
+              <Text style={[styles.surahRowName, { color: colors.textPrimary }]} numberOfLines={1}>
+                {s.name}
+              </Text>
+              <Text style={[styles.surahRowMeta, { color: colors.textSecondary }]}>{s.ayahs} ayah</Text>
+              <Feather name="chevron-right" size={18} color={colors.textMuted} />
+            </Pressable>
+          ))}
+          {surahList.length === 0 ? (
+            <Text style={[styles.emptyQueueText, { color: colors.textMuted, paddingTop: 4 }]}>
+              No surah matches “{surahQuery}”.
+            </Text>
+          ) : null}
+        </View>
+        {!surahQuery ? (
+          <Pressable
+            onPress={() => setShowAllSurahs((v) => !v)}
+            accessibilityRole="button"
+            hitSlop={6}
+            style={styles.showAll}
+          >
+            <Text style={[styles.openBtnText, { color: colors.indigo }]}>
+              {showAllSurahs ? 'Show fewer' : 'Show all 114 surahs'}
+            </Text>
+            <Feather name={showAllSurahs ? 'chevron-up' : 'chevron-down'} size={16} color={colors.indigo} />
+          </Pressable>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
@@ -653,6 +741,27 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     justifyContent: 'center',
   },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 48,
+    borderWidth: 2,
+    borderRadius: RADII.sm,
+    paddingHorizontal: 14,
+  },
+  searchInput: { flex: 1, fontSize: 16, minHeight: 44 },
+  surahRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 48,
+    borderTopWidth: 1,
+  },
+  surahNum: { width: 28, fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  surahRowName: { flex: 1, fontSize: 15, fontWeight: '700' },
+  surahRowMeta: { fontSize: 12, fontVariant: ['tabular-nums'] },
+  showAll: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, alignSelf: 'flex-start' },
   bookmarkChipText: {
     fontSize: 12,
     fontWeight: '700',
