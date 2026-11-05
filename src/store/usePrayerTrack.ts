@@ -370,21 +370,11 @@ export interface AyahText {
 }
 
 const textKey = (key: string) => `aimprove.ayah.v4.${key}`;
+const AYAH_QUERY =
+  'translations=33&fields=text_uthmani,text_uthmani_tajweed&words=true&word_fields=text_uthmani&language=id';
 
-export async function loadAyahText(key: string): Promise<AyahText> {
-  try {
-    const cached = await AsyncStorage.getItem(textKey(key));
-    if (cached) return JSON.parse(cached);
-  } catch {
-    // fall through to the network
-  }
-  const res = await fetch(
-    `https://api.quran.com/api/v4/verses/by_key/${key}?translations=33&fields=text_uthmani,text_uthmani_tajweed&words=true&word_fields=text_uthmani&language=id`
-  );
-  if (!res.ok) throw new Error(`Couldn't load ayah ${key} (HTTP ${res.status})`);
-  const data = await res.json();
-  const v = data.verse;
-  const text: AyahText = {
+function toAyahText(v: any, key: string): AyahText {
+  return {
     key,
     arabic: v?.text_uthmani || '',
     tajweed: v?.text_uthmani_tajweed || '',
@@ -397,6 +387,72 @@ export async function loadAyahText(key: string): Promise<AyahText> {
       .replace(/<[^>]+>/g, '')
       .trim(),
   };
+}
+
+export const SURAH_CHUNK = 50; // ayah per request (Quran.com's page size cap)
+
+/**
+ * One chunk of a surah for the reader: ayah (chunk-1)*50+1 onwards. Chunks are
+ * cached, and each ayah also lands in the single-ayah cache.
+ */
+export async function loadSurahChunk(surah: number, chunk: number): Promise<AyahText[]> {
+  const cacheKey = `aimprove.surah.v1.${surah}.${chunk}`;
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // fall through to the network
+  }
+  const res = await fetch(
+    `https://api.quran.com/api/v4/verses/by_chapter/${surah}?${AYAH_QUERY}&per_page=${SURAH_CHUNK}&page=${chunk}`
+  );
+  if (!res.ok) throw new Error(`Couldn't load surah ${surah} (HTTP ${res.status})`);
+  const data = await res.json();
+  const texts: AyahText[] = (data.verses || []).map((v: any) => toAyahText(v, v.verse_key));
+  AsyncStorage.setItem(cacheKey, JSON.stringify(texts)).catch(() => {});
+  for (const t of texts) AsyncStorage.setItem(textKey(t.key), JSON.stringify(t)).catch(() => {});
+  return texts;
+}
+
+export interface SurahInfo {
+  arabicName: string;
+  meaning: string; // Indonesian, e.g. "Sapi Betina"
+  place: 'makkah' | 'madinah' | '';
+}
+
+export async function loadSurahInfo(surah: number): Promise<SurahInfo> {
+  const cacheKey = `aimprove.surahinfo.v1.${surah}`;
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // fall through
+  }
+  const res = await fetch(`https://api.quran.com/api/v4/chapters/${surah}?language=id`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const c = (await res.json()).chapter;
+  const info: SurahInfo = {
+    arabicName: c?.name_arabic || '',
+    meaning: c?.translated_name?.name || '',
+    place: c?.revelation_place || '',
+  };
+  AsyncStorage.setItem(cacheKey, JSON.stringify(info)).catch(() => {});
+  return info;
+}
+
+export async function loadAyahText(key: string): Promise<AyahText> {
+  try {
+    const cached = await AsyncStorage.getItem(textKey(key));
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // fall through to the network
+  }
+  const res = await fetch(
+    `https://api.quran.com/api/v4/verses/by_key/${key}?${AYAH_QUERY}`
+  );
+  if (!res.ok) throw new Error(`Couldn't load ayah ${key} (HTTP ${res.status})`);
+  const data = await res.json();
+  const text = toAyahText(data.verse, key);
   AsyncStorage.setItem(textKey(key), JSON.stringify(text)).catch(() => {});
   return text;
 }

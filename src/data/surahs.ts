@@ -25,6 +25,9 @@ export const SURAHS: { name: string; ayahs: number }[] = [
   ['Al-Lahab', 5], ['Al-Ikhlas', 4], ['Al-Falaq', 5], ['An-Nas', 6],
 ].map(([name, ayahs]) => ({ name: name as string, ayahs: ayahs as number }));
 
+/** Opens every surah except At-Taubah; in Al-Fatihah it is ayah 1. */
+export const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
+
 /** Global index (0-based, Mushaf order) of each surah's first ayah. */
 const SURAH_START: number[] = [];
 {
