@@ -26,6 +26,7 @@ import {
 import { getSurahSummaryForPage } from '../../src/data/quran-seed';
 import { PressBlock, StampCard, StampSeal } from '../../src/components/Stamp';
 import { planToday, usePrayerTrack } from '../../src/store/usePrayerTrack';
+import { selectDueWords, selectWordLessons, selectWordLevel, useQuranWords } from '../../src/store/useQuranWords';
 import { rangeLabel } from '../../src/data/surahs';
 import { PRAYERS } from '../../src/lib/prayer-times';
 
@@ -38,6 +39,10 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const state = useLearningStore();
   const prayerTrack = usePrayerTrack();
+  const wordProgress = useQuranWords((s) => s.progress);
+  const wordsDue = selectDueWords(wordProgress).length;
+  const wordsLessons = selectWordLessons(wordProgress).length;
+  const wordsLevel = selectWordLevel(wordProgress);
   const { width } = useWindowDimensions();
   const wide = width >= 760;
 
@@ -227,7 +232,29 @@ export default function TodayScreen() {
               </Pressable>
             ) : null}
 
-            {setoran.length === 0 && !prayerOpen ? (
+            {wordsDue + wordsLessons > 0 ? (
+              <Pressable
+                onPress={() => router.push(wordsDue > 0 ? '/qwords/review' : '/qwords/lessons')}
+                accessibilityRole="button"
+                accessibilityLabel={`Quran words: ${wordsDue} reviews, ${wordsLessons} lessons`}
+                style={({ pressed }) => [styles.qRow, pressed && { backgroundColor: colors.bgMuted }]}
+              >
+                <View style={[styles.tag, { backgroundColor: colors.quranSabaq }]}>
+                  <Text style={[styles.tagText, { color: '#FFFFFF' }]}>Words</Text>
+                </View>
+                <View style={styles.qInfo}>
+                  <Text numberOfLines={1} style={[styles.qTitle, { color: colors.ink }]}>
+                    {wordsDue > 0
+                      ? `${wordsDue} ${wordsDue === 1 ? 'review' : 'reviews'}`
+                      : `${wordsLessons} new ${wordsLessons === 1 ? 'word' : 'words'}`}
+                  </Text>
+                  <Text style={[styles.qNote, { color: colors.textMuted }]}>Quran words · level {wordsLevel}</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.ink} />
+              </Pressable>
+            ) : null}
+
+            {setoran.length === 0 && !prayerOpen && wordsDue + wordsLessons === 0 ? (
               <Text style={[styles.empty, { color: colors.textSecondary }]}>Nothing due. Pick a new Sabaq page to start.</Text>
             ) : null}
 

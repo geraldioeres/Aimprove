@@ -20,6 +20,7 @@ import {
   getSurahSummaryForPage,
 } from '../../src/data/quran-seed';
 import { SURAHS } from '../../src/data/surahs';
+import { selectDueWords, selectWordLessons, selectWordLevel, useQuranWords } from '../../src/store/useQuranWords';
 
 // "Al-Baqarah" -> "albaqarah", so "baqarah" or "al baqara" both match.
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -44,6 +45,10 @@ export default function QuranHafalanHubScreen() {
   const surahList = surahQuery || showAllSurahs ? surahMatches : surahMatches.slice(0, 8);
 
   const dueQuran = selectDueQuranPages(state);
+  const wordProgress = useQuranWords((s) => s.progress);
+  const wordsDue = selectDueWords(wordProgress).length;
+  const wordsLessons = selectWordLessons(wordProgress).length;
+  const wordsLevel = selectWordLevel(wordProgress);
   const allProgress = Object.values(state.quranProgress);
 
   const sabaqTotal = allProgress.filter((p) => p.stage === 'sabaq').length;
@@ -166,6 +171,32 @@ export default function QuranHafalanHubScreen() {
           <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>Ayah by prayer</Text>
           <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
             3 new ayah before each prayer and 3 after, 30 a day
+          </Text>
+        </View>
+        <View style={styles.heatmapBtn}>
+          <Feather name="chevron-right" size={22} color={colors.ink} />
+        </View>
+      </Pressable>
+
+      {/* Quran words: vocabulary SRS, most frequent words first */}
+      <Pressable
+        onPress={() => router.push('/qwords')}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.heatmapBanner,
+          TILE_LIP,
+          { backgroundColor: colors.bgSurface },
+          pressed && PRESSED_BASE,
+        ]}
+      >
+        <View style={styles.heatmapLeft}>
+          <Text style={[styles.heatmapTitle, { color: colors.textPrimary }]}>
+            Quran words · level {wordsLevel}
+          </Text>
+          <Text style={[styles.heatmapSub, { color: colors.textSecondary }]}>
+            {wordsDue > 0 || wordsLessons > 0
+              ? `${wordsDue} reviews · ${wordsLessons} lessons. Most common words first.`
+              : 'Learn the words of the Quran, most common first.'}
           </Text>
         </View>
         <View style={styles.heatmapBtn}>

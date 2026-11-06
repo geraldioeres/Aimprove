@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useLearningStore } from '../src/store/useLearningStore';
 import { usePrayerTrack } from '../src/store/usePrayerTrack';
+import { useQuranWords } from '../src/store/useQuranWords';
 import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 
 function RootNavigator() {
@@ -23,7 +24,10 @@ function RootNavigator() {
 
   // The ayah-by-prayer track is stored per account; reload it on sign-in/out.
   useEffect(() => {
-    if (authReady) usePrayerTrack.getState().load(userId);
+    if (authReady) {
+      usePrayerTrack.getState().load(userId);
+      useQuranWords.getState().load(userId);
+    }
   }, [authReady, userId]);
 
   // An account is required: signed-out users only see sign-in and sign-up.
@@ -100,6 +104,22 @@ function RootNavigator() {
         <Stack.Screen
           name="mushaf/surah/[surah]"
           options={{ title: 'Read', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="qwords/index"
+          options={{ title: 'Quran words', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="qwords/lessons"
+          options={{ title: 'Word lessons', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="qwords/review"
+          options={{ title: 'Word reviews', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="qwords/word/[id]"
+          options={{ title: 'Word', presentation: 'card' }}
         />
         <Stack.Screen
           name="mushaf/tajweed"
