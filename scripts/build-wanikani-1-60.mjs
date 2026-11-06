@@ -23,6 +23,13 @@ function cleanKanaReading(reading) {
   return reading.replace(/[!.\-~]/g, '').trim();
 }
 
+// One reading type, cleaned: primary readings (no '!') first, then the rest.
+function splitReadings(raw) {
+  const primary = raw.filter((r) => !r.startsWith('!'));
+  const other = raw.filter((r) => r.startsWith('!'));
+  return Array.from(new Set([...primary, ...other].map(cleanKanaReading).filter(Boolean)));
+}
+
 async function main() {
   console.log('Fetching WaniKani Level 1-60 datasets...');
   const [wkKanjiMap, wkGraph, wkVocabTable] = await Promise.all([
@@ -114,6 +121,9 @@ async function main() {
       meanings,
       readings: allCleanReadings.slice(0, 5),
       readingType,
+      // Shown split by type; the taught type (readingType) comes first in each.
+      onyomi: splitReadings(rawOn),
+      kunyomi: splitReadings(rawKun),
       componentIds,
       amalgamationIds: [],
       mnemonic:
