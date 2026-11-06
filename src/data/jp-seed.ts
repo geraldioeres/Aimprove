@@ -26,6 +26,8 @@ export interface JPSubject {
   meanings: string[];
   readings: string[];
   readingType?: 'onyomi' | 'kunyomi' | 'vocab' | 'cloze';
+  onyomi?: string[]; // kanji only: readings by type, the primary ones first
+  kunyomi?: string[];
   componentIds: string[];
   amalgamationIds: string[];
   mnemonic: string;

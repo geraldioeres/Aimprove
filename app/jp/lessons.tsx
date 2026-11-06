@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
+import { hasReadingSplit, KanjiReadings, readingsText } from '../../src/components/KanjiReadings';
 import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
   selectAvailableJapaneseLessons,
@@ -140,7 +141,7 @@ export default function JapaneseLessonsScreen() {
       } else {
         setQuizFeedback(
           askReading
-            ? `Try again. Expected reading: ${currentQuizSubject.readings.join(' • ')}`
+            ? `Try again. Expected reading: ${readingsText(currentQuizSubject)}`
             : `Try again. Expected meaning: ${currentQuizSubject.meanings.join(', ')}`
         );
         refocusQuizInput();
@@ -312,9 +313,13 @@ export default function JapaneseLessonsScreen() {
             <Text style={[styles.detailHeading, { color: colors.textSecondary }]}>
               Reading
             </Text>
-            <Text style={[styles.detailReadingBig, { color: colors.textPrimary }]}>
-              {currentSubject.readings.join(' · ')}
-            </Text>
+            {hasReadingSplit(currentSubject) ? (
+              <KanjiReadings subject={currentSubject} size="big" />
+            ) : (
+              <Text style={[styles.detailReadingBig, { color: colors.textPrimary }]}>
+                {currentSubject.readings.join(' · ')}
+              </Text>
+            )}
           </View>
         ) : null}
 

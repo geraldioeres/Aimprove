@@ -22,6 +22,7 @@ import {
 } from '../../src/store/useLearningStore';
 import { JPSubject, JPSubjectKind } from '../../src/data/jp-seed';
 import { PressBlock } from '../../src/components/Stamp';
+import { hasReadingSplit, KanjiReadings } from '../../src/components/KanjiReadings';
 import { WANIKANI_STAGES } from '../../src/lib/srs-wanikani';
 
 const WANIKANI_TIERS = [
@@ -770,7 +771,9 @@ export default function JapaneseHubScreen() {
                   Meanings: {inspectedSubject.meanings.join(', ')}
                 </Text>
 
-                {inspectedSubject.readings.length > 0 ? (
+                {hasReadingSplit(inspectedSubject) ? (
+                  <KanjiReadings subject={inspectedSubject} />
+                ) : inspectedSubject.readings.length > 0 ? (
                   <Text style={[styles.modalReading, { color: colors.textPrimary }]}>
                     Readings: {inspectedSubject.readings.join(' · ')}
                   </Text>

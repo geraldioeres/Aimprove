@@ -14,11 +14,13 @@ import { useTheme } from '../../src/theme/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING } from '../../src/theme/tokens';
 import {
+  JP_SUBJECT_BY_ID,
   selectDueJapaneseReviews,
   selectUpcomingJapaneseReviews,
   selectStreak,
   useLearningStore,
 } from '../../src/store/useLearningStore';
+import { hasReadingSplit, KanjiReadings, readingsText } from '../../src/components/KanjiReadings';
 import { PressBlock, StampCard, StampSeal, useReduceMotion } from '../../src/components/Stamp';
 import {
   checkEnglishMeaning,
@@ -287,6 +289,8 @@ function ReviewSession() {
 
   const isKanaPrompt =
     currentTask.promptType === 'reading' || currentTask.promptType === 'cloze';
+  // The full subject, for kanji readings split into on'yomi and kun'yomi.
+  const subjectInfo = currentTask.isMined ? null : JP_SUBJECT_BY_ID[currentTask.subjectId];
 
   const handleTextChange = (text: string) => {
     if (feedback) return;
@@ -361,7 +365,7 @@ function ReviewSession() {
         message: check.isSlightlyOff
           ? `Close enough. Exact answer: ${currentTask.meanings.join(', ')}`
           : isKanaPrompt
-          ? `Reading: ${currentTask.readings.join(' · ')}`
+          ? `Reading: ${readingsText(subjectInfo, currentTask.readings)}`
           : `Meaning: ${currentTask.meanings.join(', ')}`,
         stageChange: stageSummary,
         unlockedItems: unlockedNames,
@@ -377,7 +381,7 @@ function ReviewSession() {
       setFeedback({
         status: 'incorrect',
         message: isKanaPrompt
-          ? `The reading is ${currentTask.readings.join(' · ')}.`
+          ? `The reading is ${readingsText(subjectInfo, currentTask.readings)}.`
           : `It means ${currentTask.meanings.join(', ')}.`,
       });
     }
@@ -579,9 +583,13 @@ function ReviewSession() {
             {currentTask.readings.length > 0 ? (
               <View style={styles.infoSection}>
                 <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Reading</Text>
-                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
-                  {currentTask.readings.join(' · ')}
-                </Text>
+                {subjectInfo && hasReadingSplit(subjectInfo) ? (
+                  <KanjiReadings subject={subjectInfo} />
+                ) : (
+                  <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
+                    {currentTask.readings.join(' · ')}
+                  </Text>
+                )}
               </View>
             ) : null}
             {currentTask.pitchAccent ? (
