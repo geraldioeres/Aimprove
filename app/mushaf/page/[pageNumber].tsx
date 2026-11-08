@@ -13,7 +13,6 @@ import { RADII, SPACING, TILE_LIP } from '../../../src/theme/tokens';
 import {
   fetchMushafPageFromQuranApi,
   MushafPageData,
-  SEEDED_MUSHAF_PAGES,
 } from '../../../src/data/quran-seed';
 import { useLearningStore } from '../../../src/store/useLearningStore';
 import { mistakesToFSRSGrade } from '../../../src/lib/srs-fsrs';
@@ -31,10 +30,8 @@ export default function MushafPageReaderScreen() {
   const submitRecitation = useLearningStore((s) => s.submitQuranPageRecitation);
   const startSabaqPage = useLearningStore((s) => s.startQuranSabaqPage);
 
-  const [pageData, setPageData] = useState<MushafPageData | null>(
-    SEEDED_MUSHAF_PAGES[pageNum] || null
-  );
-  const [loading, setLoading] = useState<boolean>(!SEEDED_MUSHAF_PAGES[pageNum]);
+  const [pageData, setPageData] = useState<MushafPageData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [hideMode, setHideMode] = useState<HideMode>('none');
@@ -50,13 +47,6 @@ export default function MushafPageReaderScreen() {
     setMistakesCount(0);
     setFlaggedAyahs(new Set());
     setCompletionMessage(null);
-
-    if (SEEDED_MUSHAF_PAGES[pageNum]) {
-      setPageData(SEEDED_MUSHAF_PAGES[pageNum]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
 
     setLoading(true);
     setError(null);
