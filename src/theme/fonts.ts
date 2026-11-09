@@ -4,8 +4,7 @@ import { ZenKakuGothicNew_400Regular } from '@expo-google-fonts/zen-kaku-gothic-
 import { ZenKakuGothicNew_500Medium } from '@expo-google-fonts/zen-kaku-gothic-new/500Medium';
 import { ZenKakuGothicNew_700Bold } from '@expo-google-fonts/zen-kaku-gothic-new/700Bold';
 import { ZenKakuGothicNew_900Black } from '@expo-google-fonts/zen-kaku-gothic-new/900Black';
-import { ScheherazadeNew_400Regular } from '@expo-google-fonts/scheherazade-new/400Regular';
-import { ScheherazadeNew_700Bold } from '@expo-google-fonts/scheherazade-new/700Bold';
+import { AmiriQuran_400Regular } from '@expo-google-fonts/amiri-quran/400Regular';
 
 type Tier = '400' | '500' | '700' | '900';
 
@@ -18,11 +17,13 @@ const FAMILY: Record<Tier, string> = {
   '900': 'ZenKakuGothicNew_900Black',
 };
 
-// Arabic (Quran text, letters, numerals) uses Scheherazade New: a Naskh face
-// built for legibility, with full Quranic marks and generous vowel spacing.
+// Arabic (Quran text, letters, numerals) uses Amiri Quran: a Naskh face made
+// for Quran text. Like Indonesian mushafs, it draws a kasra under a shadda
+// below the letter (يِّ), where Scheherazade lifts it above and it reads as a
+// fatha. One weight only, so bold Arabic uses it too.
 const ARABIC = {
-  regular: 'ScheherazadeNew_400Regular',
-  bold: 'ScheherazadeNew_700Bold',
+  regular: 'AmiriQuran_400Regular',
+  bold: 'AmiriQuran_400Regular',
 };
 
 const ARABIC_CHARS = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/;
@@ -56,9 +57,9 @@ function resolveFamily(style: any, share: number): string {
   const tier = tierFor(StyleSheet.flatten(style)?.fontWeight);
   const arabicFace = tier === '700' || tier === '900' ? ARABIC.bold : ARABIC.regular;
   // Web picks a font per glyph: Zen Kaku has no Arabic letters, so English
-  // stays in Zen Kaku and Arabic falls through to Scheherazade.
+  // stays in Zen Kaku and Arabic falls through to Amiri Quran.
   if (Platform.OS === 'web') return `${FAMILY[tier]}, ${arabicFace}, sans-serif`;
-  // Native uses one font per text run: Scheherazade when it's mostly Arabic.
+  // Native uses one font per text run: Amiri Quran when it's mostly Arabic.
   return share >= 0.5 ? arabicFace : FAMILY[tier];
 }
 
@@ -73,7 +74,7 @@ function patch(Component: any) {
     const text = textOf(props.children) || String(props.value ?? props.placeholder ?? '');
     const arabic = ARABIC_CHARS.test(text);
     const extra: any = { fontFamily: resolveFamily(props.style, arabic ? arabicShare(text) : 0), fontWeight: 'normal' };
-    // Scheherazade's stacked vowel marks need room: never let a tight
+    // Stacked vowel and waqf marks need room: never let a tight
     // line height clip them.
     if (arabic && flat.fontSize && flat.lineHeight && flat.lineHeight < flat.fontSize * 1.8) {
       extra.lineHeight = Math.round(flat.fontSize * 1.8);
@@ -96,8 +97,7 @@ export function useAppFonts(): boolean {
     ZenKakuGothicNew_500Medium,
     ZenKakuGothicNew_700Bold,
     ZenKakuGothicNew_900Black,
-    ScheherazadeNew_400Regular,
-    ScheherazadeNew_700Bold,
+    AmiriQuran_400Regular,
   });
   return loaded || Boolean(error);
 }
