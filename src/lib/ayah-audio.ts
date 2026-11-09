@@ -63,6 +63,10 @@ export interface AudioPrefs {
 
 const PREFS_KEY = 'aimprove.ayahAudio.v1';
 const DEFAULT_PREFS: AudioPrefs = { reciter: 'husary-muallim', repeat: 1, echo: false };
+/** Listen-and-repeat setup used by the Read screen's practice mode. */
+export const PRACTICE_PREFS: AudioPrefs = { reciter: 'husary-muallim', repeat: 3, echo: true };
+/** Where the reader was last ({ surah, ayah }), for "Continue". */
+export const LAST_READ_KEY = 'aimprove.reader.last.v1';
 
 export type PlayerPhase = 'idle' | 'loading' | 'playing' | 'echo';
 
@@ -153,13 +157,16 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
   const sound = useRef<Audio.Sound | null>(null);
   const wake = useRef<(() => void) | null>(null); // ends the current wait early
 
+  // A choice made before saved settings finish loading (e.g. practice mode) wins.
+  const touched = useRef(false);
   useEffect(() => {
     AsyncStorage.getItem(PREFS_KEY)
-      .then((raw) => raw && setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) }))
+      .then((raw) => raw && !touched.current && setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) }))
       .catch(() => {});
   }, []);
 
   const updatePrefs = useCallback((patch: Partial<AudioPrefs>) => {
+    touched.current = true;
     setPrefs((p) => {
       const next = { ...p, ...patch };
       AsyncStorage.setItem(PREFS_KEY, JSON.stringify(next)).catch(() => {});
@@ -277,6 +284,11 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
     setState({ ayah: null, phase: 'idle', rep: 1, error: null });
   }, [cancel]);
 
+  /** Select an ayah without playing, so the big play button starts there. */
+  const cue = useCallback((ayah: number) => {
+    setState((st) => (st.phase === 'idle' ? { ayah, phase: 'idle', rep: 1, error: null } : st));
+  }, []);
+
   // A new surah or leaving the screen stops playback.
   useEffect(() => {
     stop();
@@ -291,5 +303,5 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
     };
   }, [pause]);
 
-  return { state, prefs, updatePrefs, playFrom, pause, stop };
+  return { state, prefs, updatePrefs, playFrom, pause, stop, cue };
 }

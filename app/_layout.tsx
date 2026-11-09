@@ -98,6 +98,14 @@ function RootNavigator() {
           options={{ title: 'Arabic numbers', presentation: 'card' }}
         />
         <Stack.Screen
+          name="mushaf/index"
+          options={{ title: 'Mushaf', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="read/index"
+          options={{ title: 'Read', presentation: 'card' }}
+        />
+        <Stack.Screen
           name="mushaf/prayer"
           options={{ title: 'Ayah by prayer', presentation: 'card' }}
         />

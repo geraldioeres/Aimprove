@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,7 +15,7 @@ import {
   SurahInfo,
 } from '../../../src/store/usePrayerTrack';
 import { BISMILLAH, SURAHS } from '../../../src/data/surahs';
-import { RECITERS, REPEAT_OPTIONS, useAyahPlayer } from '../../../src/lib/ayah-audio';
+import { LAST_READ_KEY, PRACTICE_PREFS, RECITERS, REPEAT_OPTIONS, useAyahPlayer } from '../../../src/lib/ayah-audio';
 
 // Reader view settings, kept on this device.
 const PREFS_KEY = 'aimprove.reader.v1';
@@ -29,8 +29,10 @@ const DEFAULT_PREFS: Prefs = { tajweed: true, meaning: true, wordByWord: false }
 export default function SurahReaderScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ surah: string }>();
+  const params = useLocalSearchParams<{ surah: string; from?: string; practice?: string }>();
   const surah = Math.min(114, Math.max(1, parseInt(params.surah || '1', 10) || 1));
+  // Open at an ayah (from the juz list or "Continue"); clamp to the surah.
+  const fromAyah = Math.min(SURAHS[surah - 1].ayahs, Math.max(1, parseInt(params.from || '1', 10) || 1));
   const meta = SURAHS[surah - 1];
   const chunks = Math.ceil(meta.ayahs / SURAH_CHUNK);
 
@@ -42,6 +44,9 @@ export default function SurahReaderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [rulePeek, setRulePeek] = useState<TajweedRule | null>(null);
   const busy = useRef(false);
+  // Chunks appended so far, read synchronously: list callbacks can hold an
+  // older `loaded` and must not fetch the same chunk twice.
+  const loadedRef = useRef(0);
   const current = useRef(surah);
   current.current = surah;
   const listRef = useRef<FlatList<AyahText>>(null);
@@ -62,13 +67,14 @@ export default function SurahReaderScreen() {
 
   const loadNext = useCallback(
     async (from: number) => {
-      if (busy.current || from >= chunks) return;
+      if (busy.current || from >= chunks || from !== loadedRef.current) return;
       busy.current = true;
       setLoading(true);
       setError(null);
       try {
         const next = await loadSurahChunk(surah, from + 1);
         if (current.current !== surah) return; // switched surah meanwhile
+        loadedRef.current = from + 1;
         setAyahs((a) => [...a, ...next]);
         setLoaded(from + 1);
       } catch (e: any) {
@@ -87,6 +93,7 @@ export default function SurahReaderScreen() {
   useEffect(() => {
     setAyahs([]);
     setLoaded(0);
+    loadedRef.current = 0;
     setInfo(null);
     busy.current = false;
     loadNext(0);
@@ -94,17 +101,67 @@ export default function SurahReaderScreen() {
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [surah, loadNext]);
 
+  // Practice mode: set up listen-and-repeat once on open.
+  const practiceApplied = useRef(false);
+  useEffect(() => {
+    if (params.practice === '1' && !practiceApplied.current) {
+      practiceApplied.current = true;
+      player.updatePrefs(PRACTICE_PREFS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.practice]);
+
+  // Opening at an ayah: the list starts at it (earlier ayah are one tap
+  // away), so there is no long scroll through cards not yet measured. Load
+  // up to it, then select it so play starts there.
+  const [startAt, setStartAt] = useState(fromAyah);
+  const target = useRef<number | null>(null);
+  useEffect(() => {
+    setStartAt(fromAyah);
+    target.current = fromAyah > 1 ? fromAyah : null;
+  }, [surah, fromAyah]);
+  const visible = useMemo(() => ayahs.slice(startAt - 1), [ayahs, startAt]);
+  useEffect(() => {
+    const t = target.current;
+    if (!t) return;
+    if (ayahs.length >= t) {
+      target.current = null;
+      player.cue(t);
+    } else if (loaded < chunks && ayahs.length === loaded * SURAH_CHUNK) {
+      loadNext(loaded);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ayahs.length, loaded, surah, fromAyah]);
+
+  // Remember where the reader is, for "Continue" on the Read screen.
+  useEffect(() => {
+    const ayah = player.state.ayah ?? fromAyah;
+    AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify({ surah, ayah })).catch(() => {});
+  }, [surah, fromAyah, player.state.ayah]);
+
   // Follow the recitation: keep the playing ayah in view, and load more
   // ayah before the audio runs past what's on screen.
   const playing = player.state.ayah;
   useEffect(() => {
     if (!playing) return;
+    if (playing < startAt) {
+      setStartAt(playing); // e.g. play from ayah 1 while opened further in
+      return;
+    }
     if (playing > ayahs.length - 3 && loaded < chunks) loadNext(loaded);
     if (playing <= ayahs.length) {
-      listRef.current?.scrollToIndex({ index: playing - 1, viewPosition: 0.2, animated: true });
+      const index = playing - startAt;
+      listRef.current?.scrollToIndex({ index, viewPosition: 0.2, animated: true });
+      // Cards far down the list are measured only once rendered, so the first
+      // jump can land short. Correct it once they have been laid out.
+      const fix = setTimeout(
+        () => listRef.current?.scrollToIndex({ index, viewPosition: 0.2, animated: false }),
+        700
+      );
+      return () => clearTimeout(fix);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, ayahs.length]);
+  }, [playing, ayahs.length, startAt]);
 
   const done = loaded >= chunks;
   const showBismillah = surah !== 1 && surah !== 9; // Al-Fatihah's is ayah 1; At-Taubah has none
@@ -131,7 +188,20 @@ export default function SurahReaderScreen() {
           <Text style={[styles.arabicName, { color: colors.ink }]}>{info.arabicName}</Text>
         ) : null}
       </View>
-      {showBismillah ? <Text style={[styles.bismillah, { color: colors.ink }]}>{BISMILLAH}</Text> : null}
+      {startAt > 1 ? (
+        <Pressable
+          onPress={() => setStartAt(Math.max(1, startAt - 20))}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.earlier, { borderColor: colors.border }, pressed && { opacity: 0.6 }]}
+        >
+          <Feather name="chevron-up" size={18} color={colors.indigo} />
+          <Text style={[styles.link, { color: colors.indigo }]}>
+            Show earlier ayah ({Math.max(1, startAt - 20)}–{startAt - 1})
+          </Text>
+        </Pressable>
+      ) : showBismillah ? (
+        <Text style={[styles.bismillah, { color: colors.ink }]}>{BISMILLAH}</Text>
+      ) : null}
     </View>
   );
 
@@ -150,7 +220,7 @@ export default function SurahReaderScreen() {
         <View style={styles.navRow}>
           {surah > 1 ? (
             <Pressable
-              onPress={() => router.setParams({ surah: String(surah - 1) })}
+              onPress={() => router.setParams({ surah: String(surah - 1), from: '' })}
               accessibilityRole="button"
               style={[styles.navBtn, { borderColor: colors.border }]}
             >
@@ -164,7 +234,7 @@ export default function SurahReaderScreen() {
           )}
           {surah < 114 ? (
             <Pressable
-              onPress={() => router.setParams({ surah: String(surah + 1) })}
+              onPress={() => router.setParams({ surah: String(surah + 1), from: '' })}
               accessibilityRole="button"
               style={[styles.navBtn, styles.navNext, { borderColor: colors.border }]}
             >
@@ -207,7 +277,7 @@ export default function SurahReaderScreen() {
       </View>
       <FlatList
         ref={listRef}
-        data={ayahs}
+        data={visible}
         keyExtractor={(a) => a.key}
         extraData={[prefs, player.state]}
         onScrollToIndexFailed={(e) => {
@@ -222,7 +292,7 @@ export default function SurahReaderScreen() {
         initialNumToRender={8}
         windowSize={9}
         renderItem={({ item, index }) => {
-          const n = index + 1;
+          const n = startAt + index;
           const active = player.state.ayah === n;
           const running = active && player.state.phase !== 'idle';
           return (
@@ -288,7 +358,7 @@ function PlayerBar({ player, surah }: { player: ReturnType<typeof useAyahPlayer>
         ? `${surah}:${state.ayah} · your turn, repeat it`
         : state.phase === 'loading'
           ? `${surah}:${state.ayah} · loading…`
-          : `${surah}:${state.ayah}${prefs.repeat > 1 ? ` · ${state.rep} of ${prefs.repeat}` : ''}${running ? '' : ' · paused'}`;
+          : `${surah}:${state.ayah}${prefs.repeat > 1 ? ` · ${state.rep} of ${prefs.repeat}` : ''}${running ? '' : ' · tap play to start'}`;
   const nextIndex = (i: number, n: number) => (i + 1) % n;
 
   return (
@@ -389,6 +459,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ayahActive: { borderWidth: 2 },
+  earlier: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, borderWidth: 1, borderRadius: RADII.sm },
   bar: { borderBottomWidth: 1 },
   barInner: {
     flexDirection: 'row',
