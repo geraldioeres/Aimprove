@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { PRESSED_BASE, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
@@ -10,10 +11,14 @@ import { usePrayerTrack } from '../../src/store/usePrayerTrack';
 import { LAST_READ_KEY } from '../../src/lib/ayah-audio';
 import { SURAHS } from '../../src/data/surahs';
 
+// The accent at about 12% strength, for the icon badge (accents are #RRGGBB).
+const tint = (hex: string) => (/^#[0-9a-f]{6}$/i.test(hex) ? `${hex}1F` : hex);
+
 interface Tile {
   key: string;
   title: string;
   arabic: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
   color: string;
   sub: string;
   href?: string; // no href = coming soon
@@ -44,6 +49,7 @@ export default function QuranMenuScreen() {
   const tiles: Tile[] = [
     {
       key: 'mushaf',
+      icon: 'book-open-page-variant',
       title: 'Mushaf',
       arabic: 'مصحف',
       color: colors.quranSabaq,
@@ -52,6 +58,7 @@ export default function QuranMenuScreen() {
     },
     {
       key: 'words',
+      icon: 'cards',
       title: 'Quran Words',
       arabic: 'كلمات',
       color: colors.srsGuru,
@@ -60,6 +67,7 @@ export default function QuranMenuScreen() {
     },
     {
       key: 'read',
+      icon: 'book-play',
       title: 'Read',
       arabic: 'اقرأ',
       color: colors.indigo,
@@ -68,16 +76,17 @@ export default function QuranMenuScreen() {
     },
     {
       key: 'prayer',
+      icon: 'mosque',
       title: 'Ayah by Prayer',
       arabic: 'صلاة',
       color: colors.quranSabqi,
       sub: prayerOn ? `${prayer.today.length} of 10 done today` : '3 ayah before and after each prayer',
       href: '/mushaf/prayer',
     },
-    { key: 'makhraj', title: 'Makhraj', arabic: 'مخارج', color: colors.hanko, sub: 'Where each letter is made', href: '/mushaf/makharij' },
-    { key: 'tajweed', title: 'Tajweed', arabic: 'تجويد', color: colors.jpRadical, sub: 'Every rule, with examples', href: '/mushaf/tajweed' },
-    { key: 'letters', title: 'Arabic Letter', arabic: 'حروف', color: colors.textMuted, sub: 'Coming soon' },
-    { key: 'numbers', title: 'Number', arabic: '١٢٣', color: colors.ink, sub: 'Arabic digits and their names', href: '/mushaf/numbers' },
+    { key: 'makhraj', icon: 'account-voice', title: 'Makhraj', arabic: 'مخارج', color: colors.hanko, sub: 'Where each letter is made', href: '/mushaf/makharij' },
+    { key: 'tajweed', icon: 'palette', title: 'Tajweed', arabic: 'تجويد', color: colors.jpRadical, sub: 'Every rule, with examples', href: '/mushaf/tajweed' },
+    { key: 'letters', icon: 'abjad-arabic', title: 'Arabic Letter', arabic: 'حروف', color: colors.textMuted, sub: 'Coming soon' },
+    { key: 'numbers', icon: 'numeric', title: 'Number', arabic: '١٢٣', color: colors.ink, sub: 'Arabic digits and their names', href: '/mushaf/numbers' },
   ];
 
   const rows: Tile[][] = [];
@@ -106,14 +115,18 @@ export default function QuranMenuScreen() {
                 ]}
               >
                 <View style={styles.tileTop}>
-                  <Text style={[styles.arabic, { color: t.color }]} numberOfLines={1}>
-                    {t.arabic}
-                  </Text>
+                  <View style={[styles.badge, { backgroundColor: soon ? colors.border : tint(t.color) }]}>
+                    <MaterialCommunityIcons name={t.icon} size={28} color={soon ? colors.textMuted : t.color} />
+                  </View>
                   {soon ? (
                     <View style={[styles.soon, { borderColor: colors.textMuted }]}>
                       <Text style={[styles.soonText, { color: colors.textMuted }]}>Soon</Text>
                     </View>
-                  ) : null}
+                  ) : (
+                    <Text style={[styles.arabic, { color: t.color }]} numberOfLines={1}>
+                      {t.arabic}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.tileText}>
                   <Text style={[styles.title, { color: soon ? colors.textMuted : colors.ink }]} numberOfLines={1}>
@@ -142,9 +155,10 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 4,
   },
-  tileTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, height: 60 },
-  arabic: { fontSize: 30, lineHeight: 56 },
-  soon: { borderWidth: 1.5, borderRadius: RADII.pill, paddingHorizontal: 8, paddingVertical: 2, marginTop: 8 },
+  tileTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 10 },
+  badge: { width: 52, height: 52, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
+  arabic: { fontSize: 22, lineHeight: 42, opacity: 0.85 },
+  soon: { borderWidth: 1.5, borderRadius: RADII.pill, paddingHorizontal: 8, paddingVertical: 2, marginTop: 4 },
   soonText: { fontSize: 11, fontWeight: '700' },
   tileText: { gap: 2 },
   title: { fontSize: 16, fontWeight: '900' },
