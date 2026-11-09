@@ -74,6 +74,75 @@ export interface PlayerState {
 }
 
 let audioModeSet = false;
+const ensureAudioMode = () => {
+  if (audioModeSet) return;
+  audioModeSet = true;
+  Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+};
+
+// The reader's ayah player registers its pause here, so a word tap can stop it.
+let pauseAyahPlayer: (() => void) | null = null;
+
+// ---------------------------------------------------------------------------
+// Single words: Quran.com's word-by-word recordings, one file per word.
+
+let wordSound: Audio.Sound | null = null;
+let wordPlaying: string | null = null; // "78:20:1"
+const wordListeners = new Set<(id: string | null) => void>();
+const setWordPlaying = (id: string | null) => {
+  wordPlaying = id;
+  wordListeners.forEach((l) => l(id));
+};
+
+const wordUrl = (surah: number, ayah: number, word: number) =>
+  `https://audio.qurancdn.com/wbw/${pad(surah)}_${pad(ayah)}_${pad(word)}.mp3`;
+
+/** Play one word of an ayah ("78:20", word 1 = first word). Stops any ayah recitation. */
+export async function playWord(ayahKey: string, word: number) {
+  const [s, a] = ayahKey.split(':').map(Number);
+  const id = `${ayahKey}:${word}`;
+  pauseAyahPlayer?.();
+  ensureAudioMode();
+  const previous = wordSound;
+  wordSound = null;
+  previous?.unloadAsync().catch(() => {});
+  setWordPlaying(id);
+  try {
+    const { sound } = await Audio.Sound.createAsync({ uri: wordUrl(s, a, word) }, { shouldPlay: true }, (st) => {
+      if (st.isLoaded && st.didJustFinish) {
+        if (wordPlaying === id) setWordPlaying(null);
+        sound.unloadAsync().catch(() => {});
+        if (wordSound === sound) wordSound = null;
+      }
+    });
+    if (wordPlaying !== id) {
+      sound.unloadAsync().catch(() => {}); // another word was tapped meanwhile
+      return;
+    }
+    wordSound = sound;
+  } catch {
+    if (wordPlaying === id) setWordPlaying(null);
+  }
+}
+
+/** The word now playing ("78:20:1"), for highlighting its tile. */
+export function useWordPlaying(): string | null {
+  const [id, setId] = useState<string | null>(wordPlaying);
+  useEffect(() => {
+    wordListeners.add(setId);
+    return () => {
+      wordListeners.delete(setId);
+    };
+  }, []);
+  return id;
+}
+
+const stopWord = () => {
+  const s = wordSound;
+  wordSound = null;
+  s?.unloadAsync().catch(() => {});
+  if (wordPlaying) setWordPlaying(null);
+};
 
 export function useAyahPlayer(surah: number, ayahCount: number) {
   const [prefs, setPrefs] = useState<AudioPrefs>(DEFAULT_PREFS);
@@ -163,10 +232,8 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
     async (ayah: number) => {
       cancel();
       const id = runId.current;
-      if (!audioModeSet) {
-        audioModeSet = true;
-        Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
-      }
+      ensureAudioMode();
+      stopWord();
       for (let a = ayah; a <= ayahCount; a++) {
         const { reciter, repeat, echo } = prefsRef.current;
         const r = RECITERS.find((x) => x.id === reciter) || RECITERS[0];
@@ -215,6 +282,14 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
     stop();
     return () => cancel();
   }, [surah, stop, cancel]);
+
+  // Let a tapped word pause the recitation.
+  useEffect(() => {
+    pauseAyahPlayer = pause;
+    return () => {
+      if (pauseAyahPlayer === pause) pauseAyahPlayer = null;
+    };
+  }, [pause]);
 
   return { state, prefs, updatePrefs, playFrom, pause, stop };
 }

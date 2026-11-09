@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { playWord, useWordPlaying } from '../lib/ayah-audio';
 import { KIND_LABEL, QuranWord, QW_LEVELS } from '../data/quran-words';
 import { AyahText, loadAyahText } from '../store/usePrayerTrack';
 import { WordProgress } from '../store/useQuranWords';
@@ -98,6 +100,7 @@ function Example({ loc }: { loc: string }) {
   const [s, a, w] = loc.split(':').map(Number);
   const [text, setText] = useState<AyahText | null>(null);
   const [failed, setFailed] = useState(false);
+  const playing = useWordPlaying();
   useEffect(() => {
     let alive = true;
     loadAyahText(`${s}:${a}`)
@@ -120,7 +123,14 @@ function Example({ loc }: { loc: string }) {
             {text.words.map((word, i) => (
               <Text
                 key={i}
-                style={i === w - 1 ? { color: colors.quranSabaq, backgroundColor: colors.quranSabaqBg } : undefined}
+                onPress={() => playWord(`${s}:${a}`, i + 1)}
+                style={
+                  playing === `${s}:${a}:${i + 1}`
+                    ? { color: colors.indigo, backgroundColor: colors.indigoBg }
+                    : i === w - 1
+                      ? { color: colors.quranSabaq, backgroundColor: colors.quranSabaqBg }
+                      : undefined
+                }
               >
                 {word.arabic}
                 {i < text.words.length - 1 ? ' ' : ''}
@@ -128,9 +138,18 @@ function Example({ loc }: { loc: string }) {
             ))}
           </Text>
           {text.words[w - 1]?.meaning ? (
-            <Text style={[styles.exampleWord, { color: colors.quranSabaq }]}>
-              {text.words[w - 1].arabic} = {text.words[w - 1].meaning}
-            </Text>
+            <Pressable
+              onPress={() => playWord(`${s}:${a}`, w)}
+              accessibilityRole="button"
+              accessibilityLabel={`Play ${text.words[w - 1].meaning}`}
+              hitSlop={6}
+              style={styles.exampleWordRow}
+            >
+              <Feather name="volume-2" size={16} color={colors.quranSabaq} />
+              <Text style={[styles.exampleWord, { color: colors.quranSabaq }]}>
+                {text.words[w - 1].arabic} = {text.words[w - 1].meaning}
+              </Text>
+            </Pressable>
           ) : null}
           <Text style={[styles.exampleMeaning, { color: colors.textSecondary }]}>{text.translationId}</Text>
           <Text style={[styles.exampleKey, { color: colors.textMuted }]}>
@@ -162,7 +181,8 @@ const styles = StyleSheet.create({
   formCount: { fontSize: 11, fontWeight: '700', fontVariant: ['tabular-nums'] },
   example: { borderRadius: RADII.sm, borderWidth: 1, padding: 12, gap: 6 },
   exampleArabic: { fontSize: 24, lineHeight: 48, textAlign: 'right', writingDirection: 'rtl' },
-  exampleWord: { fontSize: 14, fontWeight: '700' },
+  exampleWordRow: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 32 },
+  exampleWord: { fontSize: 14, fontWeight: '700', flexShrink: 1 },
   exampleMeaning: { fontSize: 13, lineHeight: 19 },
   exampleKey: { fontSize: 12, fontWeight: '700' },
 });
