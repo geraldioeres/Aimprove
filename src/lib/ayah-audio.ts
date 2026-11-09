@@ -40,6 +40,12 @@ export const RECITERS: Reciter[] = [
     url: (s, a) => `https://verses.quran.com/Alafasy/mp3/${file(s, a)}`,
   },
   {
+    id: 'ghamdi',
+    name: 'Saad Al-Ghamdi',
+    note: 'Calm, measured murattal',
+    url: (s, a) => `https://mirrors.quranicaudio.com/everyayah/Ghamadi_40kbps/${file(s, a)}`,
+  },
+  {
     id: 'minshawi',
     name: 'Al-Minshawi (Murattal)',
     note: 'Classic murattal',
