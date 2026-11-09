@@ -6,6 +6,7 @@ import type { AyahText } from '../store/usePrayerTrack';
 import { useTheme } from '../theme/ThemeContext';
 import { CARD_EDGE, RADII } from '../theme/tokens';
 import { PressBlock } from './Stamp';
+import { playWord, useWordPlaying } from '../lib/ayah-audio';
 
 /**
  * One ayah: word-by-word tiles, tajweed-coloured text (tap a colour to see the
@@ -28,18 +29,33 @@ export function AyahView({
 }) {
   const { colors } = useTheme();
   const t = text;
+  const wordPlaying = useWordPlaying();
   return (
     <>
       {wordByWord && t.words.length ? (
         <View style={styles.words}>
-          {t.words.map((w, j) => (
-            <View key={j} style={[styles.wordTile, { borderColor: colors.border }]}>
-              <Text style={[styles.wordArabic, { color: colors.ink }]}>{w.arabic}</Text>
-              {meaning ? (
-                <Text style={[styles.wordMeaning, { color: colors.textSecondary }]}>{w.meaning}</Text>
-              ) : null}
-            </View>
-          ))}
+          {t.words.map((w, j) => {
+            const playing = wordPlaying === `${t.key}:${j + 1}`;
+            return (
+              <Pressable
+                key={j}
+                onPress={() => playWord(t.key, j + 1)}
+                accessibilityRole="button"
+                accessibilityLabel={`Play word: ${w.meaning || w.arabic}`}
+                style={({ pressed }) => [
+                  styles.wordTile,
+                  { borderColor: playing ? colors.indigo : colors.border },
+                  playing && { backgroundColor: colors.indigoBg },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.wordArabic, { color: colors.ink }]}>{w.arabic}</Text>
+                {meaning ? (
+                  <Text style={[styles.wordMeaning, { color: colors.textSecondary }]}>{w.meaning}</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
       ) : tajweed && t.tajweed ? (
         <Text style={[styles.arabic, { color: colors.ink }]}>
