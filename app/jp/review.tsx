@@ -22,6 +22,7 @@ import {
 } from '../../src/store/useLearningStore';
 import { hasReadingSplit, KanjiReadings, readingsText } from '../../src/components/KanjiReadings';
 import { PressBlock, StampCard, StampSeal, useReduceMotion } from '../../src/components/Stamp';
+import { useEnterKey } from '../../src/lib/use-enter-key';
 import {
   checkEnglishMeaning,
   checkJapaneseReading,
@@ -215,7 +216,13 @@ function ReviewSession() {
   const totalInitialCount = initialTasks.length;
   const completedCount = completedTaskKeys.size;
 
+  // Enter moves on even when the answer field isn't focused (e.g. after
+  // clicking Item info): set below for the summary and for each item.
+  const enterAction = useRef<() => void>(() => {});
+  useEnterKey(() => enterAction.current());
+
   if (!currentTask) {
+    enterAction.current = () => router.replace('/(tabs)');
     const streak = selectStreak(state);
     const upcomingNow = selectUpcomingJapaneseReviews(state).totalCount;
     const itemsTotal = new Set(initialTasks.map((t) => t.subjectId)).size;
@@ -387,6 +394,9 @@ function ReviewSession() {
     }
   };
 
+  // Graded: Enter goes to the next item. Not yet: back to the answer field.
+  enterAction.current = feedback ? () => void handleSubmitOrNext() : () => inputRef.current?.focus();
+
   const getBannerColor = () => {
     switch (currentTask.kind) {
       case 'radical':
@@ -480,6 +490,7 @@ function ReviewSession() {
             value={inputValue}
             onChangeText={handleTextChange}
             onSubmitEditing={handleSubmitOrNext}
+            blurOnSubmit={false}
             placeholder={isKanaPrompt ? '答え' : 'Your response'}
             placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
@@ -550,7 +561,11 @@ function ReviewSession() {
 
             <View style={styles.resultActions}>
               <Pressable
-                onPress={() => setShowItemInfo((v) => !v)}
+                onPress={() => {
+                  setShowItemInfo((v) => !v);
+                  // Keep Enter meaning "next": hand focus back to the answer field.
+                  setTimeout(() => inputRef.current?.focus(), 0);
+                }}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.ghostBtn,
