@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/theme/ThemeContext';
+import { useEnterKey } from '../../src/lib/use-enter-key';
 import { hasReadingSplit, KanjiReadings, readingsText } from '../../src/components/KanjiReadings';
 import { CARD_EDGE, GLYPH_SHADOW, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import {
@@ -42,6 +43,16 @@ export default function JapaneseLessonsScreen() {
   const quizInputRef = useRef<TextInput>(null);
   // Put the cursor back in the answer field so the next answer can be typed right away.
   const refocusQuizInput = () => setTimeout(() => quizInputRef.current?.focus(), 0);
+
+  // Enter moves on: next item, then the quiz; in the quiz it returns to the
+  // answer field; once done (or with nothing to learn) it goes back to Today.
+  useEnterKey(
+    batch.length === 0 || phase === 'done'
+      ? () => router.replace('/(tabs)')
+      : phase === 'quiz'
+        ? () => quizInputRef.current?.focus()
+        : () => (stepIndex + 1 < batch.length ? setStepIndex(stepIndex + 1) : setPhase('quiz'))
+  );
 
   const getKindColor = (kind: string) => {
     switch (kind) {
