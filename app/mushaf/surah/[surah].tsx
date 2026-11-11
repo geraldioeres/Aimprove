@@ -1,5 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +28,7 @@ import {
 import { BISMILLAH, SURAHS } from '../../../src/data/surahs';
 import { LAST_READ_KEY, PRACTICE_PREFS, RECITERS, REPEAT_OPTIONS, playWord, useAyahPlayer } from '../../../src/lib/ayah-audio';
 import { MushafPageView } from '../../../src/components/MushafPageView';
-import { loadChapters, pageOfAyah } from '../../../src/lib/mushaf-pages';
+import { loadChapters, loadMushafPage, pageOfAyah } from '../../../src/lib/mushaf-pages';
 
 // Reader view settings, kept on this device.
 const PREFS_KEY = 'aimprove.reader.v1';
@@ -379,10 +390,11 @@ export default function SurahReaderScreen() {
 }
 
 /**
- * Full-page view: the surah's Madani Mushaf pages one after another. Starts
- * at the page of the ayah it was opened at (earlier pages one tap away),
- * highlights the ayah being recited and turns to its page, and plays a word
- * when tapped (an ayah-end marker plays that ayah).
+ * Full-page view: one Madani Mushaf page at a time. Turn pages with the
+ * buttons, a swipe (like a mushaf, the next page comes from the left: swipe
+ * right) or the arrow keys on the web. Opens at the page of the ayah it was
+ * opened at, highlights the ayah being recited and turns to its page, and
+ * plays a word when tapped (an ayah-end marker plays that ayah).
  */
 function PageMode({
   surah,
@@ -398,44 +410,90 @@ function PageMode({
   nav: React.ReactNode;
 }) {
   const { colors } = useTheme();
-  const [range, setRange] = useState<{ first: number; last: number; start: number } | null>(null);
+  const [range, setRange] = useState<{ first: number; last: number } | null>(null);
+  const [page, setPage] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   // Page width: the window, capped like the rest of the reader.
   const width = Math.min(720, useWindowDimensions().width);
-  const listRef = useRef<FlatList<number>>(null);
   const pageOf = useRef(new Map<string, number>()); // ayah key -> page, from loaded pages
-  const followed = useRef<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     let alive = true;
     setRange(null);
+    setPage(null);
     setFailed(false);
     (async () => {
       const chapters = await loadChapters();
       const [first, last] = chapters[surah - 1].pages;
       const start = fromAyah > 1 ? await pageOfAyah(`${surah}:${fromAyah}`) : first;
-      if (alive) setRange({ first, last, start: Math.min(last, Math.max(first, start)) });
+      if (!alive) return;
+      setRange({ first, last });
+      setPage(Math.min(last, Math.max(first, start)));
     })().catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
   }, [surah, fromAyah]);
 
-  const pages = useMemo(
-    () => (range ? Array.from({ length: range.last - range.start + 1 }, (_, i) => range.start + i) : []),
+  const go = useCallback(
+    (to: number) => {
+      if (!range) return;
+      const next = Math.min(range.last, Math.max(range.first, to));
+      setPage(next);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    },
     [range]
   );
 
-  // Turn to the page of the ayah being recited (once per page, not per ayah).
+  // Have the pages either side ready, so turning is instant.
+  useEffect(() => {
+    if (!range || page === null) return;
+    for (const p of [page - 1, page + 1]) {
+      if (p >= range.first && p <= range.last) {
+        loadMushafPage(p)
+          .then((d) => d.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, d.page))))
+          .catch(() => {});
+      }
+    }
+  }, [page, range]);
+
+  // Turn to the page of the ayah being recited.
   const playingKey = player.state.ayah ? `${surah}:${player.state.ayah}` : null;
   useEffect(() => {
-    if (!playingKey || !range) return;
-    const page = pageOf.current.get(playingKey);
-    if (!page || page === followed.current) return;
-    followed.current = page;
-    const index = page - range.start;
-    if (index >= 0 && index < pages.length) listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: true });
-  }, [playingKey, range, pages.length]);
+    if (!playingKey) return;
+    const p = pageOf.current.get(playingKey);
+    if (p && p !== page) go(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playingKey]);
+
+  // Arrow keys on the web: left = next page, right = previous (mushaf order).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || page === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      if (e.key === 'ArrowLeft') go(page + 1);
+      if (e.key === 'ArrowRight') go(page - 1);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [page, go]);
+
+  // Swipe: right brings the next page (it comes from the left), left goes back.
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        // Capture: a horizontal drag that starts on a word still turns the page.
+        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderRelease: (_, g) => {
+          if (page === null) return;
+          if (g.dx > 60) go(page + 1);
+          else if (g.dx < -60) go(page - 1);
+        },
+      }),
+    [page, go]
+  );
 
   if (failed) {
     return (
@@ -446,7 +504,7 @@ function PageMode({
       </View>
     );
   }
-  if (!range) {
+  if (!range || page === null) {
     return (
       <View style={styles.pageState}>
         <ActivityIndicator color={colors.indigo} />
@@ -454,55 +512,64 @@ function PageMode({
     );
   }
 
+  const isFirst = page <= range.first;
+  const isLast = page >= range.last;
+  const total = range.last - range.first + 1;
   return (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        ref={listRef}
-        data={pages}
-        keyExtractor={(p) => String(p)}
-        extraData={[playingKey, width]}
-        contentContainerStyle={styles.content}
-        initialNumToRender={2}
-        windowSize={5}
-        onScrollToIndexFailed={(e) => {
-          listRef.current?.scrollToOffset({ offset: e.averageItemLength * e.index, animated: false });
-          setTimeout(() => listRef.current?.scrollToIndex({ index: e.index, viewPosition: 0 }), 300);
+    <ScrollView ref={scrollRef} contentContainerStyle={styles.content} {...swipe.panHandlers}>
+      <View style={styles.head}>{title}</View>
+      <MushafPageView
+        key={page}
+        page={page}
+        width={width - 32}
+        highlightKey={playingKey}
+        onLoaded={(p) => p.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, p.page)))}
+        onWord={(w) => {
+          const [s] = w.ayahKey.split(':').map(Number);
+          if (w.isEnd) {
+            if (s === surah) player.playFrom(w.ayah);
+          } else playWord(w.ayahKey, w.position);
         }}
-        ListHeaderComponent={
-          <View style={styles.head}>
-            {title}
-            {range.start > range.first ? (
-              <Pressable
-                onPress={() => setRange({ ...range, start: Math.max(range.first, range.start - 3) })}
-                accessibilityRole="button"
-                style={({ pressed }) => [styles.earlier, { borderColor: colors.border }, pressed && { opacity: 0.6 }]}
-              >
-                <Feather name="chevron-up" size={18} color={colors.indigo} />
-                <Text style={[styles.link, { color: colors.indigo }]}>
-                  Show earlier pages ({Math.max(range.first, range.start - 3)}–{range.start - 1})
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-        }
-        ListFooterComponent={<View style={styles.foot}>{nav}</View>}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item }) => (
-          <MushafPageView
-            page={item}
-            width={width - 32}
-            highlightKey={playingKey}
-            onLoaded={(p) => p.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, p.page)))}
-            onWord={(w) => {
-              const [s] = w.ayahKey.split(':').map(Number);
-              if (w.isEnd) {
-                if (s === surah) player.playFrom(w.ayah);
-              } else playWord(w.ayahKey, w.position);
-            }}
-          />
-        )}
       />
-    </View>
+      {/* Page turning, in mushaf order: next on the left, previous on the right. */}
+      <View style={styles.turnRow}>
+        <Pressable
+          disabled={isLast}
+          onPress={() => go(page + 1)}
+          accessibilityRole="button"
+          accessibilityLabel="Next page"
+          style={({ pressed }) => [
+            styles.turnBtn,
+            { borderColor: isLast ? colors.border : colors.ink, backgroundColor: colors.bgSurface },
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <Feather name="chevron-left" size={20} color={isLast ? colors.textMuted : colors.ink} />
+          <Text style={[styles.turnText, { color: isLast ? colors.textMuted : colors.ink }]}>Next</Text>
+        </Pressable>
+        <View style={styles.turnInfo}>
+          <Text style={[styles.turnPage, { color: colors.ink }]}>Page {page}</Text>
+          <Text style={[styles.meta, { color: colors.textSecondary }]}>
+            {page - range.first + 1} of {total} in this surah
+          </Text>
+        </View>
+        <Pressable
+          disabled={isFirst}
+          onPress={() => go(page - 1)}
+          accessibilityRole="button"
+          accessibilityLabel="Previous page"
+          style={({ pressed }) => [
+            styles.turnBtn,
+            { borderColor: isFirst ? colors.border : colors.ink, backgroundColor: colors.bgSurface },
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <Text style={[styles.turnText, { color: isFirst ? colors.textMuted : colors.ink }]}>Previous</Text>
+          <Feather name="chevron-right" size={20} color={isFirst ? colors.textMuted : colors.ink} />
+        </Pressable>
+      </View>
+      {isLast ? <View style={styles.foot}>{nav}</View> : null}
+    </ScrollView>
   );
 }
 
@@ -626,6 +693,19 @@ const styles = StyleSheet.create({
   viewText: { fontSize: 13, fontWeight: '900' },
   pageHint: { fontSize: 13, alignSelf: 'center' },
   pageState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  turnRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  turnBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderRadius: RADII.sm,
+  },
+  turnText: { fontSize: 14, fontWeight: '900' },
+  turnInfo: { flex: 1, alignItems: 'center' },
+  turnPage: { fontSize: 15, fontWeight: '900', fontVariant: ['tabular-nums'] },
   earlier: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, borderWidth: 1, borderRadius: RADII.sm },
   bar: { borderBottomWidth: 1 },
   barInner: {

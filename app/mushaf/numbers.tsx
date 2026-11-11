@@ -11,6 +11,7 @@ import {
 import { useTheme } from '../../src/theme/ThemeContext';
 import { CARD_EDGE, PRESSED_BASE, RADII, SPACING, TILE_LIP } from '../../src/theme/tokens';
 import { toArabicNumerals } from '../../src/data/quran-seed';
+import { AyahNumberMark } from '../../src/components/AyahNumberMark';
 import {
   ARABIC_DIGITS,
   ARABIC_TENS,
@@ -136,8 +137,9 @@ export default function ArabicNumbersScreen() {
         <View style={styles.result}>
           <Text style={[styles.resultAr, { color: colors.ink }]}>{arabic}</Text>
           <Text style={[styles.note, { color: colors.textSecondary }]}>
-            As an ayah marker in the Mushaf: <Text style={styles.marker}>﴿{arabic}﴾</Text>
+            As an ayah marker in the Mushaf:
           </Text>
+          {/^[0-9]+$/.test(typed.trim()) ? <AyahNumberMark number={Number(typed.trim())} fontSize={28} /> : null}
         </View>
       ) : null}
     </View>
@@ -239,7 +241,6 @@ const styles = StyleSheet.create({
   },
   result: { gap: 6, alignItems: 'center' },
   resultAr: { fontSize: 44, fontWeight: '700', lineHeight: 62 },
-  marker: { fontSize: 18 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   fact: { borderWidth: 1.5, borderRadius: RADII.xs, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', minWidth: 84 },
   factAr: { fontSize: 24, fontWeight: '700', lineHeight: 36 },

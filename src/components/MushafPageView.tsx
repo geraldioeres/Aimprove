@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTheme } from '../theme/ThemeContext';
 import { RADII } from '../theme/tokens';
 import { BISMILLAH, SURAHS } from '../data/surahs';
+import { AyahNumberMark } from './AyahNumberMark';
 import { ChapterInfo, MushafPage, PageWord, loadChapters, loadMushafPage } from '../lib/mushaf-pages';
 
 const TRIAL = 22; // trial font size for measuring lines
@@ -76,7 +77,9 @@ export function MushafPageView({
     fitCache.set(key, size);
     setFit({ data, size });
   }, [measured, box, data, page]);
-  const fitted = fit && fit.data === data ? fit.size : null;
+  // A page already sized at this width shows straight away.
+  const known = data && box ? fitCache.get(`${page}:${Math.round(box)}`) : undefined;
+  const fitted = fit && fit.data === data ? fit.size : known ?? null;
   const fontSize = fitted ?? TRIAL;
   const lineHeight = Math.round(fontSize * 2);
 
@@ -133,18 +136,13 @@ export function MushafPageView({
                       accessibilityLabel={w.isEnd ? `End of ayah ${w.ayahKey}` : `Word ${w.position} of ${w.ayahKey}`}
                       style={[styles.word, lit && { backgroundColor: colors.indigoBg }]}
                     >
-                      <Text
-                        style={[
-                          w.isEnd ? styles.end : null,
-                          {
-                            fontSize: w.isEnd ? Math.round(fontSize * 0.7) : fontSize,
-                            lineHeight,
-                            color: w.isEnd ? colors.quranSabaq : colors.ink,
-                          },
-                        ]}
-                      >
-                        {w.isEnd ? `﴿${w.text}﴾` : w.text}
-                      </Text>
+                      {w.isEnd ? (
+                        <View style={{ height: lineHeight, justifyContent: 'center' }}>
+                          <AyahNumberMark number={w.ayah} fontSize={fontSize} />
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize, lineHeight, color: colors.ink }}>{w.text}</Text>
+                      )}
                     </Pressable>
                   );
                 })}
@@ -166,7 +164,6 @@ const styles = StyleSheet.create({
   line: { flexDirection: 'row-reverse', flexWrap: 'nowrap', alignItems: 'center', columnGap: 2 },
   lineMeasure: { alignSelf: 'flex-end' }, // shrink to the words' width
   word: { borderRadius: 4, paddingHorizontal: 1 },
-  end: { fontWeight: '400' },
   headerWrap: { alignItems: 'center', marginVertical: 6, gap: 2 },
   surahHeader: {
     alignSelf: 'stretch',
