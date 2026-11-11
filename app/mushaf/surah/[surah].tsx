@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,16 +15,19 @@ import {
   SurahInfo,
 } from '../../../src/store/usePrayerTrack';
 import { BISMILLAH, SURAHS } from '../../../src/data/surahs';
-import { LAST_READ_KEY, PRACTICE_PREFS, RECITERS, REPEAT_OPTIONS, useAyahPlayer } from '../../../src/lib/ayah-audio';
+import { LAST_READ_KEY, PRACTICE_PREFS, RECITERS, REPEAT_OPTIONS, playWord, useAyahPlayer } from '../../../src/lib/ayah-audio';
+import { MushafPageView } from '../../../src/components/MushafPageView';
+import { loadChapters, pageOfAyah } from '../../../src/lib/mushaf-pages';
 
 // Reader view settings, kept on this device.
 const PREFS_KEY = 'aimprove.reader.v1';
 interface Prefs {
+  view: 'ayah' | 'page'; // ayah by ayah, or full Mushaf pages
   tajweed: boolean;
   meaning: boolean;
   wordByWord: boolean;
 }
-const DEFAULT_PREFS: Prefs = { tajweed: true, meaning: true, wordByWord: false };
+const DEFAULT_PREFS: Prefs = { view: 'ayah', tajweed: true, meaning: true, wordByWord: false };
 
 export default function SurahReaderScreen() {
   const { colors } = useTheme();
@@ -58,12 +61,13 @@ export default function SurahReaderScreen() {
       .catch(() => {});
   }, []);
 
-  const toggle = (k: keyof Prefs) =>
+  const updatePrefs = (patch: Partial<Prefs>) =>
     setPrefs((p) => {
-      const next = { ...p, [k]: !p[k] };
+      const next = { ...p, ...patch };
       AsyncStorage.setItem(PREFS_KEY, JSON.stringify(next)).catch(() => {});
       return next;
     });
+  const toggle = (k: 'tajweed' | 'meaning' | 'wordByWord') => updatePrefs({ [k]: !prefs[k] });
 
   const loadNext = useCallback(
     async (from: number) => {
@@ -166,28 +170,65 @@ export default function SurahReaderScreen() {
   const done = loaded >= chunks;
   const showBismillah = surah !== 1 && surah !== 9; // Al-Fatihah's is ayah 1; At-Taubah has none
 
+  const titleRow = (
+    <View style={styles.titleRow}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.surahName, { color: colors.ink }]} accessibilityRole="header">
+          {meta.name}
+        </Text>
+        <Text style={[styles.meta, { color: colors.textSecondary }]}>
+          {[
+            `Surah ${surah}`,
+            info?.meaning,
+            info?.place ? (info.place === 'makkah' ? 'Makkiyah' : 'Madaniyah') : null,
+            `${meta.ayahs} ayah`,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </Text>
+      </View>
+      {info?.arabicName ? (
+        <Text style={[styles.arabicName, { color: colors.ink }]}>{info.arabicName}</Text>
+      ) : null}
+    </View>
+  );
+
+  const surahNav = (
+    <View style={styles.navRow}>
+      {surah > 1 ? (
+        <Pressable
+          onPress={() => router.setParams({ surah: String(surah - 1), from: '' })}
+          accessibilityRole="button"
+          style={[styles.navBtn, { borderColor: colors.border }]}
+        >
+          <Feather name="chevron-left" size={18} color={colors.indigo} />
+          <Text style={[styles.link, { color: colors.indigo }]} numberOfLines={1}>
+            {SURAHS[surah - 2].name}
+          </Text>
+        </Pressable>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
+      {surah < 114 ? (
+        <Pressable
+          onPress={() => router.setParams({ surah: String(surah + 1), from: '' })}
+          accessibilityRole="button"
+          style={[styles.navBtn, styles.navNext, { borderColor: colors.border }]}
+        >
+          <Text style={[styles.link, { color: colors.indigo }]} numberOfLines={1}>
+            {SURAHS[surah].name}
+          </Text>
+          <Feather name="chevron-right" size={18} color={colors.indigo} />
+        </Pressable>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
+    </View>
+  );
+
   const header = (
     <View style={styles.head}>
-      <View style={styles.titleRow}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={[styles.surahName, { color: colors.ink }]} accessibilityRole="header">
-            {meta.name}
-          </Text>
-          <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            {[
-              `Surah ${surah}`,
-              info?.meaning,
-              info?.place ? (info.place === 'makkah' ? 'Makkiyah' : 'Madaniyah') : null,
-              `${meta.ayahs} ayah`,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
-        </View>
-        {info?.arabicName ? (
-          <Text style={[styles.arabicName, { color: colors.ink }]}>{info.arabicName}</Text>
-        ) : null}
-      </View>
+      {titleRow}
       {startAt > 1 ? (
         <Pressable
           onPress={() => setStartAt(Math.max(1, startAt - 20))}
@@ -217,36 +258,7 @@ export default function SurahReaderScreen() {
       ) : !done ? (
         <ActivityIndicator color={colors.indigo} style={{ paddingVertical: 24 }} />
       ) : (
-        <View style={styles.navRow}>
-          {surah > 1 ? (
-            <Pressable
-              onPress={() => router.setParams({ surah: String(surah - 1), from: '' })}
-              accessibilityRole="button"
-              style={[styles.navBtn, { borderColor: colors.border }]}
-            >
-              <Feather name="chevron-left" size={18} color={colors.indigo} />
-              <Text style={[styles.link, { color: colors.indigo }]} numberOfLines={1}>
-                {SURAHS[surah - 2].name}
-              </Text>
-            </Pressable>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-          {surah < 114 ? (
-            <Pressable
-              onPress={() => router.setParams({ surah: String(surah + 1), from: '' })}
-              accessibilityRole="button"
-              style={[styles.navBtn, styles.navNext, { borderColor: colors.border }]}
-            >
-              <Text style={[styles.link, { color: colors.indigo }]} numberOfLines={1}>
-                {SURAHS[surah].name}
-              </Text>
-              <Feather name="chevron-right" size={18} color={colors.indigo} />
-            </Pressable>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-        </View>
+        surahNav
       )}
     </View>
   );
@@ -256,11 +268,29 @@ export default function SurahReaderScreen() {
       <Stack.Screen options={{ title: meta.name }} />
       <View style={[styles.bar, { backgroundColor: colors.bgSurface, borderBottomColor: colors.border }]}>
         <View style={styles.barInner}>
-          {([
+          <View style={[styles.viewSwitch, { borderColor: colors.ink }]} accessibilityRole="tablist">
+            {(['ayah', 'page'] as const).map((v) => (
+              <Pressable
+                key={v}
+                onPress={() => updatePrefs({ view: v })}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: prefs.view === v }}
+                style={[styles.viewBtn, prefs.view === v && { backgroundColor: colors.ink }]}
+              >
+                <Text style={[styles.viewText, { color: prefs.view === v ? '#FFFFFF' : colors.ink }]}>
+                  {v === 'ayah' ? 'Ayah' : 'Page'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {prefs.view === 'page' ? (
+            <Text style={[styles.pageHint, { color: colors.textSecondary }]}>Tap a word to hear it</Text>
+          ) : null}
+          {(prefs.view === 'page' ? [] : ([
             ['tajweed', 'Tajweed colours'],
             ['meaning', 'Meaning'],
             ['wordByWord', 'Word by word'],
-          ] as const).map(([k, label]) => (
+          ] as const)).map(([k, label]) => (
             <Pressable
               key={k}
               onPress={() => toggle(k)}
@@ -275,6 +305,9 @@ export default function SurahReaderScreen() {
           ))}
         </View>
       </View>
+      {prefs.view === 'page' ? (
+        <PageMode surah={surah} fromAyah={fromAyah} player={player} title={titleRow} nav={surahNav} />
+      ) : (
       <FlatList
         ref={listRef}
         data={visible}
@@ -331,6 +364,7 @@ export default function SurahReaderScreen() {
           );
         }}
       />
+      )}
       <PlayerBar player={player} surah={surah} />
       <RuleSheet
         rule={rulePeek}
@@ -339,6 +373,134 @@ export default function SurahReaderScreen() {
           setRulePeek(null);
           router.push(`/mushaf/tajweed?rule=${id}`);
         }}
+      />
+    </View>
+  );
+}
+
+/**
+ * Full-page view: the surah's Madani Mushaf pages one after another. Starts
+ * at the page of the ayah it was opened at (earlier pages one tap away),
+ * highlights the ayah being recited and turns to its page, and plays a word
+ * when tapped (an ayah-end marker plays that ayah).
+ */
+function PageMode({
+  surah,
+  fromAyah,
+  player,
+  title,
+  nav,
+}: {
+  surah: number;
+  fromAyah: number;
+  player: ReturnType<typeof useAyahPlayer>;
+  title: React.ReactNode;
+  nav: React.ReactNode;
+}) {
+  const { colors } = useTheme();
+  const [range, setRange] = useState<{ first: number; last: number; start: number } | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Page width: the window, capped like the rest of the reader.
+  const width = Math.min(720, useWindowDimensions().width);
+  const listRef = useRef<FlatList<number>>(null);
+  const pageOf = useRef(new Map<string, number>()); // ayah key -> page, from loaded pages
+  const followed = useRef<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setRange(null);
+    setFailed(false);
+    (async () => {
+      const chapters = await loadChapters();
+      const [first, last] = chapters[surah - 1].pages;
+      const start = fromAyah > 1 ? await pageOfAyah(`${surah}:${fromAyah}`) : first;
+      if (alive) setRange({ first, last, start: Math.min(last, Math.max(first, start)) });
+    })().catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [surah, fromAyah]);
+
+  const pages = useMemo(
+    () => (range ? Array.from({ length: range.last - range.start + 1 }, (_, i) => range.start + i) : []),
+    [range]
+  );
+
+  // Turn to the page of the ayah being recited (once per page, not per ayah).
+  const playingKey = player.state.ayah ? `${surah}:${player.state.ayah}` : null;
+  useEffect(() => {
+    if (!playingKey || !range) return;
+    const page = pageOf.current.get(playingKey);
+    if (!page || page === followed.current) return;
+    followed.current = page;
+    const index = page - range.start;
+    if (index >= 0 && index < pages.length) listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: true });
+  }, [playingKey, range, pages.length]);
+
+  if (failed) {
+    return (
+      <View style={styles.pageState}>
+        <Text style={[styles.body, { color: colors.textSecondary }]}>
+          Couldn't load the Mushaf pages. Check your connection.
+        </Text>
+      </View>
+    );
+  }
+  if (!range) {
+    return (
+      <View style={styles.pageState}>
+        <ActivityIndicator color={colors.indigo} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <FlatList
+        ref={listRef}
+        data={pages}
+        keyExtractor={(p) => String(p)}
+        extraData={[playingKey, width]}
+        contentContainerStyle={styles.content}
+        initialNumToRender={2}
+        windowSize={5}
+        onScrollToIndexFailed={(e) => {
+          listRef.current?.scrollToOffset({ offset: e.averageItemLength * e.index, animated: false });
+          setTimeout(() => listRef.current?.scrollToIndex({ index: e.index, viewPosition: 0 }), 300);
+        }}
+        ListHeaderComponent={
+          <View style={styles.head}>
+            {title}
+            {range.start > range.first ? (
+              <Pressable
+                onPress={() => setRange({ ...range, start: Math.max(range.first, range.start - 3) })}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.earlier, { borderColor: colors.border }, pressed && { opacity: 0.6 }]}
+              >
+                <Feather name="chevron-up" size={18} color={colors.indigo} />
+                <Text style={[styles.link, { color: colors.indigo }]}>
+                  Show earlier pages ({Math.max(range.first, range.start - 3)}–{range.start - 1})
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        }
+        ListFooterComponent={<View style={styles.foot}>{nav}</View>}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        renderItem={({ item }) => (
+          <MushafPageView
+            page={item}
+            width={width - 32}
+            highlightKey={playingKey}
+            onLoaded={(p) => p.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, p.page)))}
+            onWord={(w) => {
+              const [s] = w.ayahKey.split(':').map(Number);
+              if (w.isEnd) {
+                if (s === surah) player.playFrom(w.ayah);
+              } else playWord(w.ayahKey, w.position);
+            }}
+          />
+        )}
       />
     </View>
   );
@@ -459,6 +621,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ayahActive: { borderWidth: 2 },
+  viewSwitch: { flexDirection: 'row', borderWidth: 2, borderRadius: RADII.sm, overflow: 'hidden', alignSelf: 'center' },
+  viewBtn: { paddingHorizontal: 14, minHeight: 32, alignItems: 'center', justifyContent: 'center' },
+  viewText: { fontSize: 13, fontWeight: '900' },
+  pageHint: { fontSize: 13, alignSelf: 'center' },
+  pageState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   earlier: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44, borderWidth: 1, borderRadius: RADII.sm },
   bar: { borderBottomWidth: 1 },
   barInner: {
