@@ -23,6 +23,7 @@ import {
 import { JPSubject, JPSubjectKind } from '../../src/data/jp-seed';
 import { PressBlock } from '../../src/components/Stamp';
 import { hasReadingSplit, KanjiReadings } from '../../src/components/KanjiReadings';
+import { useJlptStore } from '../../src/store/useJlptStore';
 import { WANIKANI_STAGES } from '../../src/lib/srs-wanikani';
 
 const WANIKANI_TIERS = [
@@ -73,6 +74,7 @@ export default function JapaneseHubScreen() {
 
   const dueReviews = selectDueJapaneseReviews(state);
   const upcoming = selectUpcomingJapaneseReviews(state).totalCount;
+  const jlptLevel = useJlptStore((s) => s.lastLevel);
   const availableLessons = selectAvailableJapaneseLessons(state);
 
   const WK = { radical: colors.jpRadical, kanji: colors.jpKanji, vocab: colors.jpVocab };
@@ -248,6 +250,27 @@ export default function JapaneseHubScreen() {
           </Text>
           <View style={styles.linkRow}>
             <Text style={[styles.seeAll, { color: colors.indigo }]}>Open reading</Text>
+            <Feather name="chevron-right" size={16} color={colors.indigo} />
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push('/jp/jlpt')}
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.launchCard,
+            styles.launchCardWide,
+            { backgroundColor: colors.bgSurface, borderColor: colors.ink },
+            TILE_LIP,
+            pressed && PRESSED_BASE,
+          ]}
+        >
+          <Text style={[styles.launchTitle, { color: colors.textPrimary }]}>JLPT drills · {jlptLevel}</Text>
+          <Text style={[styles.launchHint, { color: colors.textSecondary }]}>
+            Exam-style questions for N5 to N1: kanji reading, writing, vocabulary and kanji.
+          </Text>
+          <View style={styles.linkRow}>
+            <Text style={[styles.seeAll, { color: colors.indigo }]}>Start drilling</Text>
             <Feather name="chevron-right" size={16} color={colors.indigo} />
           </View>
         </Pressable>

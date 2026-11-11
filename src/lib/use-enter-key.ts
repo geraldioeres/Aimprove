@@ -29,7 +29,7 @@ export function useEnterKey(action: (() => void) | null) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || e.repeat || e.isComposing) return;
       if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
-      const el = e.target as HTMLElement | null;
+      const el = e.target instanceof HTMLElement ? e.target : null;
       if (el) {
         const tag = el.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) return;
