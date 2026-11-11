@@ -28,7 +28,7 @@ import {
 import { BISMILLAH, SURAHS } from '../../../src/data/surahs';
 import { LAST_READ_KEY, PRACTICE_PREFS, RECITERS, REPEAT_OPTIONS, playWord, useAyahPlayer } from '../../../src/lib/ayah-audio';
 import { MushafPageView } from '../../../src/components/MushafPageView';
-import { loadChapters, loadMushafPage, pageOfAyah } from '../../../src/lib/mushaf-pages';
+import { ChapterInfo, loadChapters, loadMushafPage, pageOfAyah } from '../../../src/lib/mushaf-pages';
 
 // Reader view settings, kept on this device.
 const PREFS_KEY = 'aimprove.reader.v1';
@@ -204,6 +204,12 @@ export default function SurahReaderScreen() {
     </View>
   );
 
+  // Page view turned into another surah: the reader follows it.
+  const onPageSurah = useCallback(
+    (s: number, a: number) => router.setParams({ surah: String(s), from: String(a) }),
+    [router]
+  );
+
   const surahNav = (
     <View style={styles.navRow}>
       {surah > 1 ? (
@@ -317,7 +323,13 @@ export default function SurahReaderScreen() {
         </View>
       </View>
       {prefs.view === 'page' ? (
-        <PageMode surah={surah} fromAyah={fromAyah} player={player} title={titleRow} nav={surahNav} />
+        <PageMode
+          surah={surah}
+          fromAyah={fromAyah}
+          player={player}
+          title={titleRow}
+          onSurah={onPageSurah}
+        />
       ) : (
       <FlatList
         ref={listRef}
@@ -396,39 +408,47 @@ export default function SurahReaderScreen() {
  * opened at, highlights the ayah being recited and turns to its page, and
  * plays a word when tapped (an ayah-end marker plays that ayah).
  */
+const MUSHAF_PAGES = 604;
+
 function PageMode({
   surah,
   fromAyah,
   player,
   title,
-  nav,
+  onSurah,
 }: {
   surah: number;
   fromAyah: number;
   player: ReturnType<typeof useAyahPlayer>;
   title: React.ReactNode;
-  nav: React.ReactNode;
+  onSurah: (surah: number, ayah: number) => void; // a page turn moved into another surah
 }) {
   const { colors } = useTheme();
-  const [range, setRange] = useState<{ first: number; last: number } | null>(null);
+  const [chapters, setChapters] = useState<ChapterInfo[] | null>(null);
   const [page, setPage] = useState<number | null>(null);
   const [failed, setFailed] = useState(false);
   // Page width: the window, capped like the rest of the reader.
   const width = Math.min(720, useWindowDimensions().width);
   const pageOf = useRef(new Map<string, number>()); // ayah key -> page, from loaded pages
   const scrollRef = useRef<ScrollView>(null);
+  const pageRef = useRef<number | null>(null);
+  pageRef.current = page;
 
   useEffect(() => {
     let alive = true;
-    setRange(null);
-    setPage(null);
     setFailed(false);
     (async () => {
-      const chapters = await loadChapters();
-      const [first, last] = chapters[surah - 1].pages;
+      const list = await loadChapters();
+      const [first, last] = list[surah - 1].pages;
+      // Turning pages brought us into this surah: stay on the page.
+      const cur = pageRef.current;
+      if (cur !== null && cur >= first && cur <= last) {
+        if (alive) setChapters(list);
+        return;
+      }
       const start = fromAyah > 1 ? await pageOfAyah(`${surah}:${fromAyah}`) : first;
       if (!alive) return;
-      setRange({ first, last });
+      setChapters(list);
       setPage(Math.min(last, Math.max(first, start)));
     })().catch(() => alive && setFailed(true));
     return () => {
@@ -436,27 +456,40 @@ function PageMode({
     };
   }, [surah, fromAyah]);
 
+  // Turn to any page of the Mushaf. If the page holds no part of the current
+  // surah, follow the reader into the surah the page continues with (going
+  // forward) or ends with (going back).
   const go = useCallback(
     (to: number) => {
-      if (!range) return;
-      const next = Math.min(range.last, Math.max(range.first, to));
+      if (!chapters) return;
+      const from = pageRef.current ?? to;
+      const next = Math.min(MUSHAF_PAGES, Math.max(1, to));
       setPage(next);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
+      const here = chapters.flatMap((c, i) => (c.pages[0] <= next && next <= c.pages[1] ? [i + 1] : []));
+      if (!here.length || here.includes(surah)) return;
+      const s = next >= from ? Math.min(...here) : Math.max(...here);
+      loadMushafPage(next)
+        .then((d) => {
+          const w = d.lines.flatMap((l) => l.words).find((x) => x.ayahKey.startsWith(`${s}:`));
+          onSurah(s, w?.ayah ?? 1);
+        })
+        .catch(() => onSurah(s, 1));
     },
-    [range]
+    [chapters, surah, onSurah]
   );
 
   // Have the pages either side ready, so turning is instant.
   useEffect(() => {
-    if (!range || page === null) return;
+    if (!chapters || page === null) return;
     for (const p of [page - 1, page + 1]) {
-      if (p >= range.first && p <= range.last) {
+      if (p >= 1 && p <= MUSHAF_PAGES) {
         loadMushafPage(p)
           .then((d) => d.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, d.page))))
           .catch(() => {});
       }
     }
-  }, [page, range]);
+  }, [page, chapters]);
 
   // Turn to the page of the ayah being recited.
   const playingKey = player.state.ayah ? `${surah}:${player.state.ayah}` : null;
@@ -504,7 +537,7 @@ function PageMode({
       </View>
     );
   }
-  if (!range || page === null) {
+  if (!chapters || page === null) {
     return (
       <View style={styles.pageState}>
         <ActivityIndicator color={colors.indigo} />
@@ -512,9 +545,10 @@ function PageMode({
     );
   }
 
-  const isFirst = page <= range.first;
-  const isLast = page >= range.last;
-  const total = range.last - range.first + 1;
+  const isFirst = page <= 1;
+  const isLast = page >= MUSHAF_PAGES;
+  const [first, last] = chapters[surah - 1].pages;
+  const inSurah = page >= first && page <= last;
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={styles.content} {...swipe.panHandlers}>
       <View style={styles.head}>{title}</View>
@@ -550,7 +584,7 @@ function PageMode({
         <View style={styles.turnInfo}>
           <Text style={[styles.turnPage, { color: colors.ink }]}>Page {page}</Text>
           <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            {page - range.first + 1} of {total} in this surah
+            {inSurah ? `${SURAHS[surah - 1].name} · ${page - first + 1} of ${last - first + 1}` : `of ${MUSHAF_PAGES}`}
           </Text>
         </View>
         <Pressable
@@ -568,7 +602,6 @@ function PageMode({
           <Feather name="chevron-right" size={20} color={isFirst ? colors.textMuted : colors.ink} />
         </Pressable>
       </View>
-      {isLast ? <View style={styles.foot}>{nav}</View> : null}
     </ScrollView>
   );
 }
