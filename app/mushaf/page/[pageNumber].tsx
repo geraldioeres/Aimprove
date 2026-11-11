@@ -16,6 +16,7 @@ import {
 } from '../../../src/data/quran-seed';
 import { useLearningStore } from '../../../src/store/useLearningStore';
 import { mistakesToFSRSGrade } from '../../../src/lib/srs-fsrs';
+import { AyahNumberMark } from '../../../src/components/AyahNumberMark';
 
 type HideMode = 'none' | 'first_word_cue' | 'hide_all';
 
@@ -381,6 +382,9 @@ export default function MushafPageReaderScreen() {
                             },
                         ]}
                       >
+                        {word.isEndMarker && word.ayahNumber ? (
+                          <AyahNumberMark number={word.ayahNumber} fontSize={25} />
+                        ) : (
                         <Text
                           style={[
                             word.isEndMarker
@@ -397,6 +401,7 @@ export default function MushafPageReaderScreen() {
                         >
                           {word.textUthmani}
                         </Text>
+                        )}
                       </Pressable>
                     );
                   })}
