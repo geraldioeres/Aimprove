@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
 import { useLearningStore } from '../src/store/useLearningStore';
 import { usePrayerTrack } from '../src/store/usePrayerTrack';
 import { useQuranWords } from '../src/store/useQuranWords';
+import { useJlptStore } from '../src/store/useJlptStore';
 import { applyGlobalFonts, useAppFonts, FONT_LATIN } from '../src/theme/fonts';
 
 function RootNavigator() {
@@ -27,6 +28,7 @@ function RootNavigator() {
     if (authReady) {
       usePrayerTrack.getState().load(userId);
       useQuranWords.getState().load(userId);
+      useJlptStore.getState().load(userId);
     }
   }, [authReady, userId]);
 
@@ -80,6 +82,14 @@ function RootNavigator() {
         <Stack.Screen
           name="jp/reading"
           options={{ title: 'Reading', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="jp/jlpt/index"
+          options={{ title: 'JLPT drills', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="jp/jlpt/drill"
+          options={{ title: 'JLPT drill', presentation: 'card' }}
         />
         <Stack.Screen
           name="mushaf/page/[pageNumber]"
