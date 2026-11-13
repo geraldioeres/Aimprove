@@ -15,7 +15,8 @@ export type QuranMenuIconName =
   | 'makhraj'
   | 'tajweed'
   | 'letters'
-  | 'numbers';
+  | 'numbers'
+  | 'islam';
 
 const INK = '#16161A';
 const W = 2.5; // outline weight
@@ -169,6 +170,22 @@ function Numbers() {
   );
 }
 
+function Islam() {
+  // A Ramadan lantern (fanous) with a small flame.
+  return (
+    <>
+      <Circle cx={28} cy={6} r={3} fill="none" {...line} />
+      <Path d="M20 16 L28 9 L36 16 Z" fill={C.green} {...line} />
+      <Path d="M18 16 L38 16 L38 21 L18 21 Z" fill={C.green} {...line} />
+      <Path d="M18 21 L38 21 L41 31 L38 42 L18 42 L15 31 Z" fill={C.gold} {...line} />
+      <Path d="M24 25 L32 25 L34 31 L32 38 L24 38 L22 31 Z" fill={C.goldLight} stroke={INK} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path d="M28 27.5 C31 30.5 30.5 34.5 28 35.5 C25.5 34.5 25 30.5 28 27.5 Z" fill={C.red} />
+      <Path d="M20 42 L36 42 L36 46 L20 46 Z" fill={C.green} {...line} />
+      <Path d="M24 46 L32 46 L28 51 Z" fill={C.green} {...line} />
+    </>
+  );
+}
+
 export function QuranMenuIcon({
   name,
   size = 56,
@@ -188,6 +205,7 @@ export function QuranMenuIcon({
       {name === 'tajweed' ? <Tajweed /> : null}
       {name === 'letters' ? <Letters muted={muted} /> : null}
       {name === 'numbers' ? <Numbers /> : null}
+      {name === 'islam' ? <Islam /> : null}
     </Svg>
   );
 }

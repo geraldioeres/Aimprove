@@ -143,6 +143,14 @@ function RootNavigator() {
           name="mushaf/tajweed"
           options={{ title: 'Tajweed', presentation: 'card' }}
         />
+        <Stack.Screen
+          name="islam/index"
+          options={{ title: 'Islamic knowledge', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="islam/prophet/[id]"
+          options={{ title: 'Prophet', presentation: 'card' }}
+        />
       </Stack>
       {holding ? (
         <View style={[StyleSheet.absoluteFill, styles.hold, { backgroundColor: colors.bgPrimary }]}>

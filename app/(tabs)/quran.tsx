@@ -10,6 +10,7 @@ import { usePrayerTrack } from '../../src/store/usePrayerTrack';
 import { LAST_READ_KEY } from '../../src/lib/ayah-audio';
 import { SURAHS } from '../../src/data/surahs';
 import { QuranMenuIcon, QuranMenuIconName } from '../../src/components/QuranMenuIcons';
+import { dayNumber, factOfDay } from '../../src/data/islam-facts';
 
 interface Tile {
   key: QuranMenuIconName; // also picks the icon
@@ -20,7 +21,7 @@ interface Tile {
   href?: string; // no href = coming soon
 }
 
-/** The Quran tab: eight sections in a two-column menu. */
+/** The Quran tab: a two-column menu, with Islamic knowledge across the bottom. */
 export default function QuranMenuScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -79,6 +80,14 @@ export default function QuranMenuScreen() {
     { key: 'tajweed', title: 'Tajweed', arabic: 'تجويد', color: colors.jpRadical, sub: 'Every rule, with examples', href: '/mushaf/tajweed' },
     { key: 'letters', title: 'Arabic Letter', arabic: 'حروف', color: colors.textMuted, sub: 'Coming soon' },
     { key: 'numbers', title: 'Number', arabic: '١٢٣', color: colors.ink, sub: 'Arabic digits and their names', href: '/mushaf/numbers' },
+    {
+      key: 'islam',
+      title: 'Islamic Knowledge',
+      arabic: 'علم',
+      color: colors.quranSabaq,
+      sub: `Today: ${factOfDay(dayNumber()).title} · Stories of the 25 prophets`,
+      href: '/islam',
+    },
   ];
 
   const rows: Tile[][] = [];
