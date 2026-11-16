@@ -71,7 +71,8 @@ export const LAST_READ_KEY = 'aimprove.reader.last.v1';
 export type PlayerPhase = 'idle' | 'loading' | 'playing' | 'echo';
 
 export interface PlayerState {
-  ayah: number | null; // current ayah number in the surah
+  surah: number | null; // surah of the current ayah
+  ayah: number | null; // current ayah number in that surah
   phase: PlayerPhase;
   rep: number; // 1-based play count for the current ayah
   error: string | null;
@@ -150,7 +151,7 @@ const stopWord = () => {
 
 export function useAyahPlayer(surah: number, ayahCount: number) {
   const [prefs, setPrefs] = useState<AudioPrefs>(DEFAULT_PREFS);
-  const [state, setState] = useState<PlayerState>({ ayah: null, phase: 'idle', rep: 1, error: null });
+  const [state, setState] = useState<PlayerState>({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   const runId = useRef(0); // bumping it cancels the running sequence
@@ -234,43 +235,61 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
       };
     });
 
-  /** Play from `ayah`, repeating each as set, then on through the surah. */
-  const playFrom = useCallback(
-    async (ayah: number) => {
+  // A list that may carry on into another surah (a page), so a change of
+  // surah on the screen doesn't stop it.
+  const crossSurah = useRef(false);
+
+  /**
+   * Play a list of ayat in order, repeating each as set. Resolves true if
+   * the whole list played, false if it was stopped or failed.
+   */
+  const playList = useCallback(
+    async (items: { surah: number; ayah: number }[], opts?: { crossSurah?: boolean }) => {
       cancel();
       const id = runId.current;
+      crossSurah.current = Boolean(opts?.crossSurah);
       ensureAudioMode();
       stopWord();
-      for (let a = ayah; a <= ayahCount; a++) {
+      for (const { surah: s, ayah: a } of items) {
         const { reciter, repeat, echo } = prefsRef.current;
         const r = RECITERS.find((x) => x.id === reciter) || RECITERS[0];
         for (let rep = 1; rep <= repeat; rep++) {
-          if (id !== runId.current) return;
-          setState({ ayah: a, phase: 'loading', rep, error: null });
+          if (id !== runId.current) return false;
+          setState({ surah: s, ayah: a, phase: 'loading', rep, error: null });
           let length: number | null;
           try {
-            const p = playOnce(r.url(surah, a), id);
+            const p = playOnce(r.url(s, a), id);
             setState((st) => (id === runId.current ? { ...st, phase: 'playing' } : st));
             length = await p;
           } catch {
-            if (id !== runId.current) return;
-            setState({ ayah: a, phase: 'idle', rep, error: "Couldn't play the audio. Check your connection." });
-            return;
+            if (id !== runId.current) return false;
+            setState({ surah: s, ayah: a, phase: 'idle', rep, error: "Couldn't play the audio. Check your connection." });
+            return false;
           }
           await unload();
-          if (length === null || id !== runId.current) return;
+          if (length === null || id !== runId.current) return false;
           if (echo) {
             setState((st) => ({ ...st, phase: 'echo' }));
             // Same length as the ayah, plus a breath.
             await wait(length + 600);
-            if (id !== runId.current) return;
+            if (id !== runId.current) return false;
           }
         }
       }
-      if (id === runId.current) setState({ ayah: null, phase: 'idle', rep: 1, error: null });
+      if (id !== runId.current) return false;
+      crossSurah.current = false;
+      setState({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
+      return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [surah, ayahCount, cancel]
+    [cancel]
+  );
+
+  /** Play from `ayah`, repeating each as set, then on through the surah. */
+  const playFrom = useCallback(
+    (ayah: number) =>
+      playList(Array.from({ length: Math.max(0, ayahCount - ayah + 1) }, (_, i) => ({ surah, ayah: ayah + i }))),
+    [surah, ayahCount, playList]
   );
 
   /** Stop; the current ayah stays selected so play resumes there. */
@@ -281,19 +300,24 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
 
   const stop = useCallback(() => {
     cancel();
-    setState({ ayah: null, phase: 'idle', rep: 1, error: null });
+    crossSurah.current = false;
+    setState({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
   }, [cancel]);
 
   /** Select an ayah without playing, so the big play button starts there. */
-  const cue = useCallback((ayah: number) => {
-    setState((st) => (st.phase === 'idle' ? { ayah, phase: 'idle', rep: 1, error: null } : st));
-  }, []);
+  const cue = useCallback(
+    (ayah: number) => {
+      setState((st) => (st.phase === 'idle' ? { surah, ayah, phase: 'idle', rep: 1, error: null } : st));
+    },
+    [surah]
+  );
 
-  // A new surah or leaving the screen stops playback.
+  // A new surah stops playback, unless a page is playing across it.
   useEffect(() => {
-    stop();
-    return () => cancel();
-  }, [surah, stop, cancel]);
+    if (!crossSurah.current) stop();
+  }, [surah, stop]);
+  // Leaving the screen stops it.
+  useEffect(() => () => cancel(), [cancel]);
 
   // Let a tapped word pause the recitation.
   useEffect(() => {
@@ -303,5 +327,5 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
     };
   }, [pause]);
 
-  return { state, prefs, updatePrefs, playFrom, pause, stop, cue };
+  return { state, prefs, updatePrefs, playFrom, playList, pause, stop, cue };
 }

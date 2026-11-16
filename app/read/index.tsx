@@ -9,19 +9,30 @@ import { PressBlock } from '../../src/components/Stamp';
 import { SURAHS } from '../../src/data/surahs';
 import { JUZ_START, juzLabel, juzParts } from '../../src/data/juz';
 import { LAST_READ_KEY } from '../../src/lib/ayah-audio';
+import { JUZ_START_PAGES } from '../../src/data/quran-seed';
+import { ChapterInfo, loadChapters } from '../../src/lib/mushaf-pages';
+
+const MUSHAF_PAGES = 604;
+// Surahs on a page, from the chapters' page ranges.
+const surahsOnPage = (chapters: ChapterInfo[], page: number) =>
+  chapters.flatMap((c, i) => (c.pages[0] <= page && page <= c.pages[1] ? [i + 1] : []));
 
 // "Al-Baqarah" -> "albaqarah", so "baqarah" or "al baqara" both match.
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const PRACTICE_KEY = 'aimprove.read.practice.v1';
 
 /**
- * Read: pick a surah or a juz and read it, with tajweed colours, meaning and
+ * Read: pick a surah, a juz or a Mushaf page and read it, with tajweed colours, meaning and
  * per-ayah audio. Practice mode opens it set up for listen-and-repeat.
  */
 export default function ReadScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [tab, setTab] = useState<'surah' | 'juz'>('surah');
+  const [tab, setTab] = useState<'surah' | 'juz' | 'page'>('surah');
+  const [pageText, setPageText] = useState('');
+  const [pageJuz, setPageJuz] = useState<number | null>(null);
+  const [chapters, setChapters] = useState<ChapterInfo[] | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [openJuz, setOpenJuz] = useState<number | null>(null);
   const [practice, setPractice] = useState(false);
@@ -42,6 +53,11 @@ export default function ReadScreen() {
     }, [])
   );
 
+  // Page ranges of every surah, to know which surah a page belongs to.
+  useEffect(() => {
+    if (tab === 'page' && !chapters) loadChapters().then(setChapters).catch(() => {});
+  }, [tab, chapters]);
+
   const togglePractice = (on: boolean) => {
     setPractice(on);
     AsyncStorage.setItem(PRACTICE_KEY, on ? '1' : '0').catch(() => {});
@@ -53,6 +69,23 @@ export default function ReadScreen() {
     if (practice || forcePractice) q.push('practice=1');
     router.push(`/mushaf/surah/${surah}${q.length ? `?${q.join('&')}` : ''}` as any);
   };
+
+  // Open the reader in page view at a Mushaf page.
+  const openPage = async (page: number) => {
+    setPageError(null);
+    try {
+      const list = chapters ?? (await loadChapters());
+      if (!chapters) setChapters(list);
+      const surah = surahsOnPage(list, page)[0] ?? 1;
+      router.push(`/mushaf/surah/${surah}?page=${page}${practice ? '&practice=1' : ''}` as any);
+    } catch {
+      setPageError("Couldn't load the page list. Check your connection.");
+    }
+  };
+  const typedPage = /^[0-9]+$/.test(pageText.trim()) ? Number(pageText.trim()) : null;
+  const pageValid = typedPage !== null && typedPage >= 1 && typedPage <= MUSHAF_PAGES;
+  const pageHint = (page: number) =>
+    chapters ? surahsOnPage(chapters, page).map((n) => SURAHS[n - 1].name).join(', ') : '';
 
   const surahs = useMemo(() => {
     const all = SURAHS.map((s, i) => ({ ...s, number: i + 1 }));
@@ -112,7 +145,7 @@ export default function ReadScreen() {
 
       {/* Surah / Juz */}
       <View style={[styles.segment, { borderColor: colors.ink }]} accessibilityRole="tablist">
-        {(['surah', 'juz'] as const).map((t) => (
+        {(['surah', 'juz', 'page'] as const).map((t) => (
           <Pressable
             key={t}
             onPress={() => setTab(t)}
@@ -121,13 +154,95 @@ export default function ReadScreen() {
             style={[styles.segBtn, tab === t && { backgroundColor: colors.ink }]}
           >
             <Text style={[styles.segText, { color: tab === t ? '#FFFFFF' : colors.ink }]}>
-              {t === 'surah' ? 'Surah' : 'Juz'}
+              {t === 'surah' ? 'Surah' : t === 'juz' ? 'Juz' : 'Page'}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      {tab === 'surah' ? (
+      {tab === 'page' ? (
+        <View style={[styles.card, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
+          <View style={styles.row}>
+            <View style={[styles.searchBox, styles.flex, { borderColor: colors.ink }]}>
+              <Feather name="file-text" size={18} color={colors.textMuted} />
+              <TextInput
+                value={pageText}
+                onChangeText={(t) => setPageText(t.replace(/[^0-9]/g, '').slice(0, 3))}
+                placeholder={`Page number (1–${MUSHAF_PAGES})`}
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+                returnKeyType="go"
+                onSubmitEditing={() => pageValid && openPage(typedPage!)}
+                accessibilityLabel="Mushaf page number"
+                style={[styles.searchInput, { color: colors.ink }]}
+              />
+            </View>
+            <PressBlock
+              accessibilityRole="button"
+              accessibilityLabel={pageValid ? `Read page ${typedPage}` : 'Read page'}
+              disabled={!pageValid}
+              onPress={() => pageValid && openPage(typedPage!)}
+              style={[styles.btn, { backgroundColor: pageValid ? colors.indigo : colors.border }]}
+            >
+              <Text style={styles.btnText}>Read</Text>
+            </PressBlock>
+          </View>
+          <Text style={[styles.meta, { color: pageError ? colors.danger : colors.textSecondary }]}>
+            {pageError
+              ? pageError
+              : typedPage !== null && !pageValid
+                ? `The Mushaf has ${MUSHAF_PAGES} pages.`
+                : pageValid
+                  ? `Page ${typedPage}${pageHint(typedPage!) ? ` · ${pageHint(typedPage!)}` : ''} · Juz ${
+                      JUZ_START_PAGES.filter((p) => p <= typedPage!).length
+                    }`
+                  : 'The 15-line Madinah Mushaf: every page starts with a new ayah.'}
+          </Text>
+          <Text style={[styles.label, { color: colors.ink, marginTop: 4 }]}>Pages by juz</Text>
+          {JUZ_START_PAGES.map((start, i) => {
+            const juz = i + 1;
+            const end = (JUZ_START_PAGES[i + 1] ?? MUSHAF_PAGES + 1) - 1;
+            const expanded = pageJuz === juz;
+            return (
+              <View key={juz} style={[styles.juzBlock, { borderTopWidth: 1, borderColor: colors.border }]}>
+                <Pressable
+                  onPress={() => setPageJuz(expanded ? null : juz)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  accessibilityLabel={`Juz ${juz}, pages ${start} to ${end}`}
+                  style={({ pressed }) => [styles.juzMain, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={[styles.num, { color: colors.textMuted }]}>{juz}</Text>
+                  <Text style={[styles.rowName, { color: colors.ink }]}>Juz {juz}</Text>
+                  <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
+                    pages {start}–{end}
+                  </Text>
+                  <Feather name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.indigo} />
+                </Pressable>
+                {expanded ? (
+                  <View style={styles.pageGrid}>
+                    {Array.from({ length: end - start + 1 }, (_, k) => start + k).map((p) => (
+                      <Pressable
+                        key={p}
+                        onPress={() => openPage(p)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Read page ${p}${pageHint(p) ? `, ${pageHint(p)}` : ''}`}
+                        style={({ pressed }) => [
+                          styles.pageCell,
+                          { borderColor: colors.ink, backgroundColor: colors.bgSurface },
+                          pressed && { backgroundColor: colors.indigoBg },
+                        ]}
+                      >
+                        <Text style={[styles.pageNum, { color: colors.ink }]}>{p}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : tab === 'surah' ? (
         <View style={[styles.card, CARD_EDGE, { backgroundColor: colors.bgSurface }]}>
           <View style={[styles.searchBox, { borderColor: colors.ink }]}>
             <Feather name="search" size={18} color={colors.textMuted} />
@@ -258,4 +373,14 @@ const styles = StyleSheet.create({
   expand: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   partRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40, paddingLeft: 40 },
   partName: { flex: 1, fontSize: 14, fontWeight: '700' },
+  pageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 10, paddingLeft: 40 },
+  pageCell: {
+    width: 52,
+    height: 44,
+    borderWidth: 1.5,
+    borderRadius: RADII.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageNum: { fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
 });
