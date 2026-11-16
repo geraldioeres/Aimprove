@@ -358,7 +358,7 @@ export default function SurahReaderScreen() {
         windowSize={9}
         renderItem={({ item, index }) => {
           const n = startAt + index;
-          const active = player.state.ayah === n;
+          const active = player.state.ayah === n && (player.state.surah ?? surah) === surah;
           const running = active && player.state.phase !== 'idle';
           return (
             <View
@@ -390,6 +390,7 @@ export default function SurahReaderScreen() {
                 tajweed={prefs.tajweed}
                 meaning={prefs.meaning}
                 showKey={false}
+                activeWord={active ? player.state.word : null}
                 onRule={setRulePeek}
               />
             </View>
@@ -636,6 +637,7 @@ function PageMode({
         page={page}
         width={width - 32}
         highlightKey={playingKey}
+        highlightWord={player.state.word}
         onLoaded={(p) => p.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, p.page)))}
         onWord={(w) => {
           // An ayah-end marker plays the page from that ayah.

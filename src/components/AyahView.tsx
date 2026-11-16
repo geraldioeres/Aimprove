@@ -1,7 +1,34 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { parseTajweed, TajweedRule } from '../data/tajweed';
+import { parseTajweed, TajweedRule, TajweedSegment } from '../data/tajweed';
+
+// Any Arabic letter: a token without one is a pause mark (ۛ ۖ …).
+const LETTER = /[\u0621-\u064A\u0671-\u06D3]/;
+
+/**
+ * Tajweed text split into words, keeping each part's colour. A pause mark
+ * stays with the word before it, as in Quran.com's word list.
+ */
+function tajweedWords(segments: TajweedSegment[]): TajweedSegment[][] {
+  const tokens: TajweedSegment[][] = [[]];
+  for (const seg of segments) {
+    for (const part of seg.text.split(/(\s+)/)) {
+      if (!part) continue;
+      if (/^\s+$/.test(part)) {
+        if (tokens[tokens.length - 1].length) tokens.push([]);
+      } else tokens[tokens.length - 1].push({ text: part, rule: seg.rule });
+    }
+  }
+  const words: TajweedSegment[][] = [];
+  for (const t of tokens) {
+    if (!t.length) continue;
+    const prev = words[words.length - 1];
+    if (prev && !LETTER.test(t.map((p) => p.text).join(''))) prev.push({ text: ' ' }, ...t);
+    else words.push(t);
+  }
+  return words;
+}
 import type { AyahText } from '../store/usePrayerTrack';
 import { useTheme } from '../theme/ThemeContext';
 import { CARD_EDGE, RADII } from '../theme/tokens';
@@ -18,6 +45,7 @@ export function AyahView({
   tajweed,
   meaning = true,
   showKey = true,
+  activeWord,
   onRule,
 }: {
   text: AyahText;
@@ -25,17 +53,27 @@ export function AyahView({
   tajweed: boolean;
   meaning?: boolean;
   showKey?: boolean;
+  activeWord?: number | null; // word being recited (1-based)
   onRule: (rule: TajweedRule) => void;
 }) {
   const { colors } = useTheme();
   const t = text;
   const wordPlaying = useWordPlaying();
+  const segments = useMemo(() => (tajweed && t.tajweed ? parseTajweed(t.tajweed) : []), [tajweed, t.tajweed]);
+  // While the ayah is recited, draw the tajweed text word by word so the
+  // current word can be lit (only if the words line up with the word list).
+  const litWords = useMemo(() => {
+    if (!activeWord || !segments.length) return null;
+    const w = tajweedWords(segments);
+    return w.length === t.words.length ? w : null;
+  }, [activeWord, segments, t.words.length]);
+  const lit = { backgroundColor: colors.indigo, color: '#FFFFFF' };
   return (
     <>
       {wordByWord && t.words.length ? (
         <View style={styles.words}>
           {t.words.map((w, j) => {
-            const playing = wordPlaying === `${t.key}:${j + 1}`;
+            const playing = wordPlaying === `${t.key}:${j + 1}` || activeWord === j + 1;
             return (
               <Pressable
                 key={j}
@@ -57,9 +95,28 @@ export function AyahView({
             );
           })}
         </View>
+      ) : litWords ? (
+        <Text style={[styles.arabic, { color: colors.ink }]}>
+          {litWords.map((parts, j) => (
+            <Text key={j}>
+              <Text style={activeWord === j + 1 ? lit : null}>
+                {parts.map((p, k) => (
+                  <Text
+                    key={k}
+                    onPress={p.rule ? () => onRule(p.rule!) : undefined}
+                    style={p.rule && activeWord !== j + 1 ? { color: p.rule.color } : null}
+                  >
+                    {p.text}
+                  </Text>
+                ))}
+              </Text>
+              {j < litWords.length - 1 ? ' ' : ''}
+            </Text>
+          ))}
+        </Text>
       ) : tajweed && t.tajweed ? (
         <Text style={[styles.arabic, { color: colors.ink }]}>
-          {parseTajweed(t.tajweed).map((seg, j) =>
+          {segments.map((seg, j) =>
             seg.rule ? (
               <Text
                 key={j}
@@ -74,6 +131,18 @@ export function AyahView({
               <Text key={j}>{seg.text}</Text>
             )
           )}
+        </Text>
+      ) : activeWord && t.words.length ? (
+        // Being recited: the same text, word by word, with the current word lit.
+        <Text style={[styles.arabic, { color: colors.ink }]}>
+          {t.words.map((w, j) => (
+            <Text key={j}>
+              <Text style={activeWord === j + 1 ? lit : null}>
+                {w.arabic}
+              </Text>
+              {j < t.words.length - 1 ? ' ' : ''}
+            </Text>
+          ))}
         </Text>
       ) : (
         <Text style={[styles.arabic, { color: colors.ink }]}>{t.arabic}</Text>
