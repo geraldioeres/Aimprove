@@ -37,20 +37,23 @@ interface Prefs {
   tajweed: boolean;
   meaning: boolean;
   wordByWord: boolean;
+  pageOn: boolean; // page view: after a page's audio, carry on to the next page
 }
-const DEFAULT_PREFS: Prefs = { view: 'ayah', tajweed: true, meaning: true, wordByWord: false };
+const DEFAULT_PREFS: Prefs = { view: 'ayah', tajweed: true, meaning: true, wordByWord: false, pageOn: false };
 
 export default function SurahReaderScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ surah: string; from?: string; practice?: string }>();
+  const params = useLocalSearchParams<{ surah: string; from?: string; practice?: string; page?: string }>();
   const surah = Math.min(114, Math.max(1, parseInt(params.surah || '1', 10) || 1));
   // Open at an ayah (from the juz list or "Continue"); clamp to the surah.
   const fromAyah = Math.min(SURAHS[surah - 1].ayahs, Math.max(1, parseInt(params.from || '1', 10) || 1));
   const meta = SURAHS[surah - 1];
   const chunks = Math.ceil(meta.ayahs / SURAH_CHUNK);
 
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  // Opened at a Mushaf page (from the Read menu's page list): show pages.
+  const startPage = parseInt(params.page || '', 10) || undefined;
+  const [prefs, setPrefs] = useState<Prefs>(startPage ? { ...DEFAULT_PREFS, view: 'page' } : DEFAULT_PREFS);
   const [info, setInfo] = useState<SurahInfo | null>(null);
   const [ayahs, setAyahs] = useState<AyahText[]>([]);
   const [loaded, setLoaded] = useState(0); // chunks loaded so far
@@ -68,7 +71,7 @@ export default function SurahReaderScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(PREFS_KEY)
-      .then((raw) => raw && setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw) }))
+      .then((raw) => raw && setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(raw), ...(startPage ? { view: 'page' } : {}) }))
       .catch(() => {});
   }, []);
 
@@ -206,9 +209,12 @@ export default function SurahReaderScreen() {
 
   // Page view turned into another surah: the reader follows it.
   const onPageSurah = useCallback(
-    (s: number, a: number) => router.setParams({ surah: String(s), from: String(a) }),
+    (s: number, a: number) => router.setParams({ surah: String(s), from: String(a), page: '' }),
     [router]
   );
+
+  // Page view's play control, for the player bar.
+  const pageAudio = useRef<{ play: () => void } | null>(null);
 
   const surahNav = (
     <View style={styles.navRow}>
@@ -326,6 +332,9 @@ export default function SurahReaderScreen() {
         <PageMode
           surah={surah}
           fromAyah={fromAyah}
+          startPage={startPage}
+          carryOn={prefs.pageOn}
+          control={pageAudio}
           player={player}
           title={titleRow}
           onSurah={onPageSurah}
@@ -388,7 +397,15 @@ export default function SurahReaderScreen() {
         }}
       />
       )}
-      <PlayerBar player={player} surah={surah} />
+      <PlayerBar
+        player={player}
+        surah={surah}
+        page={
+          prefs.view === 'page'
+            ? { play: () => pageAudio.current?.play(), carryOn: prefs.pageOn, setCarryOn: (v) => updatePrefs({ pageOn: v }) }
+            : undefined
+        }
+      />
       <RuleSheet
         rule={rulePeek}
         onClose={() => setRulePeek(null)}
@@ -413,12 +430,18 @@ const MUSHAF_PAGES = 604;
 function PageMode({
   surah,
   fromAyah,
+  startPage,
+  carryOn,
+  control,
   player,
   title,
   onSurah,
 }: {
   surah: number;
   fromAyah: number;
+  startPage?: number; // open at this page (if it is in the surah)
+  carryOn: boolean; // after a page's audio, go on to the next page
+  control: React.MutableRefObject<{ play: () => void } | null>;
   player: ReturnType<typeof useAyahPlayer>;
   title: React.ReactNode;
   onSurah: (surah: number, ayah: number) => void; // a page turn moved into another surah
@@ -446,7 +469,12 @@ function PageMode({
         if (alive) setChapters(list);
         return;
       }
-      const start = fromAyah > 1 ? await pageOfAyah(`${surah}:${fromAyah}`) : first;
+      const start =
+        startPage && startPage >= first && startPage <= last
+          ? startPage
+          : fromAyah > 1
+            ? await pageOfAyah(`${surah}:${fromAyah}`)
+            : first;
       if (!alive) return;
       setChapters(list);
       setPage(Math.min(last, Math.max(first, start)));
@@ -454,7 +482,7 @@ function PageMode({
     return () => {
       alive = false;
     };
-  }, [surah, fromAyah]);
+  }, [surah, fromAyah, startPage]);
 
   // Turn to any page of the Mushaf. If the page holds no part of the current
   // surah, follow the reader into the surah the page continues with (going
@@ -491,10 +519,61 @@ function PageMode({
     }
   }, [page, chapters]);
 
-  // Turn to the page of the ayah being recited.
-  const playingKey = player.state.ayah ? `${surah}:${player.state.ayah}` : null;
+  // Page audio: play the ayat on this page only, then stop (or, with
+  // "next page too", turn and play the next one).
+  const pageRun = useRef(false);
+  const carryRef = useRef(carryOn);
+  carryRef.current = carryOn;
+  const playPage = useCallback(
+    async (p: number, fromKey?: string) => {
+      const data = await loadMushafPage(p).catch(() => null);
+      if (!data) return;
+      const keys: string[] = [];
+      data.lines.forEach((l) => l.words.forEach((w) => keys[keys.length - 1] !== w.ayahKey && keys.push(w.ayahKey)));
+      const start = fromKey ? Math.max(0, keys.indexOf(fromKey)) : 0;
+      const items = keys.slice(start).map((k) => {
+        const [s, a] = k.split(':').map(Number);
+        return { surah: s, ayah: a };
+      });
+      pageRun.current = true;
+      const done = await player.playList(items, { crossSurah: true });
+      if (!done) return;
+      pageRun.current = false;
+      if (carryRef.current && p < MUSHAF_PAGES && pageRef.current === p) {
+        go(p + 1);
+        playPage(p + 1);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [player.playList, go]
+  );
+  // The player bar's play button: resume where it paused on this page, or start the page.
+  control.current = {
+    play: () => {
+      if (page === null) return;
+      const { surah: s, ayah: a } = player.state;
+      const key = s && a ? `${s}:${a}` : undefined;
+      playPage(page, key && pageOf.current.get(key) === page ? key : undefined);
+    },
+  };
+
+  // Turning the page yourself stops the page's audio.
+  const turn = useCallback(
+    (to: number) => {
+      if (pageRun.current) {
+        pageRun.current = false;
+        player.stop();
+      }
+      go(to);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [go, player.stop]
+  );
+
+  // Turn to the page of the ayah being recited (when playing on through a surah).
+  const playingKey = player.state.ayah ? `${player.state.surah ?? surah}:${player.state.ayah}` : null;
   useEffect(() => {
-    if (!playingKey) return;
+    if (!playingKey || pageRun.current) return;
     const p = pageOf.current.get(playingKey);
     if (p && p !== page) go(p);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -505,12 +584,12 @@ function PageMode({
     if (Platform.OS !== 'web' || page === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLElement && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
-      if (e.key === 'ArrowLeft') go(page + 1);
-      if (e.key === 'ArrowRight') go(page - 1);
+      if (e.key === 'ArrowLeft') turn(page + 1);
+      if (e.key === 'ArrowRight') turn(page - 1);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [page, go]);
+  }, [page, turn]);
 
   // Swipe: right brings the next page (it comes from the left), left goes back.
   const swipe = useMemo(
@@ -521,11 +600,11 @@ function PageMode({
         onPanResponderTerminationRequest: () => false,
         onPanResponderRelease: (_, g) => {
           if (page === null) return;
-          if (g.dx > 60) go(page + 1);
-          else if (g.dx < -60) go(page - 1);
+          if (g.dx > 60) turn(page + 1);
+          else if (g.dx < -60) turn(page - 1);
         },
       }),
-    [page, go]
+    [page, turn]
   );
 
   if (failed) {
@@ -559,17 +638,16 @@ function PageMode({
         highlightKey={playingKey}
         onLoaded={(p) => p.lines.forEach((l) => l.words.forEach((w) => pageOf.current.set(w.ayahKey, p.page)))}
         onWord={(w) => {
-          const [s] = w.ayahKey.split(':').map(Number);
-          if (w.isEnd) {
-            if (s === surah) player.playFrom(w.ayah);
-          } else playWord(w.ayahKey, w.position);
+          // An ayah-end marker plays the page from that ayah.
+          if (w.isEnd) playPage(page, w.ayahKey);
+          else playWord(w.ayahKey, w.position);
         }}
       />
       {/* Page turning, in mushaf order: next on the left, previous on the right. */}
       <View style={styles.turnRow}>
         <Pressable
           disabled={isLast}
-          onPress={() => go(page + 1)}
+          onPress={() => turn(page + 1)}
           accessibilityRole="button"
           accessibilityLabel="Next page"
           style={({ pressed }) => [
@@ -589,7 +667,7 @@ function PageMode({
         </View>
         <Pressable
           disabled={isFirst}
-          onPress={() => go(page - 1)}
+          onPress={() => turn(page - 1)}
           accessibilityRole="button"
           accessibilityLabel="Previous page"
           style={({ pressed }) => [
@@ -607,20 +685,34 @@ function PageMode({
 }
 
 /** Player controls: play/pause, what's playing, reciter, repeat count and echo pause. */
-function PlayerBar({ player, surah }: { player: ReturnType<typeof useAyahPlayer>; surah: number }) {
+function PlayerBar({
+  player,
+  surah,
+  page,
+}: {
+  player: ReturnType<typeof useAyahPlayer>;
+  surah: number;
+  // Page view: play plays the page on screen.
+  page?: { play: () => void; carryOn: boolean; setCarryOn: (v: boolean) => void };
+}) {
   const { colors } = useTheme();
   const { state, prefs, updatePrefs, playFrom, pause, stop } = player;
   const running = state.phase !== 'idle';
   const reciter = RECITERS.find((r) => r.id === prefs.reciter) || RECITERS[0];
+  const key = `${state.surah ?? surah}:${state.ayah}`;
   const status = state.error
     ? state.error
     : state.ayah === null
-      ? 'Tap play on any ayah, or start here.'
+      ? page
+        ? page.carryOn
+          ? 'Play this page, then on to the next.'
+          : 'Play this page only.'
+        : 'Tap play on any ayah, or start here.'
       : state.phase === 'echo'
-        ? `${surah}:${state.ayah} · your turn, repeat it`
+        ? `${key} · your turn, repeat it`
         : state.phase === 'loading'
-          ? `${surah}:${state.ayah} · loading…`
-          : `${surah}:${state.ayah}${prefs.repeat > 1 ? ` · ${state.rep} of ${prefs.repeat}` : ''}${running ? '' : ' · tap play to start'}`;
+          ? `${key} · loading…`
+          : `${key}${prefs.repeat > 1 ? ` · ${state.rep} of ${prefs.repeat}` : ''}${running ? '' : ' · tap play to start'}`;
   const nextIndex = (i: number, n: number) => (i + 1) % n;
 
   return (
@@ -628,7 +720,7 @@ function PlayerBar({ player, surah }: { player: ReturnType<typeof useAyahPlayer>
       <View style={styles.playerInner}>
         <View style={styles.playerRow}>
           <Pressable
-            onPress={() => (running ? pause() : playFrom(state.ayah ?? 1))}
+            onPress={() => (running ? pause() : page ? page.play() : playFrom(state.ayah ?? 1))}
             accessibilityRole="button"
             accessibilityLabel={running ? 'Pause' : 'Play'}
             style={({ pressed }) => [styles.bigPlay, { backgroundColor: colors.indigo }, pressed && { opacity: 0.8 }]}
@@ -682,6 +774,27 @@ function PlayerBar({ player, surah }: { player: ReturnType<typeof useAyahPlayer>
             <Feather name={prefs.echo ? 'check' : 'corner-down-left'} size={13} color={prefs.echo ? colors.indigo : colors.textSecondary} />
             <Text style={[styles.chipText, { color: prefs.echo ? colors.indigo : colors.ink }]}>Pause to repeat</Text>
           </Pressable>
+          {page ? (
+            <Pressable
+              onPress={() => page.setCarryOn(!page.carryOn)}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: page.carryOn }}
+              accessibilityLabel="After this page, carry on to the next page"
+              style={[
+                styles.chip,
+                page.carryOn
+                  ? { borderColor: colors.indigo, backgroundColor: colors.indigoBg }
+                  : { borderColor: colors.border },
+              ]}
+            >
+              <Feather
+                name={page.carryOn ? 'check' : 'skip-forward'}
+                size={13}
+                color={page.carryOn ? colors.indigo : colors.textSecondary}
+              />
+              <Text style={[styles.chipText, { color: page.carryOn ? colors.indigo : colors.ink }]}>Next page too</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </View>
