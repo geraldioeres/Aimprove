@@ -19,12 +19,14 @@ export function MushafPageView({
   page,
   width,
   highlightKey,
+  highlightWord,
   onWord,
   onLoaded,
 }: {
   page: number;
   width: number; // available width, for sizing the text
   highlightKey?: string | null;
+  highlightWord?: number | null; // word being recited in that ayah (1-based)
   onWord?: (w: PageWord) => void;
   onLoaded?: (p: MushafPage) => void;
 }) {
@@ -128,20 +130,21 @@ export function MushafPageView({
               >
                 {line.words.map((w) => {
                   const lit = highlightKey === w.ayahKey;
+                  const now = lit && !w.isEnd && highlightWord === w.position;
                   return (
                     <Pressable
                       key={`${w.ayahKey}:${w.position}`}
                       onPress={() => onWord?.(w)}
                       accessibilityRole="button"
                       accessibilityLabel={w.isEnd ? `End of ayah ${w.ayahKey}` : `Word ${w.position} of ${w.ayahKey}`}
-                      style={[styles.word, lit && { backgroundColor: colors.indigoBg }]}
+                      style={[styles.word, lit && { backgroundColor: now ? colors.indigo : colors.indigoBg }]}
                     >
                       {w.isEnd ? (
                         <View style={{ height: lineHeight, justifyContent: 'center' }}>
                           <AyahNumberMark number={w.ayah} fontSize={fontSize} />
                         </View>
                       ) : (
-                        <Text style={{ fontSize, lineHeight, color: colors.ink }}>{w.text}</Text>
+                        <Text style={{ fontSize, lineHeight, color: now ? '#FFFFFF' : colors.ink }}>{w.text}</Text>
                       )}
                     </Pressable>
                   );

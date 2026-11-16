@@ -15,6 +15,8 @@ export interface Reciter {
   name: string;
   note: string;
   url: (surah: number, ayah: number) => string;
+  // Quran.com recitation with word timings for these same files, if any.
+  timingsId?: number;
 }
 
 const pad = (n: number) => String(n).padStart(3, '0');
@@ -26,18 +28,21 @@ export const RECITERS: Reciter[] = [
     name: 'Al-Husary (Muallim)',
     note: 'Slow teaching recitation, made for repeating after',
     url: (s, a) => `https://mirrors.quranicaudio.com/everyayah/Husary_Muallim_128kbps/${file(s, a)}`,
+    timingsId: 12,
   },
   {
     id: 'husary',
     name: 'Al-Husary',
     note: 'Clear, steady murattal',
     url: (s, a) => `https://mirrors.quranicaudio.com/everyayah/Husary_64kbps/${file(s, a)}`,
+    timingsId: 6,
   },
   {
     id: 'alafasy',
     name: 'Mishary Alafasy',
     note: 'Popular murattal',
     url: (s, a) => `https://verses.quran.com/Alafasy/mp3/${file(s, a)}`,
+    timingsId: 7,
   },
   {
     id: 'ghamdi',
@@ -50,10 +55,60 @@ export const RECITERS: Reciter[] = [
     name: 'Al-Minshawi (Murattal)',
     note: 'Classic murattal',
     url: (s, a) => `https://verses.quran.com/Minshawi/Murattal/mp3/${file(s, a)}`,
+    timingsId: 9,
   },
 ];
 
 export const REPEAT_OPTIONS = [1, 3, 5] as const;
+
+// ---------------------------------------------------------------------------
+// Word timings: when each word starts and ends in a reciter's ayah file, from
+// Quran.com (the same files we play). Kept on the device once loaded.
+
+/** [word position (1-based), start ms, end ms] */
+export type WordTiming = [number, number, number];
+const timingMemory = new Map<string, WordTiming[] | null>();
+
+export async function loadWordTimings(timingsId: number, surah: number, ayah: number): Promise<WordTiming[] | null> {
+  const key = `aimprove.timings.v1.${timingsId}.${surah}:${ayah}`;
+  if (timingMemory.has(key)) return timingMemory.get(key)!;
+  let timings: WordTiming[] | null = null;
+  try {
+    const hit = await AsyncStorage.getItem(key);
+    if (hit) timings = JSON.parse(hit);
+  } catch {
+    // fall through to the network
+  }
+  if (!timings) {
+    try {
+      const res = await fetch(
+        `https://api.quran.com/api/v4/verses/by_key/${surah}:${ayah}?audio=${timingsId}&words=false`
+      );
+      if (!res.ok) return null;
+      const segments: number[][] = (await res.json()).verse?.audio?.segments ?? [];
+      // Each segment is [first word index, end word index, start ms, end ms];
+      // the word is the end index (1-based).
+      timings = segments
+        .filter((g) => g.length >= 4)
+        .map((g) => [g[1], g[2], g[3]] as WordTiming);
+      if (timings.length) AsyncStorage.setItem(key, JSON.stringify(timings)).catch(() => {});
+    } catch {
+      return null; // offline: no word highlight this time
+    }
+  }
+  timingMemory.set(key, timings && timings.length ? timings : null);
+  return timingMemory.get(key)!;
+}
+
+/** The word being recited at `ms`: the last one that has started. */
+function wordAt(timings: WordTiming[], ms: number): number | null {
+  let word: number | null = null;
+  for (const [w, start] of timings) {
+    if (start <= ms) word = w;
+    else break;
+  }
+  return word;
+}
 
 export interface AudioPrefs {
   reciter: string;
@@ -75,6 +130,7 @@ export interface PlayerState {
   ayah: number | null; // current ayah number in that surah
   phase: PlayerPhase;
   rep: number; // 1-based play count for the current ayah
+  word: number | null; // word being recited (1-based), when the reciter has word timings
   error: string | null;
 }
 
@@ -151,7 +207,7 @@ const stopWord = () => {
 
 export function useAyahPlayer(surah: number, ayahCount: number) {
   const [prefs, setPrefs] = useState<AudioPrefs>(DEFAULT_PREFS);
-  const [state, setState] = useState<PlayerState>({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
+  const [state, setState] = useState<PlayerState>({ surah: null, ayah: null, phase: 'idle', rep: 1, word: null, error: null });
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   const runId = useRef(0); // bumping it cancels the running sequence
@@ -194,7 +250,7 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
   }, []);
 
   // Plays one file to the end. Resolves with its length in ms, or null if cancelled.
-  const playOnce = (uri: string, id: number) =>
+  const playOnce = (uri: string, id: number, onPosition?: (ms: number) => void) =>
     new Promise<number | null>(async (resolve, reject) => {
       let done = false;
       const finish = (v: number | null) => {
@@ -205,12 +261,14 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
       };
       wake.current = () => finish(null);
       try {
-        const { sound: s } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true }, (st: AVPlaybackStatus) => {
+        const status = { shouldPlay: true, progressUpdateIntervalMillis: onPosition ? 60 : 500 };
+        const { sound: s } = await Audio.Sound.createAsync({ uri }, status, (st: AVPlaybackStatus) => {
           if (!st.isLoaded) {
             if (st.error) reject(new Error(st.error));
             return;
           }
           if (st.didJustFinish) finish(st.durationMillis ?? st.positionMillis ?? 0);
+          else if (st.isPlaying) onPosition?.(st.positionMillis);
         });
         if (id !== runId.current) {
           await s.unloadAsync().catch(() => {});
@@ -250,26 +308,44 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
       crossSurah.current = Boolean(opts?.crossSurah);
       ensureAudioMode();
       stopWord();
-      for (const { surah: s, ayah: a } of items) {
+      for (let i = 0; i < items.length; i++) {
+        const { surah: s, ayah: a } = items[i];
         const { reciter, repeat, echo } = prefsRef.current;
         const r = RECITERS.find((x) => x.id === reciter) || RECITERS[0];
+        // Word timings for this ayah (and the next, ahead of time).
+        let timings: WordTiming[] | null = null;
+        if (r.timingsId) {
+          loadWordTimings(r.timingsId, s, a).then((t) => (timings = t));
+          const n = items[i + 1];
+          if (n) loadWordTimings(r.timingsId, n.surah, n.ayah).catch(() => {});
+        }
+        let shown: number | null = null;
+        const follow = (ms: number) => {
+          if (!timings || id !== runId.current) return;
+          const w = wordAt(timings, ms);
+          if (w !== shown) {
+            shown = w;
+            setState((st) => (id === runId.current ? { ...st, word: w } : st));
+          }
+        };
         for (let rep = 1; rep <= repeat; rep++) {
           if (id !== runId.current) return false;
-          setState({ surah: s, ayah: a, phase: 'loading', rep, error: null });
+          shown = null;
+          setState({ surah: s, ayah: a, phase: 'loading', rep, word: null, error: null });
           let length: number | null;
           try {
-            const p = playOnce(r.url(s, a), id);
+            const p = playOnce(r.url(s, a), id, r.timingsId ? follow : undefined);
             setState((st) => (id === runId.current ? { ...st, phase: 'playing' } : st));
             length = await p;
           } catch {
             if (id !== runId.current) return false;
-            setState({ surah: s, ayah: a, phase: 'idle', rep, error: "Couldn't play the audio. Check your connection." });
+            setState({ surah: s, ayah: a, phase: 'idle', rep, word: null, error: "Couldn't play the audio. Check your connection." });
             return false;
           }
           await unload();
           if (length === null || id !== runId.current) return false;
           if (echo) {
-            setState((st) => ({ ...st, phase: 'echo' }));
+            setState((st) => ({ ...st, phase: 'echo', word: null }));
             // Same length as the ayah, plus a breath.
             await wait(length + 600);
             if (id !== runId.current) return false;
@@ -278,7 +354,7 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
       }
       if (id !== runId.current) return false;
       crossSurah.current = false;
-      setState({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
+      setState({ surah: null, ayah: null, phase: 'idle', rep: 1, word: null, error: null });
       return true;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -295,19 +371,19 @@ export function useAyahPlayer(surah: number, ayahCount: number) {
   /** Stop; the current ayah stays selected so play resumes there. */
   const pause = useCallback(() => {
     cancel();
-    setState((st) => ({ ...st, phase: 'idle' }));
+    setState((st) => ({ ...st, phase: 'idle', word: null }));
   }, [cancel]);
 
   const stop = useCallback(() => {
     cancel();
     crossSurah.current = false;
-    setState({ surah: null, ayah: null, phase: 'idle', rep: 1, error: null });
+    setState({ surah: null, ayah: null, phase: 'idle', rep: 1, word: null, error: null });
   }, [cancel]);
 
   /** Select an ayah without playing, so the big play button starts there. */
   const cue = useCallback(
     (ayah: number) => {
-      setState((st) => (st.phase === 'idle' ? { surah, ayah, phase: 'idle', rep: 1, error: null } : st));
+      setState((st) => (st.phase === 'idle' ? { surah, ayah, phase: 'idle', rep: 1, word: null, error: null } : st));
     },
     [surah]
   );
